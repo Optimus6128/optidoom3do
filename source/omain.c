@@ -51,6 +51,7 @@ static void *sliderShapes;
     static Word cheatAutomapState = 0;      // 0=OFF, 1=ITEMS, 2=LINES, 3=ALL
     static Word cheatIDKFAdummy = 0;
 
+    static bool isMusicStopped = false;
 
 // =============================
 //   Menu items to select from
@@ -336,7 +337,23 @@ static void handleSpecialActionsIfOptionChanged(player_t *player)
         break;
 
         case mi_musicVolume:
-            SetMusicVolume(MusicVolume);
+        {
+            if (MusicVolume==0) {
+                S_StopSong();
+                isMusicStopped = true;
+            } else {
+                if (isMusicStopped) {
+                    if (!player) {  // if player is null, we are in main menu before game even starts
+                        S_StartSong(Song_intro, TRUE);
+                    }
+                    else {
+                        S_StartSong(Song_e1m1-1+gamemap, TRUE);
+					}
+                    isMusicStopped = false;
+                }
+                SetMusicVolume(MusicVolume);
+            }
+        }
         break;
 
         case mi_screenSize:
