@@ -13,23 +13,7 @@
 
 **********************************/
 
-typedef struct MyCCB {		/* Clone of the CCB Block from the 3DO includes */
-	uint32 ccb_Flags;
-	struct MyCCB *ccb_NextPtr;
-	CelData    *ccb_SourcePtr;
-	void       *ccb_PLUTPtr;
-	Coord ccb_XPos;
-	Coord ccb_YPos;
-	int32  ccb_HDX;
-	int32  ccb_HDY;
-	int32  ccb_VDX;
-	int32  ccb_VDY;
-	int32  ccb_HDDX;
-	int32  ccb_HDDY;
-	uint32 ccb_PIXC;
-	uint32 ccb_PRE0;
-	uint32 ccb_PRE1;
-} MyCCB;			/* I DON'T include width and height */
+
 
 
 #define CCBTotal 0x200
@@ -53,17 +37,17 @@ static Fixed SkyScales[6] = {
 	SKYSCALE(80.0)
 };
 
-#define LIGHTSCALESHIFT 3
-#if 0
-	0x0000,0x0400,0x0800,0x0C00,0x1000,0x1400,0x1800,0x1C00,	/* 1/16 - 8/16 */
-	0x00D0,0x1300,0x08D0,0x1700,0x10D0,0x1B00,0x18D0,0x1F00,
-#endif
 
-static Word LightTable[] = {
-	0x0000,0x0400,0x0800,0x0C00,0x1000,0x1400,0x1800,0x1C00,	/* 1/16 - 8/16 */
+/* 1/16 - 8/16 */
+// 0x0000,0x0400,0x0800,0x0C00,0x1000,0x1400,0x1800,0x1C00,
+// 0x00D0,0x1300,0x08D0,0x1700,0x10D0,0x1B00,0x18D0,0x1F00,
+
+
+Word LightTable[32] = {
+	0x0000,0x0400,0x0800,0x0C00,0x1000,0x1400,0x1800,0x1C00,
 	0x00D0,0x00D0,0x1300,0x1300,0x08D0,0x08D0,0x1700,0x1700,
 	0x10D0,0x10D0,0x1B00,0x1B00,0x18D0,0x18D0,0x1F00,0x1F00,
-	0x1F00,0x1F00,0x1F00,0x1F00,0x1F00,0x1F00,0x1F00,0x1F00,
+	0x1F00,0x1F00,0x1F00,0x1F00,0x1F00,0x1F00,0x1F00,0x1F00
 };
 
 /**********************************
@@ -86,6 +70,11 @@ void initCCBarray(void)
 	} while (--i);
 }
 
+void resetSpanPointer()
+{
+	SpanPtr = SpanArray;		/* Reset the floor texture pointer */
+}
+
 void FlushCCBs(void)
 {
 	MyCCB* NewCCB;
@@ -97,7 +86,7 @@ void FlushCCBs(void)
 		DrawCels(VideoItem,(CCB *)&CCBArray[0]);	/* Draw all the cels in one shot */
 		CurrentCCB = &CCBArray[0];		/* Reset the empty entry */
 	}
-	SpanPtr = SpanArray;		/* Reset the floor texture pointer */
+    resetSpanPointer();
 }
 
 void AddCelToCurrentCCB(CCB* cel)
@@ -386,7 +375,7 @@ void DrawSkyLine(void)
 		FlushCCBs();				/* Draw all the CCBs/Lines */
 		DestCCB = CCBArray;
 	}
-	Colnum = (((xtoviewangle[tx_x]+viewangle)>>ANGLETOSKYSHIFT)&0xFF)*64;
+	Colnum = (((xtoviewangle[tx_x]+viewangle)>>ANGLETOSKYSHIFT)&0xFF)<<6;
 	Source = (Byte *)(*SkyTexture->data);	/* Index to the true shape */
 
 	DestCCB->ccb_Flags = CCB_SPABS|CCB_LDSIZE|CCB_LDPRS|

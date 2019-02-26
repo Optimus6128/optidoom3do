@@ -11,6 +11,8 @@
 
 #include "bench.h"
 
+//#define SHOW_LOGOS
+
 static void LowMemCode(Word Type);
 static void WipeDoom(LongWord *OldScreen,LongWord *NewScreen);
 
@@ -39,6 +41,7 @@ int frameTime;
 
 **********************************/
 
+#ifdef SHOW_LOGOS
 static void RunAProgram(char *ProgramName)
 {
 	Item LogoItem;
@@ -48,6 +51,7 @@ static void RunAProgram(char *ProgramName)
 	} while (LookupItem(LogoItem));		/* Wait until the program quits */
 	DeleteItem(LogoItem);				/* Dispose of the 3DO logo code */
 }
+#endif
 
 /**********************************
 
@@ -176,7 +180,7 @@ void InitTools(void)
 	Item MyVDLItem;
 		/* Read page PRF-85 for info */
 
-#if 1       // 0 to disable all these logo fades (for faster testing)
+#ifdef SHOW_LOGOS       // 0 to disable all these logo fades (for faster testing)
 	Show3DOLogo();				/* Show the 3DO Logo */
 	RunAProgram("IdLogo IDLogo.cel");
 #if 0			/* Set to 1 for Japanese version */
@@ -275,6 +279,11 @@ FooBar:
 
 	initTimer();
     initCCBarray();
+    initCCBarrayWall();
+    initCCBarraySky();
+    initCCBarrayFloor();
+    initCCBarrayFloorFlat();
+    initSpanDrawFunc();
 	initNewSkies();
 }
 

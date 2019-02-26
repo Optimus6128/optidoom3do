@@ -53,6 +53,7 @@ static void *sliderShapes;
 
     static bool isMusicStopped = false;
 
+
 // =============================
 //   Menu items to select from
 // =============================
@@ -65,6 +66,9 @@ enum {
 	mi_screenSize,      // Screen size settings
 	mi_wallQuality,     // Wall quality (fullres or halfres)
 	mi_floorQuality,    // Floor/Ceiling quality (textured, flat)
+	mi_shading_depth,   // Depth shading option (on, off (dark/bright))
+	mi_shading_items,   // Shading enable option for items (weapons, enemies, things, etc)
+	mi_renderer,        // Selection of the new renderers (polygons instead of columns, etc)
 	mi_mapLines,        // Map thick lines on/off
 	mi_waterFx,         // Water fx on/off
 	mi_sky,             // New skies
@@ -85,6 +89,7 @@ enum {
     page_audio,
     page_controls,
     page_performance,
+    page_rendering,
     page_effects,
     page_cheats,
     page_extra,
@@ -96,7 +101,9 @@ enum {
 #define CHEATSREVEALED_OPTIONS_NUM 3
 
 #define WALLQUALITY_OPTIONS_NUM 3
-#define FLOORQUALITY_OPTIONS_NUM 2
+#define FLOORQUALITY_OPTIONS_NUM 3
+#define DEPTHSHADING_OPTIONS_NUM 3
+#define RENDERER_OPTIONS_NUM 3
 #define OFFON_OPTIONS_NUM 2
 #define AUTOMAP_OPTIONS_NUM 4
 #define DUMMYIDKFA_OPTIONS_NUM 2
@@ -107,14 +114,18 @@ enum {
 #define ENEMYSPEED_OPTIONS_NUM SPEED_OPTIONS_NUM
 #define PLAYERSPEED_OPTIONS_NUM (SPEED_OPTIONS_NUM - 1)
 
-static char *wallQualityOptions[WALLQUALITY_OPTIONS_NUM] = { "LO BUGGY", "LO", "HI"};
-static char *floorQualityOptions[FLOORQUALITY_OPTIONS_NUM] = { "FLAT", "TEXTURED" };
+
 static char *offOnOptions[OFFON_OPTIONS_NUM] = { "OFF", "ON" };
+static char *wallQualityOptions[WALLQUALITY_OPTIONS_NUM] = { "LO", "MED", "HI"};
+static char *floorQualityOptions[FLOORQUALITY_OPTIONS_NUM] = { "LO", "MED", "HI" };
+static char *depthShadingOptions[DEPTHSHADING_OPTIONS_NUM] = { "DARK", "BRIGHT", "ON" };
+static char *rendererOptions[RENDERER_OPTIONS_NUM] = { "DOOM", "LIGOLEAST", "LIGOMOST" };
 static char *automapOptions[AUTOMAP_OPTIONS_NUM] = { "OFF", "THINGS", "LINES", "ALL" };
 static char *dummyIDKFAoptions[DUMMYIDKFA_OPTIONS_NUM] = { " ", "!" };
 static char *thicklinesOptions[THICKLINES_OPTIONS_NUM] = { "NORMAL", "THICK" };
 static char *skyOptions[SKY_OPTIONS_NUM] = { "DEFAULT", "DAY", "NIGHT", "DUSK", "DAWN", "PSX" };
 static char *speedOptions[SPEED_OPTIONS_NUM] = { "0X", "1X", "2X" };
+
 
 enum {
     muiStyle_special = 0,
@@ -139,7 +150,7 @@ typedef struct {
 static MenuItem menuItems[NUM_MENUITEMS];
 static Word itemPage[NUM_MENUITEMS];
 
-static char *pageLabel[NUM_PAGES] = { "AUDIO", "CONTROLS", "PERFORMANCE", "EFFECTS", "CHEATS", "EXTRA" };
+static char *pageLabel[NUM_PAGES] = { "AUDIO", "CONTROLS", "PERFORMANCE", "RENDERING", "EFFECTS", "CHEATS", "EXTRA" };
 
 
 static void setMenuItem(Word id, int posX, int posY, char *label, bool centered, Word muiStyle, Word *optionValuePtr, Word optionsRange)
@@ -207,8 +218,13 @@ void initMenuOptions()
     setMenuItemWithOptionNames(mi_fps, 112, 36, "Fps", false, muiStyle_text, &fpsDisplayed, OFFON_OPTIONS_NUM, offOnOptions);
     setMenuItem(mi_screenSize, 160, 58, "Screen size", true, muiStyle_slider, &screenSizeIndex, SCREENSIZE_OPTIONS_NUM);
     setMenuItemWithOptionNames(mi_wallQuality, 112, 94, "Wall", false, muiStyle_text | muiStyle_slider, &wallQuality, WALLQUALITY_OPTIONS_NUM, wallQualityOptions);
-    setMenuItemWithOptionNames(mi_floorQuality, 64, 126, "Floor", false, muiStyle_text | muiStyle_slider, &floorQuality, FLOORQUALITY_OPTIONS_NUM, floorQualityOptions);
+    setMenuItemWithOptionNames(mi_floorQuality, 96, 126, "Floor", false, muiStyle_text | muiStyle_slider, &floorQuality, FLOORQUALITY_OPTIONS_NUM, floorQualityOptions);
     setItemPageRange(mi_fps, mi_floorQuality, page_performance);
+
+    setMenuItemWithOptionNames(mi_shading_depth, 48, 40, "Depth shade", false, muiStyle_text, &depthShadingOption, DEPTHSHADING_OPTIONS_NUM, depthShadingOptions);
+    setMenuItemWithOptionNames(mi_shading_items, 40, 80, "Things shade", false, muiStyle_text, &thingsShadingOption, OFFON_OPTIONS_NUM, offOnOptions);
+    setMenuItemWithOptionNames(mi_renderer, 32, 120, "Renderer", false, muiStyle_text, &rendererOption, RENDERER_OPTIONS_NUM, rendererOptions);
+    setItemPageRange(mi_shading_depth, mi_renderer, page_rendering);
 
     setMenuItemWithOptionNames(mi_mapLines, 64, 40, "Map lines", false, muiStyle_text, &thickLinesEnabled, THICKLINES_OPTIONS_NUM, thicklinesOptions);
     setMenuItemWithOptionNames(mi_waterFx, 80, 60, "Water fx", false, muiStyle_text, &waterfxEnabled, OFFON_OPTIONS_NUM, offOnOptions);
@@ -358,7 +374,19 @@ static void handleSpecialActionsIfOptionChanged(player_t *player)
 
         case mi_screenSize:
             ScreenSizeOption = SCREENSIZE_OPTIONS_NUM-1 - screenSizeIndex;  // ScreenSizeOption is reversed from screenSizeIndex
-            if (player) InitMathTables();
+            if (player) {
+                InitMathTables();
+            }
+            initCCBarraySky();
+        break;
+
+        case mi_wallQuality:
+            initCCBarrayWall();
+            initCCBarraySky();
+        break;
+
+        case mi_floorQuality:
+            initSpanDrawFunc();
         break;
 
         case mi_sky:

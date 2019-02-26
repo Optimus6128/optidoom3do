@@ -4,13 +4,21 @@
 
 #define OPENMARK ((MAXSCREENHEIGHT-1)<<8)
 
+typedef struct {
+    Word x1;
+    Word x2;
+} visspan_t;
+
 Byte *PlaneSource;			/* Pointer to image of floor/ceiling texture */
 Fixed planey;		/* latched viewx / viewy for floor drawing */
 Fixed basexscale,baseyscale;
 Word PlaneDistance;
 static Word PlaneHeight;
-static Word spanstart[MAXSCREENHEIGHT];
 
+static visspan_t spandata[MAXSCREENHEIGHT];
+
+static MyCCB CCBArrayFloor[MAXSCREENHEIGHT];
+static MyCCB CCBArrayFloorFlat[MAXSCREENHEIGHT];
 
 /***************************
 
@@ -18,34 +26,119 @@ static Word spanstart[MAXSCREENHEIGHT];
 
 ****************************/
 
-Word floorQuality = 1;
+Word floorQuality = 2;      // 0 = FLAT, 1 = TEXTURED (LOWRES), 2 = TEXTURED (HIGHRES)
 Word waterfxEnabled = 0;
+
+void (*spanDrawFunc)(Word Count,LongWord xfrac,LongWord yfrac,Fixed ds_xstep,Fixed ds_ystep,Byte *Dest);
+
+
 #include "bench.h"
 
 /**********************************
-
-basexscale
-baseyscale
-planey
 
 	This is the basic primitive to draw horizontal lines quickly
 
 **********************************/
 
-static void MapPlane(Word x2,Word y)
+void initSpanDrawFunc(void)
+{
+    if (floorQuality==2)
+        spanDrawFunc = DrawASpan;
+    else
+        spanDrawFunc = DrawASpanLo;
+}
+
+void initCCBarrayFloor(void)
+{
+	MyCCB *CCBPtr;
+	int i;
+
+	CCBPtr = &CCBArrayFloor[0];
+	for (i=0; i<MAXSCREENHEIGHT; ++i) {
+        CCBPtr->ccb_NextPtr = (MyCCB *)(sizeof(MyCCB)-8);	// Create the next offset
+
+		// Set all the defaults
+        CCBPtr->ccb_Flags = CCB_SPABS|CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_PPABS|CCB_USEAV;	/* ccb_flags */
+
+        CCBPtr->ccb_PRE0 = 0x00000005;		// Preamble (Coded 8 bit)
+        CCBPtr->ccb_HDX = 1<<20;
+        CCBPtr->ccb_HDY = 0<<20;
+        CCBPtr->ccb_VDX = 0<<16;
+        CCBPtr->ccb_VDY = 1<<16;
+
+		++CCBPtr;
+	}
+}
+
+void initCCBarrayFloorFlat(void)
+{
+	MyCCB *CCBPtr;
+	int i;
+
+	CCBPtr = &CCBArrayFloorFlat[0];
+	for (i=0; i<MAXSCREENHEIGHT; ++i) {
+		CCBPtr->ccb_NextPtr = (MyCCB *)(sizeof(MyCCB)-8);	// Create the next offset
+
+		// Set all the defaults
+        CCBPtr->ccb_Flags = CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_USEAV;	/* ccb_flags */
+
+        CCBPtr->ccb_PRE0 = 0x40000016;
+        CCBPtr->ccb_PRE1 = 0x03FF1000;
+        CCBPtr->ccb_SourcePtr = (CelData *)0;
+        CCBPtr->ccb_HDY = 0<<20;
+        CCBPtr->ccb_VDX = 0<<16;
+        CCBPtr->ccb_VDY = 1<<16;
+
+		++CCBPtr;
+	}
+}
+
+void drawCCBarrayFloor(Word xEnd, Byte *source)
+{
+    MyCCB *spanCCBstart, *spanCCBend;
+
+    spanCCBstart = &CCBArrayFloor[0];           // First span CEL of the wall segment
+	spanCCBend = &CCBArrayFloor[xEnd];          // Last span CEL of the wall segment
+
+    spanCCBstart->ccb_Flags |= CCB_LDPLUT;      // Enable CCB_LDPLUT only for the first span
+    spanCCBstart->ccb_PLUTPtr = source;         // Don't forget to set up the palette pointer, only for the first span
+
+	spanCCBend->ccb_Flags |= CCB_LAST;          // Mark last colume CEL as the last one in the linked list
+    DrawCels(VideoItem,(CCB*)spanCCBstart);     // Draw all the cels of a single wall in one shot
+
+    spanCCBstart->ccb_Flags ^= CCB_LDPLUT;      // Turn off CCB_LDPLUT on the first span after render, the next wall segment might need it off
+    spanCCBend->ccb_Flags ^= CCB_LAST;          // remember to flip off that CCB_LAST flag, since we don't reinit the flags for all spans every time
+}
+
+void drawCCBarrayFloorFlat(Word xEnd)
+{
+    MyCCB *spanCCBstart, *spanCCBend;
+
+    spanCCBstart = &CCBArrayFloorFlat[0];       // First span CEL of the wall segment
+	spanCCBend = &CCBArrayFloorFlat[xEnd];      // Last span CEL of the wall segment
+
+	spanCCBend->ccb_Flags |= CCB_LAST;          // Mark last colume CEL as the last one in the linked list
+    DrawCels(VideoItem,(CCB*)spanCCBstart);     // Draw all the cels of a single wall in one shot
+
+    spanCCBend->ccb_Flags ^= CCB_LAST;          // remember to flip off that CCB_LAST flag, since we don't reinit the flags for all spans every time
+}
+
+
+static void MapPlaneOldWaterFX(Word y)
 {
 	angle_t	angle;
 	Word distance;
 	Fixed length;
 	Fixed xfrac,yfrac,xstep,ystep;
-	Word x1;
+	Word x1, x2;
 
 // planeheight is 10.6
 // yslope is 6.10, distscale is 1.15
 // distance is 12.4
 // length is 11.5
 
-	x1 = spanstart[y];
+	x1 = spandata[y].x1;
+	x2 = spandata[y].x2;
 	distance = (yslope[y]*PlaneHeight)>>12;	/* Get the offset for the plane height */
 	length = (distscale[x1]*distance)>>14;
 	angle = (xtoviewangle[x1]+viewangle)>>ANGLETOFINESHIFT;
@@ -58,12 +151,12 @@ static void MapPlane(Word x2,Word y)
 	xstep = ((Fixed)distance*basexscale)>>4;
 	ystep = ((Fixed)distance*baseyscale)>>4;
 
-	if (waterfxEnabled) {
+	/*if (waterfxEnabled) {
         xfrac += (SinF16(((yslope[y]*PlaneHeight) >> 4) + (nframe << 4)) * (basexscale << 4));
         yfrac += (SinF16(((yslope[y]*PlaneHeight) >> 4) + (nframe << 4)) * (baseyscale << 4));
-	}
+	}*/
 
-	length = lightcoef/(Fixed)distance - lightsub;
+	length = lightcoef / (Fixed)distance - lightsub;
 	if (length < lightmin) {
 		length = lightmin;
 	}
@@ -75,6 +168,201 @@ static void MapPlane(Word x2,Word y)
         DrawFloorColumn(y,x1,x2-x1,xfrac,yfrac,xstep,ystep);
     else
         DrawFlatFloorColumn(y,x1,x2-x1);
+}
+
+
+static void MapPlane(Word y1, Word y2)
+{
+	angle_t	angle;
+	Word distance;
+	Fixed length;
+	int light;
+	Fixed xfrac,yfrac,xstep,ystep;
+	Word x1;
+    int y;
+
+    MyCCB *CCBPtr;
+    Byte *DestPtr;
+    Word Count;
+
+    if (y1 > y2) return;
+
+
+    DestPtr = SpanPtr;
+    CCBPtr = &CCBArrayFloor[0];
+    for (y=y1; y<=y2; ++y) {
+        x1 = spandata[y].x1;
+        Count = spandata[y].x2 - x1;
+        distance = (yslope[y]*PlaneHeight)>>12;	/* Get the offset for the plane height */
+        length = (distscale[x1]*distance)>>14;
+        angle = (xtoviewangle[x1]+viewangle)>>ANGLETOFINESHIFT;
+
+        xfrac = (((finecosine[angle]>>1)*length)>>4)+viewx;
+        yfrac = planey - (((finesine[angle]>>1)*length)>>4);
+
+        xstep = ((Fixed)distance*basexscale)>>4;
+        ystep = ((Fixed)distance*baseyscale)>>4;
+
+        light = lightcoef / (Fixed)distance - lightsub;
+        if (light < lightmin) {
+            light = lightmin;
+        }
+        if (light > lightmax) {
+            light = lightmax;
+        }
+
+
+        spanDrawFunc(Count,xfrac,yfrac,xstep,ystep,DestPtr);
+
+        CCBPtr->ccb_PRE1 = 0x3E005000|(Count-1);		/* Second preamble */
+        CCBPtr->ccb_SourcePtr = (CelData *)DestPtr;	/* Save the source ptr */
+        CCBPtr->ccb_XPos = x1<<16;		/* Set the x and y coord for start */
+        CCBPtr->ccb_YPos = y<<16;
+        CCBPtr->ccb_PIXC = LightTable[light>>LIGHTSCALESHIFT];			/* PIXC control */
+        CCBPtr++;
+
+        Count = (Count+3)&(~3);		/* Round to nearest longword */
+        DestPtr += Count;
+        SpanPtr = DestPtr;
+    }
+    drawCCBarrayFloor(y2-y1, PlaneSource);
+}
+
+static void MapPlaneUnshaded(Word y1, Word y2)
+{
+	angle_t	angle;
+	Word distance;
+	Fixed length;
+	int light;
+	Fixed xfrac,yfrac,xstep,ystep;
+	Word x1;
+    int y;
+
+    MyCCB *CCBPtr;
+    Byte *DestPtr;
+    Word Count;
+
+    if (y1 > y2) return;
+
+    if (!depthShadingOption) light = lightmin;
+        else light = lightmax;
+
+
+    DestPtr = SpanPtr;
+    CCBPtr = &CCBArrayFloor[0];
+    for (y=y1; y<=y2; ++y) {
+        x1 = spandata[y].x1;
+        Count = spandata[y].x2 - x1;
+        distance = (yslope[y]*PlaneHeight)>>12;	/* Get the offset for the plane height */
+        length = (distscale[x1]*distance)>>14;
+        angle = (xtoviewangle[x1]+viewangle)>>ANGLETOFINESHIFT;
+
+        xfrac = (((finecosine[angle]>>1)*length)>>4)+viewx;
+        yfrac = planey - (((finesine[angle]>>1)*length)>>4);
+
+        xstep = ((Fixed)distance*basexscale)>>4;
+        ystep = ((Fixed)distance*baseyscale)>>4;
+
+
+        spanDrawFunc(Count,xfrac,yfrac,xstep,ystep,DestPtr);
+
+        CCBPtr->ccb_PRE1 = 0x3E005000|(Count-1);		/* Second preamble */
+        CCBPtr->ccb_SourcePtr = (CelData *)DestPtr;	/* Save the source ptr */
+        CCBPtr->ccb_XPos = x1<<16;		/* Set the x and y coord for start */
+        CCBPtr->ccb_YPos = y<<16;
+        CCBPtr->ccb_PIXC = LightTable[light>>LIGHTSCALESHIFT];			/* PIXC control */
+        CCBPtr++;
+
+        Count = (Count+3)&(~3);		/* Round to nearest longword */
+        DestPtr += Count;
+        SpanPtr = DestPtr;
+    }
+    drawCCBarrayFloor(y2-y1, PlaneSource);
+}
+
+static void MapPlaneFlat(Word y1, Word y2)
+{
+	Word distance;
+	int light;
+	Word x1, x2;
+    int y;
+
+    MyCCB *CCBPtr;
+    Byte *plutPtr = (Byte*)(((Word*)PlaneSource)[0] << 16);
+
+    if (y1 > y2) return;
+
+    CCBPtr = &CCBArrayFloorFlat[0];
+    for (y=y1; y<=y2; ++y) {
+        x1 = spandata[y].x1;
+        x2 = spandata[y].x2;
+        distance = (yslope[y]*PlaneHeight)>>12;	/* Get the offset for the plane height */
+
+        light = lightcoef / (Fixed)distance - lightsub;
+        if (light < lightmin) {
+            light = lightmin;
+        }
+        if (light > lightmax) {
+            light = lightmax;
+        }
+
+
+        CCBPtr->ccb_PLUTPtr = plutPtr;
+        CCBPtr->ccb_PIXC = LightTable[light>>LIGHTSCALESHIFT];
+        CCBPtr->ccb_XPos = x1<<16;
+        CCBPtr->ccb_YPos = y<<16;
+        CCBPtr->ccb_HDX = (x2-x1)<<20;
+        CCBPtr++;
+    }
+    drawCCBarrayFloorFlat(y2-y1);
+}
+
+static void MapPlaneFlatUnshaded(Word y1, Word y2)
+{
+	Word x1, x2;
+    int y;
+    int light;
+    MyCCB *CCBPtr;
+    Byte *plutPtr = (Byte*)(((Word*)PlaneSource)[0] << 16);
+
+    if (y1 > y2) return;
+
+    if (!depthShadingOption) light = lightmin;
+        else light = lightmax;
+
+    CCBPtr = &CCBArrayFloorFlat[0];
+    for (y=y1; y<=y2; ++y) {
+        x1 = spandata[y].x1;
+        x2 = spandata[y].x2;
+
+
+        CCBPtr->ccb_PLUTPtr = plutPtr;
+        CCBPtr->ccb_PIXC = LightTable[light>>LIGHTSCALESHIFT];
+        CCBPtr->ccb_XPos = x1<<16;
+        CCBPtr->ccb_YPos = y<<16;
+        CCBPtr->ccb_HDX = (x2-x1)<<20;
+        CCBPtr++;
+    }
+    drawCCBarrayFloorFlat(y2-y1);
+}
+
+static void MapPlaneAny(Word y1, Word y2)
+{
+    const bool lightQuality = (depthShadingOption > 1);
+
+    if (floorQuality) {
+        if (lightQuality) {
+            MapPlane(y1, y2);
+        } else {
+            MapPlaneUnshaded(y1, y2);
+        }
+    } else {
+        if (lightQuality) {
+            MapPlaneFlat(y1, y2);
+        } else {
+            MapPlaneFlatUnshaded(y1, y2);
+        }
+    }
 }
 
 /**********************************
@@ -91,6 +379,7 @@ void DrawVisPlane(visplane_t *p)
 	register Word x;
 	Word stop;
 	Word oldtop;
+	Word markY;
 	register Word *open;
 
 	PlaneSource = (Byte *)*p->PicHandle;	/* Get the base shape index */
@@ -127,14 +416,15 @@ void DrawVisPlane(visplane_t *p)
 
 			if (PrevTopY < NewTopY && PrevTopY<=PrevBottomY) {	/* Valid? */
 				register Word Count;
-
 				Count = PrevBottomY+1;	/* Convert to < */
 				if (NewTopY<Count) {	/* Use the lower */
 					Count = NewTopY;	/* This is smaller */
 				}
+				markY = PrevTopY;
 				do {
-					MapPlane(x,PrevTopY);		/* Draw to this x */
-				} while (++PrevTopY<Count);	/* Keep counting */
+                    spandata[PrevTopY].x2 = x;
+				} while (++PrevTopY<Count);
+                MapPlaneAny(markY, Count-1);
 			}
 			if (NewTopY < PrevTopY && NewTopY<=NewBottomY) {
 				register Word Count;
@@ -143,7 +433,7 @@ void DrawVisPlane(visplane_t *p)
 					Count = PrevTopY;
 				}
 				do {
-					spanstart[NewTopY] = x;	/* Mark the starting x's */
+					spandata[NewTopY].x1 = x;	/* Mark the starting x's */
 				} while (++NewTopY<Count);
 			}
 
@@ -153,9 +443,11 @@ void DrawVisPlane(visplane_t *p)
 				if (Count<(int)NewBottomY) {
 					Count = NewBottomY;
 				}
+                markY = PrevBottomY;
 				do {
-					MapPlane(x,PrevBottomY);	/* Draw to this x */
+                    spandata[PrevBottomY].x2 = x;
 				} while ((int)--PrevBottomY>Count);
+                MapPlaneAny(Count+1, markY);
 			}
 			if (NewBottomY > PrevBottomY && NewBottomY>=NewTopY) {
 				register int Count;
@@ -164,7 +456,7 @@ void DrawVisPlane(visplane_t *p)
 					Count = PrevBottomY;
 				}
 				do {
-					spanstart[NewBottomY] = x;		/* Mark the starting x's */
+					spandata[NewBottomY].x1 = x;		/* Mark the starting x's */
 				} while ((int)--NewBottomY>Count);
 			}
 			oldtop=newtop;
