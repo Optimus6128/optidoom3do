@@ -29,6 +29,7 @@ typedef struct {
 
 
 static MyCCB CCBArrayWall[MAXSCREENWIDTH];		// Array of CCB structs for a single wall segment
+static MyCCB CCBArrayWallFlat[MAXSCREENWIDTH];	// Array of CCB structs for a single wall segment (untextured)
 static MyCCB CCBArraySky[MAXSCREENWIDTH];       // Array of CCB struct for the sky columns
 
 static Word clipboundtop[MAXSCREENWIDTH];		// Bounds top y for vertical clipping
@@ -52,7 +53,6 @@ segloop_t segloops[MAXSCREENWIDTH];
 
 bool skyOn = false;
 
-
 /***************************
 
 	Wall quality settings
@@ -61,12 +61,12 @@ bool skyOn = false;
 
 enum
 {
-    WALL_QUALITY_LO_FAST = 0,
-    WALL_QUALITY_LO = 1,
-    WALL_QUALITY_NORMAL = 2
+    WALL_QUALITY_LO = 0,
+    WALL_QUALITY_MED = 1,
+    WALL_QUALITY_HI = 2
 };
 
-Word wallQuality = WALL_QUALITY_NORMAL;     // 0=FAST(Bugger), 1=LO, 2=HI
+Word wallQuality = WALL_QUALITY_HI;         // 0=LO(Untextured), 1=MED, 2=HI
 Word columnWidth;                           // column width in pixels (1 for fullRes, 2 for halfRes)
 
 Word depthShadingOption = 2;     // 0=OFF(DARK), 1=OFF(BRIGHT), 2=ON
@@ -87,9 +87,9 @@ void initCCBarrayWall(void)
 	MyCCB *CCBPtr;
 	int i;
 
-    columnWidth = 2;
-    if (wallQuality==WALL_QUALITY_NORMAL)
-        columnWidth = 1;
+    columnWidth = 1;
+    if (wallQuality==WALL_QUALITY_MED)
+        columnWidth = 2;
 
 	CCBPtr = CCBArrayWall;
 	for (i=0; i<MAXSCREENWIDTH; ++i) {
@@ -111,16 +111,37 @@ void initCCBarrayWall(void)
 	}
 }
 
+void initCCBarrayWallFlat(void)
+{
+	MyCCB *CCBPtr;
+	int i;
+
+	CCBPtr = CCBArrayWallFlat;
+	for (i=0; i<MAXSCREENWIDTH; ++i) {
+		CCBPtr->ccb_NextPtr = (MyCCB *)(sizeof(MyCCB)-8);	// Create the next offset
+
+		// Set all the defaults
+        CCBPtr->ccb_Flags = CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_USEAV|CCB_ACSC|CCB_ALSC;	/* ccb_flags */
+
+        CCBPtr->ccb_PRE0 = 0x40000016;
+        CCBPtr->ccb_PRE1 = 0x03FF1000;
+        CCBPtr->ccb_SourcePtr = (CelData *)0;
+        CCBPtr->ccb_HDX = 0<<20;
+        CCBPtr->ccb_VDX = 1<<16;
+        CCBPtr->ccb_VDY = 0<<16;
+		CCBPtr->ccb_HDDX = 0;
+		CCBPtr->ccb_HDDY = 0;
+
+		++CCBPtr;
+	}
+}
+
 void initCCBarraySky(void)
 {
 	MyCCB *CCBPtr;
 	int i;
 
 	const int skyScale = getSkyScale(ScreenSizeOption);
-
-	int skyColumnScale = 1;
-	if (wallQuality==WALL_QUALITY_LO_FAST)
-        skyColumnScale = 2;
 
 	CCBPtr = CCBArraySky;
 	for (i=0; i<MAXSCREENWIDTH; ++i) {
@@ -137,7 +158,7 @@ void initCCBarraySky(void)
         CCBPtr->ccb_YPos = 0<<16;
         CCBPtr->ccb_HDX = 0<<20;		        // Convert 6 bit frac to CCB scale
         CCBPtr->ccb_HDY = skyScale;             // Video stretch factor
-        CCBPtr->ccb_VDX = skyColumnScale<<16;
+        CCBPtr->ccb_VDX = 1<<16;
         CCBPtr->ccb_VDY = 0<<16;
 		CCBPtr->ccb_HDDX = 0;
 		CCBPtr->ccb_HDDY = 0;
@@ -155,6 +176,18 @@ void drawCCBarrayAny(MyCCB* lastCCB, Byte *source, MyCCB *CCBArrayPtr)
 	columnCCBend = lastCCB;                      // Last column CEL of the wall segment
 
 	columnCCBstart->ccb_PLUTPtr = source;        // Don't forget to set up the palette pointer, only for the first column
+	columnCCBend->ccb_Flags |= CCB_LAST;         // Mark last colume CEL as the last one in the linked list
+    DrawCels(VideoItem,(CCB*)columnCCBstart);    // Draw all the cels of a single wall in one shot
+    columnCCBend->ccb_Flags ^= CCB_LAST;         // remember to flip off that CCB_LAST flag, since we don't reinit the flags for all columns every time
+}
+
+void drawCCBarrayAnyFlat(MyCCB* lastCCB, MyCCB *CCBArrayPtr)
+{
+    MyCCB *columnCCBstart, *columnCCBend;
+
+	columnCCBstart = CCBArrayPtr;                // First column CEL of the wall segment
+	columnCCBend = lastCCB;                      // Last column CEL of the wall segment
+
 	columnCCBend->ccb_Flags |= CCB_LAST;         // Mark last colume CEL as the last one in the linked list
     DrawCels(VideoItem,(CCB*)columnCCBstart);    // Draw all the cels of a single wall in one shot
     columnCCBend->ccb_Flags ^= CCB_LAST;         // remember to flip off that CCB_LAST flag, since we don't reinit the flags for all columns every time
@@ -275,6 +308,45 @@ static void DrawWallSegmentHalf(drawtex_t *tex, Word screenCenterY)
     drawCCBarrayAny(--CCBPtr, tex->data, CCBArrayWall);
 }
 
+static void DrawWallSegmentFlat(drawtex_t *tex, Word screenCenterY)
+{
+    int xPos = tex->xStart;
+	int top;
+	Word run;
+	viscol_t *vc;
+
+	MyCCB *CCBPtr;
+	Byte *plutPtr;
+
+	if (xPos > tex->xEnd) return;
+
+	run = (tex->topheight-tex->bottomheight)>>HEIGHTBITS;	// Source image height
+	if ((int)run<=0) {		// Invalid?
+		return;
+	}
+
+	plutPtr = (Byte*)(((Word*)tex->data)[0] << 16);
+
+    CCBPtr = CCBArrayWallFlat;
+    vc = viscols;
+    do {
+        top = screenCenterY - ((vc->scale*tex->topheight) >> (HEIGHTBITS+SCALEBITS));	// Screen Y
+
+        CCBPtr->ccb_PLUTPtr = plutPtr;
+        CCBPtr->ccb_XPos = xPos << 16;
+        CCBPtr->ccb_YPos = (top<<16) + 0xFF00;
+        CCBPtr->ccb_HDY = (run * vc->scale) << 11;
+        CCBPtr->ccb_PIXC = LightTable[vc->light>>LIGHTSCALESHIFT];		// PIXC control
+
+        CCBPtr++;
+        vc++;
+    }while (++xPos <= tex->xEnd);
+
+    // Call for the final render of the linked list of all the column cels of the single wall segment
+    drawCCBarrayAnyFlat(--CCBPtr, CCBArrayWallFlat);
+}
+
+
 /**********************************
 
 	Draw a single wall texture.
@@ -282,7 +354,7 @@ static void DrawWallSegmentHalf(drawtex_t *tex, Word screenCenterY)
 
 **********************************/
 
-static void DrawSegAny(viswall_t *segl, bool isTop)
+static void DrawSegAny(viswall_t *segl, bool isTop, bool isFlat)
 {
     texture_t *tex;
     if (isTop) {
@@ -302,10 +374,14 @@ static void DrawSegAny(viswall_t *segl, bool isTop)
     drawtex.height = tex->height;
     drawtex.data = (Byte *)*tex->data;
 
-    if (columnWidth==1) {
-        DrawWallSegmentFull(&drawtex, CenterY);
+    if (isFlat) {
+        DrawWallSegmentFlat(&drawtex, CenterY);
     } else {
-        DrawWallSegmentHalf(&drawtex, CenterY);
+        if (columnWidth==1) {
+            DrawWallSegmentFull(&drawtex, CenterY);
+        } else {
+            DrawWallSegmentHalf(&drawtex, CenterY);
+        }
     }
 }
 
@@ -361,10 +437,10 @@ static void DrawSegFull(viswall_t *segl, int *scaleData)
     drawtex.xEnd = segl->RightX;
 
     if (ActionBits&AC_TOPTEXTURE)
-        DrawSegAny(segl, true);
+        DrawSegAny(segl, true, false);
 
     if (ActionBits&AC_BOTTOMTEXTURE)
-        DrawSegAny(segl, false);
+        DrawSegAny(segl, false, false);
 }
 
 static void DrawSegFullUnshaded(viswall_t *segl, int *scaleData)
@@ -408,10 +484,62 @@ static void DrawSegFullUnshaded(viswall_t *segl, int *scaleData)
     drawtex.xEnd = segl->RightX;
 
     if (ActionBits&AC_TOPTEXTURE)
-        DrawSegAny(segl, true);
+        DrawSegAny(segl, true, false);
 
     if (ActionBits&AC_BOTTOMTEXTURE)
-        DrawSegAny(segl, false);
+        DrawSegAny(segl, false, false);
+}
+
+static void DrawSegFullFlat(viswall_t *segl, int *scaleData)
+{
+    Word i;
+
+	int scale;
+
+	int textureLight;
+
+	viscol_t *viscol;
+
+	Word xPos = segl->LeftX;
+
+    Word ActionBits = segl->WallActions;
+	if (!(ActionBits & (AC_TOPTEXTURE|AC_BOTTOMTEXTURE))) return;
+
+
+    i = segl->seglightlevel;
+    lightmin = lightmins[i];
+    lightmax = i;
+    lightsub = lightsubs[i];
+    lightcoef = lightcoefs[i];
+
+    viscol = viscols;
+    do {
+        scale = *scaleData++;
+
+        textureLight = ((scale*lightcoef)>>16) - lightsub;
+        if (textureLight < lightmin) {
+            textureLight = lightmin;
+        }
+        if (textureLight > lightmax) {
+            textureLight = lightmax;
+        }
+
+        viscol->light = textureLight;
+        viscol->scale = scale;
+        viscol++;
+
+        ++xPos;
+    } while (xPos <= segl->RightX);
+
+
+    drawtex.xStart = segl->LeftX;
+    drawtex.xEnd = segl->RightX;
+
+    if (ActionBits&AC_TOPTEXTURE)
+        DrawSegAny(segl, true, true);
+
+    if (ActionBits&AC_BOTTOMTEXTURE)
+        DrawSegAny(segl, false, true);
 }
 
 static void DrawSegHalf(viswall_t *segl, int *scaleData)
@@ -467,10 +595,10 @@ static void DrawSegHalf(viswall_t *segl, int *scaleData)
     drawtex.xEnd = segl->RightX;
 
     if (ActionBits&AC_TOPTEXTURE)
-        DrawSegAny(segl, true);
+        DrawSegAny(segl, true, false);
 
     if (ActionBits&AC_BOTTOMTEXTURE)
-        DrawSegAny(segl, false);
+        DrawSegAny(segl, false, false);
 }
 
 static void DrawSegHalfUnshaded(viswall_t *segl, int *scaleData)
@@ -515,10 +643,10 @@ static void DrawSegHalfUnshaded(viswall_t *segl, int *scaleData)
     drawtex.xEnd = segl->RightX;
 
     if (ActionBits&AC_TOPTEXTURE)
-        DrawSegAny(segl, true);
+        DrawSegAny(segl, true, false);
 
     if (ActionBits&AC_BOTTOMTEXTURE)
-        DrawSegAny(segl, false);
+        DrawSegAny(segl, false, false);
 }
 
 /**********************************
@@ -816,245 +944,6 @@ static void SegLoop(viswall_t *segl)
     }
 }
 
-// ******** LOWRES VERSION ********
-
-static void SegLoopFloorLo(viswall_t *segl, Word screenCenterY)
-{
-	Word x;
-	int scale;
-	int value;
-
-	visplane_t *FloorPlane;
-	int top, bottom;
-	int ceilingclipy, floorclipy;
-
-	segloop_t *segdata = segloops;
-
-	FloorPlane = visplanes;		// Reset the visplane pointers
-
-	x = segl->LeftX;
-	do {
-		scale = segdata->scale;
-		ceilingclipy = segdata->ceilingclipy;
-		floorclipy = segdata->floorclipy;
-
-        top = screenCenterY - ((scale * segl->floorheight)>>(HEIGHTBITS+SCALEBITS));	// Y coord of top of floor
-        if (top <= ceilingclipy) {
-            top = ceilingclipy+1;		// Clip the top of floor to the bottom of the visible area
-        }
-        bottom = floorclipy-1;		// Draw to the bottom of the screen
-        if (top <= bottom) {		// Valid span?
-            if (FloorPlane->open[x] != OPENMARK) {	// Not already covered?
-                FloorPlane = FindPlane(FloorPlane, segl, x);
-            }
-            if (top) {
-                --top;
-            }
-            value = (top<<8)+bottom;
-            FloorPlane->open[x] = value;	// Set the new vertical span
-            FloorPlane->open[x+1] = value;	// Set the new vertical span
-        }
-        segdata+=2;
-        x += 2;
-	} while (x<=segl->RightX);
-}
-
-static void SegLoopCeilingLo(viswall_t *segl, Word screenCenterY)
-{
-	Word x;
-	int scale;
-	int value;
-
-	visplane_t *CeilingPlane;
-	int top, bottom;
-	int ceilingclipy, floorclipy;
-
-	segloop_t *segdata = segloops;
-
-	CeilingPlane = visplanes;		// Reset the visplane pointers
-
-	// Ugly hack for the case FindPlane expects segl, but reads always floor (to not pass too many arguments as before and also not duplicate)
-	segl->floorheight = segl->ceilingheight;
-	segl->FloorPic = segl->CeilingPic;
-
-	x = segl->LeftX;
-	do {
-		scale = segdata->scale;
-		ceilingclipy = segdata->ceilingclipy;
-		floorclipy = segdata->floorclipy;
-
-        top = ceilingclipy+1;		// Start from the ceiling
-        bottom = (screenCenterY-1) - ((scale * segl->ceilingheight)>>(HEIGHTBITS+SCALEBITS));	// Bottom of the height
-        if (bottom >= floorclipy) {		// Clip the bottom?
-            bottom = floorclipy-1;
-        }
-        if (top <= bottom) {
-            if (CeilingPlane->open[x] != OPENMARK) {		// Already in use?
-                CeilingPlane = FindPlane(CeilingPlane, segl, x);
-            }
-            if (top) {
-                --top;
-            }
-            value = (top<<8)+bottom;
-            CeilingPlane->open[x] = value;		// Set the vertical span
-            CeilingPlane->open[x+1] = value;		// Set the vertical span
-        }
-        segdata+=2;
-        x+=2;
-	} while (x<=segl->RightX);
-}
-
-static void SegLoopSpriteClipsBottomLo(viswall_t *segl, Word screenCenterY)
-{
-    Word ActionBits = segl->WallActions;
-	segloop_t *segdata = segloops;
-
-	Word x = segl->LeftX;
-	do {
-        int low = screenCenterY - ((segdata->scale * segl->floornewheight)>>(HEIGHTBITS+SCALEBITS));
-        int floorclipy = segdata->floorclipy;
-
-        if (low > floorclipy) {
-            low = floorclipy;
-        }
-        if (low < 0) {
-            low = 0;
-        }
-        if (ActionBits & AC_BOTTOMSIL) {
-            segl->BottomSil[x] = low;
-        }
-        if (ActionBits & AC_NEWFLOOR) {
-            clipboundbottom[x] = low;
-        }
-		segdata++;
-	} while (++x<=segl->RightX);
-}
-
-static void SegLoopSpriteClipsTopLo(viswall_t *segl, Word screenCenterY)
-{
-    Word ActionBits = segl->WallActions;
-	segloop_t *segdata = segloops;
-
-	Word x = segl->LeftX;
-	do {
-        int high = (screenCenterY-1) - ((segdata->scale * segl->ceilingnewheight)>>(HEIGHTBITS+SCALEBITS));
-        int ceilingclipy = segdata->ceilingclipy;
-
-        if (high < ceilingclipy) {
-            high = ceilingclipy;
-        }
-        if (high > (int)ScreenHeight-1) {
-            high = ScreenHeight-1;
-        }
-        if (ActionBits & AC_TOPSIL) {
-            segl->TopSil[x] = high+1;
-        }
-        if (ActionBits & AC_NEWCEILING) {
-            clipboundtop[x] = high;
-        }
-		segdata++;
-	} while (++x<=segl->RightX);
-}
-
-static void SegLoopSkyLo(viswall_t *segl, Word screenCenterY)
-{
-	int scale;
-	int ceilingclipy, floorclipy;
-	int bottom;
-
-	MyCCB *CCBPtr = &CCBArraySky[0];
-    Byte *Source = (Byte *)(*SkyTexture->data);
-
-	segloop_t *segdata = segloops;
-
-    Word x = segl->LeftX;
-    do {
-		scale = segdata->scale;
-		ceilingclipy = segdata->ceilingclipy;
-		floorclipy = segdata->floorclipy;
-
-        bottom = screenCenterY - ((scale * segl->ceilingheight)>>(HEIGHTBITS+SCALEBITS));
-        if (bottom > floorclipy) {
-            bottom = floorclipy;
-        }
-        if ((ceilingclipy+1) < bottom) {		// Valid?
-            CCBPtr->ccb_XPos = x<<16;                               // Set the x and y coord for start
-            CCBPtr->ccb_SourcePtr = (CelData *)&Source[((((xtoviewangle[x]+viewangle)>>ANGLETOSKYSHIFT)&0xFF)<<6) + 32];	// Get the source ptr
-            ++CCBPtr;
-        }
-        segdata+=2;
-        x+=2;
-	} while (x<=segl->RightX);
-
-	if (CCBPtr != &CCBArraySky[0]) drawCCBarrayAny(--CCBPtr, Source, CCBArraySky);
-}
-
-static void SegLoopLo(viswall_t *segl)
-{
-	Word x;
-
-	int _scalefrac = segl->LeftScale;		// Init the scale fraction
-	const int _scalestep = segl->ScaleStep << 1;
-
-	Word ActionBits = segl->WallActions;
-
-    segloop_t *segdata = segloops;
-
-    int *scaleData = scaleArrayData;
-
-	x = segl->LeftX;
-	do {
-        int scale = _scalefrac>>FIXEDTOSCALE;	// Current scaling factor
-		if (scale >= 0x2000) {		// Too large?
-			scale = 0x1fff;			// Fix the scale to maximum
-		}
-		*scaleData = scale;
-		scaleData+=2;
-
-		segdata->scale = scale;
-		segdata->ceilingclipy = clipboundtop[x];	// Get the top y clip
-		segdata->floorclipy = clipboundbottom[x];	// Get the bottom y clip
-        segdata++;
-
-		segdata->scale = scale;
-		segdata->ceilingclipy = clipboundtop[x+1];	// Get the top y clip
-		segdata->floorclipy = clipboundbottom[x+1];	// Get the bottom y clip
-        segdata++;
-
-        _scalefrac += _scalestep;		// Step to the next scale
-        x+=2;
-	} while (x<=segl->RightX);
-	scaleArrayData = scaleData;
-
-
-// Shall I add the floor?
-    if (ActionBits & AC_ADDFLOOR) {
-        SegLoopFloorLo(segl, CenterY);
-    }
-
-// Handle ceilings
-    if (ActionBits & AC_ADDCEILING) {
-        SegLoopCeilingLo(segl, CenterY);
-    }
-
-// Sprite clip sils
-    if (ActionBits & (AC_BOTTOMSIL|AC_NEWFLOOR)) {
-        SegLoopSpriteClipsBottomLo(segl, CenterY);
-    }
-
-    if (ActionBits & (AC_TOPSIL|AC_NEWCEILING)) {
-        SegLoopSpriteClipsTopLo(segl, CenterY);
-    }
-
-// I can draw the sky right now!!
-    if (ActionBits & AC_ADDSKY) {
-        skyOn = true;
-        if (skyType==SKY_DEFAULT) {
-            SegLoopSkyLo(segl, CenterY);
-        }
-    }
-}
-
 /**********************************
 
 	Draw all the sprites from back to front.
@@ -1126,11 +1015,7 @@ void SegCommands(void)
         scaleArrayIndex = 0;
         do {
             scaleArrayPtr[scaleArrayIndex++] = scaleArrayData;
-            if (wallQuality == WALL_QUALITY_LO_FAST) {
-                SegLoopLo(WallSegPtr);
-            } else {
-                SegLoop(WallSegPtr);
-            }
+            SegLoop(WallSegPtr);
         } while (++WallSegPtr<LastSegPtr);	// Next wall in chain
 
         // Now I actually draw the walls back to front to allow for clipping because of slop
@@ -1140,18 +1025,20 @@ void SegCommands(void)
             --WallSegPtr;			// Last go backwards!!
             scaleArrayData = scaleArrayPtr[--scaleArrayIndex];
 
-            if (wallQuality == WALL_QUALITY_NORMAL) {
+            if (wallQuality == WALL_QUALITY_HI) {
                 if (lightQuality) {
                     DrawSegFull(WallSegPtr, scaleArrayData);
                 } else {
                     DrawSegFullUnshaded(WallSegPtr, scaleArrayData);
                 }
-            } else {
+            } else if (wallQuality == WALL_QUALITY_MED) {
                 if (lightQuality) {
                     DrawSegHalf(WallSegPtr, scaleArrayData);
                 } else {
                     DrawSegHalfUnshaded(WallSegPtr, scaleArrayData);
                 }
+            } else {
+                DrawSegFullFlat(WallSegPtr, scaleArrayData);
             }
         } while (WallSegPtr!=LastSegPtr);
     }

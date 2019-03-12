@@ -64,7 +64,7 @@ enum {
 	mi_controls,        // Control settings
 	mi_fps,             // FPS display on/off
 	mi_screenSize,      // Screen size settings
-	mi_wallQuality,     // Wall quality (fullres or halfres)
+	mi_wallQuality,     // Wall quality (fullres(hi), halfres(med), untextured(lo))
 	mi_floorQuality,    // Floor/Ceiling quality (textured, flat)
 	mi_shading_depth,   // Depth shading option (on, off (dark/bright))
 	mi_shading_items,   // Shading enable option for items (weapons, enemies, things, etc)
@@ -382,7 +382,6 @@ static void handleSpecialActionsIfOptionChanged(player_t *player)
 
         case mi_wallQuality:
             initCCBarrayWall();
-            initCCBarraySky();
         break;
 
         case mi_floorQuality:

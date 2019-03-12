@@ -56,6 +56,7 @@ extern Word thingsShadingOption;
 extern Word rendererOption;
 
 extern void initCCBarrayWall(void);
+extern void initCCBarrayWallFlat(void);
 extern void initCCBarraySky(void);
 
 

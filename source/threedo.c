@@ -280,6 +280,7 @@ FooBar:
 	initTimer();
     initCCBarray();
     initCCBarrayWall();
+    initCCBarrayWallFlat();
     initCCBarraySky();
     initCCBarrayFloor();
     initCCBarrayFloorFlat();
