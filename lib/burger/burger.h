@@ -26,9 +26,11 @@ typedef long Fixed;
 typedef double extended;
 /*typedef unsigned char Boolean; */
 
+/*
 typedef struct {
 	Word top,left,bottom,right;
 } Rect;
+*/
 
 #define __3DO__
 #define __BIGENDIAN__
