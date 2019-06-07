@@ -45,6 +45,12 @@ typedef struct {
 	Word texturemid;	/* Anchor point for texture */
 } drawtex_t;
 
+typedef struct {
+    int scale;
+    Word column;
+    Word light;
+} viscol_t;
+
 
 // In phase6.c
 extern Word columnWidth;
@@ -59,6 +65,9 @@ extern void initCCBarrayWall(void);
 extern void initCCBarrayWallFlat(void);
 extern void initCCBarraySky(void);
 
+// In phase6ll.c
+extern void DrawSegFullFlatUnshadedLL(viswall_t *segl, int *scaleData);
+
 
 // In phase7.c
 extern Word floorQuality;
@@ -66,6 +75,7 @@ extern Word waterfxEnabled;
 
 extern void initCCBarrayFloor(void);
 extern void initCCBarrayFloorFlat(void);
+extern void initCCBarrayFloorFlatVertical(void);
 extern void initSpanDrawFunc(void);
 
 

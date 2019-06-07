@@ -284,6 +284,7 @@ FooBar:
     initCCBarraySky();
     initCCBarrayFloor();
     initCCBarrayFloorFlat();
+    initCCBarrayFloorFlatVertical();
     initSpanDrawFunc();
 	initNewSkies();
 }

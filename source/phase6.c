@@ -16,12 +16,6 @@
 **********************************/
 
 typedef struct {
-    int scale;
-    Word column;
-    Word light;
-} viscol_t;
-
-typedef struct {
 	int scale;
 	int ceilingclipy;
 	int floorclipy;
@@ -320,10 +314,11 @@ static void DrawWallSegmentFlat(drawtex_t *tex, Word screenCenterY)
 
 	if (xPos > tex->xEnd) return;
 
-	run = (tex->topheight-tex->bottomheight)>>HEIGHTBITS;	// Source image height
+	run = (tex->topheight-tex->bottomheight) >> HEIGHTBITS;	// Source image height
 	if ((int)run<=0) {		// Invalid?
 		return;
 	}
+	if (run > 383) run = 383;
 
 	plutPtr = (Byte*)(((Word*)tex->data)[0] << 16);
 
@@ -445,8 +440,6 @@ static void DrawSegFull(viswall_t *segl, int *scaleData)
 
 static void DrawSegFullUnshaded(viswall_t *segl, int *scaleData)
 {
-    Word i;
-
 	int scale;
 
 	int textureColumn;
@@ -459,9 +452,8 @@ static void DrawSegFullUnshaded(viswall_t *segl, int *scaleData)
     Word ActionBits = segl->WallActions;
 	if (!(ActionBits & (AC_TOPTEXTURE|AC_BOTTOMTEXTURE))) return;
 
-    i = segl->seglightlevel;
-    if (!depthShadingOption) textureLight = lightmins[i];
-        else textureLight = i;
+    textureLight = segl->seglightlevel;
+    if (!depthShadingOption) textureLight = lightmins[textureLight];
 
     viscol = viscols;
     do {
@@ -542,6 +534,40 @@ static void DrawSegFullFlat(viswall_t *segl, int *scaleData)
         DrawSegAny(segl, false, true);
 }
 
+static void DrawSegFullFlatUnshaded(viswall_t *segl, int *scaleData)
+{
+	int textureLight;
+
+	viscol_t *viscol;
+
+	Word xPos = segl->LeftX;
+
+    Word ActionBits = segl->WallActions;
+	if (!(ActionBits & (AC_TOPTEXTURE|AC_BOTTOMTEXTURE))) return;
+
+    textureLight = segl->seglightlevel;
+    if (!depthShadingOption) textureLight = lightmins[textureLight];
+
+    viscol = viscols;
+    do {
+        viscol->light = textureLight;
+        viscol->scale = *scaleData++;
+        viscol++;
+
+        ++xPos;
+    } while (xPos <= segl->RightX);
+
+
+    drawtex.xStart = segl->LeftX;
+    drawtex.xEnd = segl->RightX;
+
+    if (ActionBits&AC_TOPTEXTURE)
+        DrawSegAny(segl, true, true);
+
+    if (ActionBits&AC_BOTTOMTEXTURE)
+        DrawSegAny(segl, false, true);
+}
+
 static void DrawSegHalf(viswall_t *segl, int *scaleData)
 {
     Word i;
@@ -603,8 +629,6 @@ static void DrawSegHalf(viswall_t *segl, int *scaleData)
 
 static void DrawSegHalfUnshaded(viswall_t *segl, int *scaleData)
 {
-    Word i;
-
 	int scale;
 
 	int textureColumn;
@@ -617,9 +641,8 @@ static void DrawSegHalfUnshaded(viswall_t *segl, int *scaleData)
     Word ActionBits = segl->WallActions;
 	if (!(ActionBits & (AC_TOPTEXTURE|AC_BOTTOMTEXTURE))) return;
 
-    i = segl->seglightlevel;
-    if (!depthShadingOption) textureLight = lightmins[i];
-        else textureLight = i;
+    textureLight = segl->seglightlevel;
+    if (!depthShadingOption) textureLight = lightmins[textureLight];
 
     viscol = viscols;
     do {
@@ -1021,26 +1044,40 @@ void SegCommands(void)
         // Now I actually draw the walls back to front to allow for clipping because of slop
 
         LastSegPtr = viswalls;		// Stop at the first one
-        do {
-            --WallSegPtr;			// Last go backwards!!
-            scaleArrayData = scaleArrayPtr[--scaleArrayIndex];
 
-            if (wallQuality == WALL_QUALITY_HI) {
-                if (lightQuality) {
-                    DrawSegFull(WallSegPtr, scaleArrayData);
+        if (rendererOption==0) {
+            do {
+                --WallSegPtr;			// Last go backwards!!
+                scaleArrayData = scaleArrayPtr[--scaleArrayIndex];
+
+                if (wallQuality == WALL_QUALITY_HI) {
+                    if (lightQuality) {
+                        DrawSegFull(WallSegPtr, scaleArrayData);
+                    } else {
+                        DrawSegFullUnshaded(WallSegPtr, scaleArrayData);
+                    }
+                } else if (wallQuality == WALL_QUALITY_MED) {
+                    if (lightQuality) {
+                        DrawSegHalf(WallSegPtr, scaleArrayData);
+                    } else {
+                        DrawSegHalfUnshaded(WallSegPtr, scaleArrayData);
+                    }
                 } else {
-                    DrawSegFullUnshaded(WallSegPtr, scaleArrayData);
+                    if (lightQuality) {
+                        DrawSegFullFlat(WallSegPtr, scaleArrayData);
+                    } else {
+                        DrawSegFullFlatUnshaded(WallSegPtr, scaleArrayData);
+                    }
                 }
-            } else if (wallQuality == WALL_QUALITY_MED) {
-                if (lightQuality) {
-                    DrawSegHalf(WallSegPtr, scaleArrayData);
-                } else {
-                    DrawSegHalfUnshaded(WallSegPtr, scaleArrayData);
-                }
-            } else {
-                DrawSegFullFlat(WallSegPtr, scaleArrayData);
-            }
-        } while (WallSegPtr!=LastSegPtr);
+            } while (WallSegPtr!=LastSegPtr);
+        } else {
+            do {
+                --WallSegPtr;			// Last go backwards!!
+                scaleArrayData = scaleArrayPtr[--scaleArrayIndex];
+
+                DrawSegFullFlatUnshadedLL(WallSegPtr, scaleArrayData);
+            } while (WallSegPtr!=LastSegPtr);
+        }
     }
 
 	// Now we draw all the planes. They are already clipped and create no slop!
