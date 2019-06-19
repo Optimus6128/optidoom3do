@@ -278,15 +278,7 @@ FooBar:
 	MemPurgeCallBack = LowMemCode;
 
 	initTimer();
-    initCCBarray();
-    initCCBarrayWall();
-    initCCBarrayWallFlat();
-    initCCBarraySky();
-    initCCBarrayFloor();
-    initCCBarrayFloorFlat();
-    initCCBarrayFloorFlatVertical();
-    initSpanDrawFunc();
-	initNewSkies();
+	initAllCCBelements();
 }
 
 /**********************************
@@ -437,6 +429,41 @@ void ReadPrefsFile(void)
 	}
 }
 
+/*******************
+
+  Stupid debugging
+
+*******************/
+
+#define DBG_NUM_MAX 10
+static int dbgNum[DBG_NUM_MAX];
+static int dbgIndex = 0;
+
+void printDbg(int value)
+{
+    if (dbgIndex==DBG_NUM_MAX) return;
+
+    dbgNum[dbgIndex] = value;
+    ++dbgIndex;
+}
+
+static void renderDbg()
+{
+    int i, num, posY;
+    for (i=0; i<dbgIndex; ++i) {
+        posY = (i+2) << 4;
+        num = dbgNum[i];
+        if (num < 0) {
+            num = -num;
+            PrintBigFont(8, posY, (Byte*)"-");
+        }
+        PrintNumber(16, posY, num, 0);
+    }
+    FlushCCBs();
+
+    dbgIndex = 0;
+}
+
 /**********************************
 
 	Display the current framebuffer
@@ -445,6 +472,7 @@ void ReadPrefsFile(void)
 	only look ragged.
 
 **********************************/
+
 
 void UpdateAndPageFlip(void)
 {
@@ -480,6 +508,8 @@ void UpdateAndPageFlip(void)
         PrintNumber(8, 8, fps, 0);
         FlushCCBs();
     }
+
+    renderDbg();
 
 	DisplayScreen(ScreenItems[WorkPage],0);		/* Display the hidden page */
 	if (++WorkPage>=SCREENS) {		/* Next screen in line */

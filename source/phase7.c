@@ -19,6 +19,7 @@ static visspan_t spandata[MAXSCREENHEIGHT];
 
 static MyCCB CCBArrayFloor[MAXSCREENHEIGHT];
 static MyCCB CCBArrayFloorFlat[MAXSCREENHEIGHT];
+static MyCCB CCBArrayFloorFlatVertical[MAXSCREENWIDTH];
 
 /***************************
 
@@ -58,7 +59,7 @@ void initCCBarrayFloor(void)
         CCBPtr->ccb_NextPtr = (MyCCB *)(sizeof(MyCCB)-8);	// Create the next offset
 
 		// Set all the defaults
-        CCBPtr->ccb_Flags = CCB_SPABS|CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_PPABS|CCB_USEAV;	/* ccb_flags */
+        CCBPtr->ccb_Flags = CCB_SPABS|CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_PPABS|CCB_USEAV;
 
         CCBPtr->ccb_PRE0 = 0x00000005;		// Preamble (Coded 8 bit)
         CCBPtr->ccb_HDX = 1<<20;
@@ -80,7 +81,7 @@ void initCCBarrayFloorFlat(void)
 		CCBPtr->ccb_NextPtr = (MyCCB *)(sizeof(MyCCB)-8);	// Create the next offset
 
 		// Set all the defaults
-        CCBPtr->ccb_Flags = CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_USEAV;	/* ccb_flags */
+        CCBPtr->ccb_Flags = CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_USEAV;
 
         CCBPtr->ccb_PRE0 = 0x40000016;
         CCBPtr->ccb_PRE1 = 0x03FF1000;
@@ -93,18 +94,43 @@ void initCCBarrayFloorFlat(void)
 	}
 }
 
+void initCCBarrayFloorFlatVertical(void)
+{
+	MyCCB *CCBPtr;
+	int i;
+
+	CCBPtr = &CCBArrayFloorFlatVertical[0];
+	for (i=0; i<MAXSCREENWIDTH; ++i) {
+		CCBPtr->ccb_NextPtr = (MyCCB *)(sizeof(MyCCB)-8);	// Create the next offset
+
+		// Set all the defaults
+        CCBPtr->ccb_Flags = CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_USEAV;
+
+        CCBPtr->ccb_PRE0 = 0x40000016;
+        CCBPtr->ccb_PRE1 = 0x03FF1000;
+        CCBPtr->ccb_SourcePtr = (CelData *)0;
+        CCBPtr->ccb_HDX = 0<<20;
+        CCBPtr->ccb_VDX = 1<<16;
+        CCBPtr->ccb_VDY = 0<<16;
+		CCBPtr->ccb_HDDX = 0;
+		CCBPtr->ccb_HDDY = 0;
+
+		++CCBPtr;
+	}
+}
+
 void drawCCBarrayFloor(Word xEnd, Byte *source)
 {
     MyCCB *spanCCBstart, *spanCCBend;
 
-    spanCCBstart = &CCBArrayFloor[0];           // First span CEL of the wall segment
-	spanCCBend = &CCBArrayFloor[xEnd];          // Last span CEL of the wall segment
+    spanCCBstart = &CCBArrayFloor[0];           // First span CEL of the floor segment
+	spanCCBend = &CCBArrayFloor[xEnd];          // Last span CEL of the floor segment
 
     spanCCBstart->ccb_Flags |= CCB_LDPLUT;      // Enable CCB_LDPLUT only for the first span
     spanCCBstart->ccb_PLUTPtr = source;         // Don't forget to set up the palette pointer, only for the first span
 
 	spanCCBend->ccb_Flags |= CCB_LAST;          // Mark last colume CEL as the last one in the linked list
-    DrawCels(VideoItem,(CCB*)spanCCBstart);     // Draw all the cels of a single wall in one shot
+    DrawCels(VideoItem,(CCB*)spanCCBstart);     // Draw all the cels of a single floor in one shot
 
     spanCCBstart->ccb_Flags ^= CCB_LDPLUT;      // Turn off CCB_LDPLUT on the first span after render, the next wall segment might need it off
     spanCCBend->ccb_Flags ^= CCB_LAST;          // remember to flip off that CCB_LAST flag, since we don't reinit the flags for all spans every time
@@ -114,13 +140,24 @@ void drawCCBarrayFloorFlat(Word xEnd)
 {
     MyCCB *spanCCBstart, *spanCCBend;
 
-    spanCCBstart = &CCBArrayFloorFlat[0];       // First span CEL of the wall segment
-	spanCCBend = &CCBArrayFloorFlat[xEnd];      // Last span CEL of the wall segment
+    spanCCBstart = &CCBArrayFloorFlat[0];       // First span CEL of the floor segment
+	spanCCBend = &CCBArrayFloorFlat[xEnd];      // Last span CEL of the floor segment
 
 	spanCCBend->ccb_Flags |= CCB_LAST;          // Mark last colume CEL as the last one in the linked list
-    DrawCels(VideoItem,(CCB*)spanCCBstart);     // Draw all the cels of a single wall in one shot
+    DrawCels(VideoItem,(CCB*)spanCCBstart);     // Draw all the cels of a single floor in one shot
 
     spanCCBend->ccb_Flags ^= CCB_LAST;          // remember to flip off that CCB_LAST flag, since we don't reinit the flags for all spans every time
+}
+
+void drawCCBarrayFloorFlatVertical(MyCCB *columnCCBend)
+{
+    MyCCB *columnCCBstart;
+
+	columnCCBstart = &CCBArrayFloorFlatVertical[0];     // First column CEL of the floor segment
+
+	columnCCBend->ccb_Flags |= CCB_LAST;                // Mark last colume CEL as the last one in the linked list
+    DrawCels(VideoItem,(CCB*)columnCCBstart);           // Draw all the cels of a single floor in one shot
+    columnCCBend->ccb_Flags ^= CCB_LAST;                // remember to flip off that CCB_LAST flag, since we don't reinit the flags for all columns every time
 }
 
 
@@ -247,6 +284,7 @@ static void MapPlaneUnshaded(Word y1, Word y2)
     if (!depthShadingOption) light = lightmin;
         else light = lightmax;
 
+    light = LightTable[light>>LIGHTSCALESHIFT];
 
     DestPtr = SpanPtr;
     CCBPtr = &CCBArrayFloor[0];
@@ -270,7 +308,7 @@ static void MapPlaneUnshaded(Word y1, Word y2)
         CCBPtr->ccb_SourcePtr = (CelData *)DestPtr;	/* Save the source ptr */
         CCBPtr->ccb_XPos = x1<<16;		/* Set the x and y coord for start */
         CCBPtr->ccb_YPos = y<<16;
-        CCBPtr->ccb_PIXC = LightTable[light>>LIGHTSCALESHIFT];			/* PIXC control */
+        CCBPtr->ccb_PIXC = light;
         CCBPtr++;
 
         Count = (Count+3)&(~3);		/* Round to nearest longword */
@@ -330,6 +368,8 @@ static void MapPlaneFlatUnshaded(Word y1, Word y2)
     if (!depthShadingOption) light = lightmin;
         else light = lightmax;
 
+    light = LightTable[light>>LIGHTSCALESHIFT];
+
     CCBPtr = &CCBArrayFloorFlat[0];
     for (y=y1; y<=y2; ++y) {
         x1 = spandata[y].x1;
@@ -337,7 +377,7 @@ static void MapPlaneFlatUnshaded(Word y1, Word y2)
 
 
         CCBPtr->ccb_PLUTPtr = plutPtr;
-        CCBPtr->ccb_PIXC = LightTable[light>>LIGHTSCALESHIFT];
+        CCBPtr->ccb_PIXC = light;
         CCBPtr->ccb_XPos = x1<<16;
         CCBPtr->ccb_YPos = y<<16;
         CCBPtr->ccb_HDX = (x2-x1)<<20;
@@ -357,11 +397,7 @@ static void MapPlaneAny(Word y1, Word y2)
             MapPlaneUnshaded(y1, y2);
         }
     } else {
-        if (lightQuality) {
-            MapPlaneFlat(y1, y2);
-        } else {
-            MapPlaneFlatUnshaded(y1, y2);
-        }
+        MapPlaneFlat(y1, y2);
     }
 }
 
@@ -374,7 +410,7 @@ static void MapPlaneAny(Word y1, Word y2)
 
 **********************************/
 
-void DrawVisPlane(visplane_t *p)
+void DrawVisPlaneHorizontal(visplane_t *p)
 {
 	register Word x;
 	Word stop;
@@ -464,3 +500,60 @@ void DrawVisPlane(visplane_t *p)
 	} while (++x<=stop);
 }
 
+
+void DrawVisPlaneVertical(visplane_t *p)
+{
+	int x, xEnd;
+	int topY, bottomY;
+	Word *open = p->open;
+
+	MyCCB *CCBPtr;
+	Byte *plutPtr;
+
+	Word light = p->PlaneLight;
+
+    if (!depthShadingOption) light = lightmins[light];
+    light = LightTable[light>>LIGHTSCALESHIFT];
+
+    PlaneSource = (Byte *)*p->PicHandle;
+    plutPtr = (Byte*)(((Word*)PlaneSource)[0] << 16);
+
+
+	x = p->minx;
+	xEnd = p->maxx;
+
+    if (xEnd < x) return;
+
+	CCBPtr = CCBArrayFloorFlatVertical;
+	do {
+		const Word op = open[x];
+		int length;
+		topY = op >> 8;
+		bottomY = op & 0xFF;
+
+		length = bottomY - topY + 1;
+		if (length < 1) continue;
+
+        CCBPtr->ccb_PLUTPtr = plutPtr;
+        CCBPtr->ccb_PIXC = light;
+        CCBPtr->ccb_XPos = x<<16;
+        CCBPtr->ccb_YPos = topY<<16;
+        CCBPtr->ccb_HDY = length<<20;
+
+        ++CCBPtr;
+	} while (++x<=xEnd);
+
+	if (CCBPtr != CCBArrayFloorFlatVertical)
+        drawCCBarrayFloorFlatVertical(--CCBPtr);
+}
+
+void DrawVisPlane(visplane_t *p)
+{
+    const bool lightQuality = (depthShadingOption > 1);
+
+    if (!floorQuality && !lightQuality) {
+        DrawVisPlaneVertical(p);
+    } else {
+        DrawVisPlaneHorizontal(p);
+    }
+}

@@ -69,6 +69,7 @@ enum {
 	mi_shading_depth,   // Depth shading option (on, off (dark/bright))
 	mi_shading_items,   // Shading enable option for items (weapons, enemies, things, etc)
 	mi_renderer,        // Selection of the new renderers (polygons instead of columns, etc)
+	mi_extra_render,    // Extra experimental rendering things (pure wireframe, cybertexture, etc)
 	mi_mapLines,        // Map thick lines on/off
 	mi_waterFx,         // Water fx on/off
 	mi_sky,             // New skies
@@ -103,7 +104,8 @@ enum {
 #define WALLQUALITY_OPTIONS_NUM 3
 #define FLOORQUALITY_OPTIONS_NUM 3
 #define DEPTHSHADING_OPTIONS_NUM 3
-#define RENDERER_OPTIONS_NUM 3
+#define RENDERER_OPTIONS_NUM 2
+#define EXTRA_RENDER_OPTIONS_NUM 3
 #define OFFON_OPTIONS_NUM 2
 #define AUTOMAP_OPTIONS_NUM 4
 #define DUMMYIDKFA_OPTIONS_NUM 2
@@ -119,7 +121,8 @@ static char *offOnOptions[OFFON_OPTIONS_NUM] = { "OFF", "ON" };
 static char *wallQualityOptions[WALLQUALITY_OPTIONS_NUM] = { "LO", "MED", "HI"};
 static char *floorQualityOptions[FLOORQUALITY_OPTIONS_NUM] = { "LO", "MED", "HI" };
 static char *depthShadingOptions[DEPTHSHADING_OPTIONS_NUM] = { "DARK", "BRIGHT", "ON" };
-static char *rendererOptions[RENDERER_OPTIONS_NUM] = { "DOOM", "LIGOLEAST", "LIGOMOST" };
+static char *rendererOptions[RENDERER_OPTIONS_NUM] = { "DOOM", "LIGOLEAST" };
+static char *extraRenderOptions[EXTRA_RENDER_OPTIONS_NUM] = { "OFF", "WIREFRAME", "CYBER" };
 static char *automapOptions[AUTOMAP_OPTIONS_NUM] = { "OFF", "THINGS", "LINES", "ALL" };
 static char *dummyIDKFAoptions[DUMMYIDKFA_OPTIONS_NUM] = { " ", "!" };
 static char *thicklinesOptions[THICKLINES_OPTIONS_NUM] = { "NORMAL", "THICK" };
@@ -222,9 +225,10 @@ void initMenuOptions()
     setItemPageRange(mi_fps, mi_floorQuality, page_performance);
 
     setMenuItemWithOptionNames(mi_shading_depth, 48, 40, "Depth shade", false, muiStyle_text, &depthShadingOption, DEPTHSHADING_OPTIONS_NUM, depthShadingOptions);
-    setMenuItemWithOptionNames(mi_shading_items, 40, 80, "Things shade", false, muiStyle_text, &thingsShadingOption, OFFON_OPTIONS_NUM, offOnOptions);
-    setMenuItemWithOptionNames(mi_renderer, 32, 120, "Renderer", false, muiStyle_text, &rendererOption, RENDERER_OPTIONS_NUM, rendererOptions);
-    setItemPageRange(mi_shading_depth, mi_renderer, page_rendering);
+    setMenuItemWithOptionNames(mi_shading_items, 40, 60, "Things shade", false, muiStyle_text, &thingsShadingOption, OFFON_OPTIONS_NUM, offOnOptions);
+    setMenuItemWithOptionNames(mi_renderer, 32, 80, "Renderer", false, muiStyle_text, &rendererOption, RENDERER_OPTIONS_NUM, rendererOptions);
+    setMenuItemWithOptionNames(mi_extra_render, 56, 100, "Extra", false, muiStyle_text, &extraRenderOption, EXTRA_RENDER_OPTIONS_NUM, extraRenderOptions);
+    setItemPageRange(mi_shading_depth, mi_extra_render, page_rendering);
 
     setMenuItemWithOptionNames(mi_mapLines, 64, 40, "Map lines", false, muiStyle_text, &thickLinesEnabled, THICKLINES_OPTIONS_NUM, thicklinesOptions);
     setMenuItemWithOptionNames(mi_waterFx, 80, 60, "Water fx", false, muiStyle_text, &waterfxEnabled, OFFON_OPTIONS_NUM, offOnOptions);

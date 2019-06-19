@@ -50,13 +50,7 @@ Word LightTable[32] = {
 	0x1F00,0x1F00,0x1F00,0x1F00,0x1F00,0x1F00,0x1F00,0x1F00
 };
 
-/**********************************
-
-	Flush all the cached CCB's
-
-**********************************/
-
-void initCCBarray(void)
+static void initCCBarray(void)
 {
 	MyCCB *CCBPtr;
 	int i = CCBTotal;
@@ -68,6 +62,21 @@ void initCCBarray(void)
 		CCBPtr->ccb_HDDY = 0;
 		++CCBPtr;
 	} while (--i);
+}
+
+void initAllCCBelements()
+{
+    initCCBarray();
+    initCCBarrayWall();
+    initCCBarrayWallFlat();
+    initCCBarraySky();
+    initCCBarrayFloor();
+    initCCBarrayFloorFlat();
+    initCCBarrayFloorFlatVertical();
+    initCCBQuadWallFlat();
+
+    initSpanDrawFunc();
+	initNewSkies();
 }
 
 void resetSpanPointer()
@@ -361,6 +370,7 @@ void DrawARect(Word x1,Word y1,Word Width,Word Height,Word color)
 
 **********************************/
 
+/*
 extern Word tx_x;
 extern int tx_scale;
 
@@ -368,33 +378,34 @@ void DrawSkyLine(void)
 {
 	Byte *Source;
 	Word Colnum;
-	MyCCB* DestCCB;			/* Pointer to new CCB entry */
+	MyCCB* DestCCB;			// Pointer to new CCB entry
 
-	DestCCB = CurrentCCB;		/* Copy pointer to local */
-	if (DestCCB>=&CCBArray[CCBTotal]) {		/* Am I full already? */
-		FlushCCBs();				/* Draw all the CCBs/Lines */
+	DestCCB = CurrentCCB;		// Copy pointer to local
+	if (DestCCB>=&CCBArray[CCBTotal]) {		// Am I full already?
+		FlushCCBs();				// Draw all the CCBs/Lines
 		DestCCB = CCBArray;
 	}
 	Colnum = (((xtoviewangle[tx_x]+viewangle)>>ANGLETOSKYSHIFT)&0xFF)<<6;
-	Source = (Byte *)(*SkyTexture->data);	/* Index to the true shape */
+	Source = (Byte *)(*SkyTexture->data);	// Index to the true shape
 
 	DestCCB->ccb_Flags = CCB_SPABS|CCB_LDSIZE|CCB_LDPRS|
 	CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|
-	CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_PPABS|CCB_LDPLUT;	/* ccb_flags */
+	CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_PPABS|CCB_LDPLUT;	// ccb_flags
 	DestCCB->ccb_PRE0 = 0x03;
-	DestCCB->ccb_PRE1 = 0x3E005000|(128-1);	/* Project the pixels */
-	DestCCB->ccb_PLUTPtr = Source;		/* Get the palette ptr */
-	DestCCB->ccb_SourcePtr = (CelData *)&Source[Colnum+32];	/* Get the source ptr */
-	DestCCB->ccb_XPos = tx_x<<16;		/* Set the x and y coord for start */
+	DestCCB->ccb_PRE1 = 0x3E005000|(128-1);	// Project the pixels
+	DestCCB->ccb_PLUTPtr = Source;		// Get the palette ptr
+	DestCCB->ccb_SourcePtr = (CelData *)&Source[Colnum+32];	// Get the source ptr
+	DestCCB->ccb_XPos = tx_x<<16;		// Set the x and y coord for start
 	DestCCB->ccb_YPos = 0<<16;
-	DestCCB->ccb_HDX = 0<<20;		/* Convert 6 bit frac to CCB scale */
-	DestCCB->ccb_HDY = SkyScales[ScreenSizeOption];	/* Video stretch factor */
+	DestCCB->ccb_HDX = 0<<20;		// Convert 6 bit frac to CCB scale
+	DestCCB->ccb_HDY = SkyScales[ScreenSizeOption];	// Video stretch factor
 	DestCCB->ccb_VDX = columnWidth<<16;
 	DestCCB->ccb_VDY = 0<<16;
-	DestCCB->ccb_PIXC = 0x1F00;		/* PIXC control */
-	++DestCCB;			/* Next CCB */
-	CurrentCCB = DestCCB;	/* Save the CCB pointer */
+	DestCCB->ccb_PIXC = 0x1F00;		// PIXC control
+	++DestCCB;			// Next CCB
+	CurrentCCB = DestCCB;	// Save the CCB pointer
 }
+*/
 
 int getSkyScale(unsigned int i)
 {
@@ -418,6 +429,7 @@ int getSkyScale(unsigned int i)
 
 **********************************/
 
+/*
 void DrawWallColumn(Word y,Word Colnum,Byte *Source,Word Run)
 {
 	MyCCB* DestCCB;			// Pointer to new CCB entry
@@ -443,7 +455,7 @@ void DrawWallColumn(Word y,Word Colnum,Byte *Source,Word Run)
 	DestCCB->ccb_XPos = tx_x<<16;		// Set the x and y coord for start
 	DestCCB->ccb_YPos = (y<<16)+0xFF00;
 	DestCCB->ccb_HDX = 0<<20;		// Convert 6 bit frac to CCB scale
-	DestCCB->ccb_HDY = (tx_scale<<11);
+	DestCCB->ccb_HDY = tx_scale<<(20-SCALEBITS);
 	DestCCB->ccb_VDX = columnWidth<<16;
 	DestCCB->ccb_VDY = 0<<16;
 	DestCCB->ccb_PIXC = LightTable[tx_texturelight>>LIGHTSCALESHIFT];		// PIXC control
@@ -451,6 +463,7 @@ void DrawWallColumn(Word y,Word Colnum,Byte *Source,Word Run)
 	++DestCCB;			// Next CCB
 	CurrentCCB = DestCCB;	// Save the CCB pointer
 }
+*/
 
 /**********************************
 
