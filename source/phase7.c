@@ -27,9 +27,6 @@ static MyCCB CCBArrayFloorFlatVertical[MAXSCREENWIDTH];
 
 ****************************/
 
-Word floorQuality = 2;      // 0 = FLAT, 1 = TEXTURED (LOWRES), 2 = TEXTURED (HIGHRES)
-Word waterfxEnabled = 0;
-
 void (*spanDrawFunc)(Word Count,LongWord xfrac,LongWord yfrac,Fixed ds_xstep,Fixed ds_ystep,Byte *Dest);
 
 
@@ -43,7 +40,7 @@ void (*spanDrawFunc)(Word Count,LongWord xfrac,LongWord yfrac,Fixed ds_xstep,Fix
 
 void initSpanDrawFunc(void)
 {
-    if (floorQuality==2)
+    if (opt_floorQuality==FLOOR_QUALITY_HI)
         spanDrawFunc = DrawASpan;
     else
         spanDrawFunc = DrawASpanLo;
@@ -161,6 +158,7 @@ void drawCCBarrayFloorFlatVertical(MyCCB *columnCCBend)
 }
 
 
+/*
 static void MapPlaneOldWaterFX(Word y)
 {
 	angle_t	angle;
@@ -169,18 +167,18 @@ static void MapPlaneOldWaterFX(Word y)
 	Fixed xfrac,yfrac,xstep,ystep;
 	Word x1, x2;
 
-// planeheight is 10.6
-// yslope is 6.10, distscale is 1.15
-// distance is 12.4
-// length is 11.5
+    // planeheight is 10.6
+    // yslope is 6.10, distscale is 1.15
+    // distance is 12.4
+    // length is 11.5
 
 	x1 = spandata[y].x1;
 	x2 = spandata[y].x2;
-	distance = (yslope[y]*PlaneHeight)>>12;	/* Get the offset for the plane height */
+	distance = (yslope[y]*PlaneHeight)>>12;	// Get the offset for the plane height
 	length = (distscale[x1]*distance)>>14;
 	angle = (xtoviewangle[x1]+viewangle)>>ANGLETOFINESHIFT;
 
-/* xfrac, yfrac, xstep, ystep */
+    // xfrac, yfrac, xstep, ystep
 
 	xfrac = (((finecosine[angle]>>1)*length)>>4)+viewx;
 	yfrac = planey - (((finesine[angle]>>1)*length)>>4);
@@ -188,10 +186,10 @@ static void MapPlaneOldWaterFX(Word y)
 	xstep = ((Fixed)distance*basexscale)>>4;
 	ystep = ((Fixed)distance*baseyscale)>>4;
 
-	/*if (waterfxEnabled) {
+	if (opt_waterFx) {
         xfrac += (SinF16(((yslope[y]*PlaneHeight) >> 4) + (nframe << 4)) * (basexscale << 4));
         yfrac += (SinF16(((yslope[y]*PlaneHeight) >> 4) + (nframe << 4)) * (baseyscale << 4));
-	}*/
+	}
 
 	length = lightcoef / (Fixed)distance - lightsub;
 	if (length < lightmin) {
@@ -201,11 +199,12 @@ static void MapPlaneOldWaterFX(Word y)
 		length = lightmax;
 	}
 	tx_texturelight = length;
-	if (floorQuality)
+	if (opt_floorQuality > FLOOR_QUALITY_LO)
         DrawFloorColumn(y,x1,x2-x1,xfrac,yfrac,xstep,ystep);
     else
         DrawFlatFloorColumn(y,x1,x2-x1);
 }
+*/
 
 
 static void MapPlane(Word y1, Word y2)
@@ -281,7 +280,7 @@ static void MapPlaneUnshaded(Word y1, Word y2)
 
     if (y1 > y2) return;
 
-    if (!depthShadingOption) light = lightmin;
+    if (!opt_depthShading) light = lightmin;
         else light = lightmax;
 
     light = LightTable[light>>LIGHTSCALESHIFT];
@@ -355,42 +354,11 @@ static void MapPlaneFlat(Word y1, Word y2)
     drawCCBarrayFloorFlat(y2-y1);
 }
 
-static void MapPlaneFlatUnshaded(Word y1, Word y2)
-{
-	Word x1, x2;
-    int y;
-    int light;
-    MyCCB *CCBPtr;
-    Byte *plutPtr = (Byte*)(((Word*)PlaneSource)[0] << 16);
-
-    if (y1 > y2) return;
-
-    if (!depthShadingOption) light = lightmin;
-        else light = lightmax;
-
-    light = LightTable[light>>LIGHTSCALESHIFT];
-
-    CCBPtr = &CCBArrayFloorFlat[0];
-    for (y=y1; y<=y2; ++y) {
-        x1 = spandata[y].x1;
-        x2 = spandata[y].x2;
-
-
-        CCBPtr->ccb_PLUTPtr = plutPtr;
-        CCBPtr->ccb_PIXC = light;
-        CCBPtr->ccb_XPos = x1<<16;
-        CCBPtr->ccb_YPos = y<<16;
-        CCBPtr->ccb_HDX = (x2-x1)<<20;
-        CCBPtr++;
-    }
-    drawCCBarrayFloorFlat(y2-y1);
-}
-
 static void MapPlaneAny(Word y1, Word y2)
 {
-    const bool lightQuality = (depthShadingOption > 1);
+    const bool lightQuality = (opt_depthShading > 1);
 
-    if (floorQuality) {
+    if (opt_floorQuality > FLOOR_QUALITY_LO) {
         if (lightQuality) {
             MapPlane(y1, y2);
         } else {
@@ -512,7 +480,7 @@ void DrawVisPlaneVertical(visplane_t *p)
 
 	Word light = p->PlaneLight;
 
-    if (!depthShadingOption) light = lightmins[light];
+    if (!opt_depthShading) light = lightmins[light];
     light = LightTable[light>>LIGHTSCALESHIFT];
 
     PlaneSource = (Byte *)*p->PicHandle;
@@ -549,9 +517,7 @@ void DrawVisPlaneVertical(visplane_t *p)
 
 void DrawVisPlane(visplane_t *p)
 {
-    const bool lightQuality = (depthShadingOption > 1);
-
-    if (!floorQuality && !lightQuality) {
+    if (opt_floorQuality == FLOOR_QUALITY_LO && opt_depthShading != DEPTH_SHADING_ON) {
         DrawVisPlaneVertical(p);
     } else {
         DrawVisPlaneHorizontal(p);

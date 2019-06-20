@@ -30,8 +30,6 @@ uint8 fireSkyBmp[FIRESKY_WIDTH * FIRESKY_HEIGHT];
 #define SKY_HEIGHT_PALS 4
 uint16 fireSkyPal[SKY_HEIGHT_PALS * SKY_COLORS_NUM];
 
-Word fireSkyHeight = 2;
-
 #define RANDTAB_SIZE 1024   // must be power of two
 static uint8 randTab[RANDTAB_SIZE];
 static uint8 nextRandIndex = 0;
@@ -177,7 +175,7 @@ static void drawFireSky()
 
 void updateFireSkyHeightPal()
 {
-    fireSkyCel->ccb_PLUTPtr = (PLUTChunk*)&fireSkyPal[SKY_COLORS_NUM * fireSkyHeight];
+    fireSkyCel->ccb_PLUTPtr = (PLUTChunk*)&fireSkyPal[SKY_COLORS_NUM * opt_fireSkyHeight];
 }
 
 void drawNewSky(int which)

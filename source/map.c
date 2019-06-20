@@ -324,14 +324,14 @@ void LineAttack(mobj_t *t1,angle_t angle,Fixed distance,Fixed slope,Word damage)
 /* Shoot thing */
 	if (linetarget) {			/* Did you hit? */
 		if (linetarget->flags & MF_NOBLOOD) {
-            if (!extraBloodOption) {
+            if (!opt_extraBlood) {
                 P_SpawnPuff(shootx2,shooty2,shootz2);	/* Make a spark on the target */
             } else {
                 for (i=0; i<8; ++i)
                     P_SpawnPuffParticle(shootx2,shooty2,shootz2);
             }
 		} else {
-		    if (!extraBloodOption) {
+		    if (!opt_extraBlood) {
                 P_SpawnBlood(shootx2,shooty2,shootz2,damage);	/* Squirt some blood! */
 		    } else {
                 for (i=0; i<16; ++i)

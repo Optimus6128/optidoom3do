@@ -43,13 +43,30 @@ static void *sliderShapes;
     };
 
 
-// ======== Variables for the few option values we only define here (the rest are extern) ========
+// ======== Variables for all the option values ========
 
-    static Word screenSizeIndex;            // slider value for screen size (defined here since the affected value is reversed and automated UI to variable pointer code won't affect directly)
-    static Word cheatsRevealedState = 0;    // variable to handle the enabling of cheat options in menu (0=hide all cheats, 1=show only automap/noclip, 2=show all cheats)
+    Word opt_fps;
+    Word opt_wallQuality;
+    Word opt_floorQuality;
+    Word opt_depthShading;
+    Word opt_thingsShading;
+    Word opt_renderer;
+    Word opt_extraRender;
+    Word opt_thickLines;
+    Word opt_waterFx;
+    Word opt_sky;
+    Word opt_fireSkyHeight;
+    Word opt_cheatNoclip;
+    Word opt_cheatIDDQD;
+    Word opt_playerSpeed;
+    Word opt_enemySpeed;
+    Word opt_extraBlood;
+    Word opt_fly;
 
-    static Word cheatAutomapState = 0;      // 0=OFF, 1=ITEMS, 2=LINES, 3=ALL
-    static Word cheatIDKFAdummy = 0;
+    static Word opt_screenSizeIndex;
+    static Word opt_cheatsRevealed = 0;
+    static Word opt_cheatAutomap = 0;
+    static Word opt_cheatIDKFAdummy = 0;
 
     static bool isMusicStopped = false;
 
@@ -207,6 +224,38 @@ static void setMenuItemLoopBehaviour(Word id, bool loops)
     menuItems[id].loops = loops;
 }
 
+void resetMenuOptions() // Reset some menu options every time we start a new level
+{
+    opt_cheatNoclip = false;
+    opt_cheatAutomap = AUTOMAP_CHEAT_OFF;
+}
+
+static void setPrimaryMenuOptions() // Set menu options only once at start up
+{
+    // Hack to match the inverted ScreenSizeOption (0 is biggest size) to the slider index logic (0 is on the left side)
+    opt_screenSizeIndex = SCREENSIZE_OPTIONS_NUM - 1 - ScreenSizeOption;
+
+    opt_fps = false;
+    opt_wallQuality = WALL_QUALITY_HI;
+    opt_floorQuality = FLOOR_QUALITY_HI;
+    opt_depthShading = DEPTH_SHADING_ON;
+    opt_thingsShading = false;
+    opt_renderer = RENDERER_DOOM;
+    opt_extraRender = EXTRA_RENDER_OFF;
+    opt_thickLines = false;
+    opt_waterFx = false;
+    opt_sky = SKY_DEFAULT;
+    opt_fireSkyHeight = 2;  // 0 to 3 range
+    opt_cheatsRevealed = CHEATS_OFF;
+    opt_cheatIDDQD = false;
+    opt_cheatIDKFAdummy = false;
+    opt_playerSpeed = PLAYER_SPEED_1X;
+    opt_enemySpeed = ENEMY_SPEED_1X;
+    opt_extraBlood = false;
+    opt_fly = false;
+
+    resetMenuOptions();
+}
 
 void initMenuOptions()
 {
@@ -218,40 +267,40 @@ void initMenuOptions()
     setMenuItemLoopBehaviour(mi_controls, false);
     setItemPageRange(mi_controls, mi_controls, page_controls);
 
-    setMenuItemWithOptionNames(mi_fps, 112, 36, "Fps", false, muiStyle_text, &fpsDisplayed, OFFON_OPTIONS_NUM, offOnOptions);
-    setMenuItem(mi_screenSize, 160, 58, "Screen size", true, muiStyle_slider, &screenSizeIndex, SCREENSIZE_OPTIONS_NUM);
-    setMenuItemWithOptionNames(mi_wallQuality, 112, 94, "Wall", false, muiStyle_text | muiStyle_slider, &wallQuality, WALLQUALITY_OPTIONS_NUM, wallQualityOptions);
-    setMenuItemWithOptionNames(mi_floorQuality, 96, 126, "Floor", false, muiStyle_text | muiStyle_slider, &floorQuality, FLOORQUALITY_OPTIONS_NUM, floorQualityOptions);
+    setMenuItemWithOptionNames(mi_fps, 112, 36, "Fps", false, muiStyle_text, &opt_fps, OFFON_OPTIONS_NUM, offOnOptions);
+    setMenuItem(mi_screenSize, 160, 58, "Screen size", true, muiStyle_slider, &opt_screenSizeIndex, SCREENSIZE_OPTIONS_NUM);
+    setMenuItemWithOptionNames(mi_wallQuality, 112, 94, "Wall", false, muiStyle_text | muiStyle_slider, &opt_wallQuality, WALLQUALITY_OPTIONS_NUM, wallQualityOptions);
+    setMenuItemWithOptionNames(mi_floorQuality, 96, 126, "Floor", false, muiStyle_text | muiStyle_slider, &opt_floorQuality, FLOORQUALITY_OPTIONS_NUM, floorQualityOptions);
     setItemPageRange(mi_fps, mi_floorQuality, page_performance);
 
-    setMenuItemWithOptionNames(mi_shading_depth, 48, 40, "Depth shade", false, muiStyle_text, &depthShadingOption, DEPTHSHADING_OPTIONS_NUM, depthShadingOptions);
-    setMenuItemWithOptionNames(mi_shading_items, 40, 60, "Things shade", false, muiStyle_text, &thingsShadingOption, OFFON_OPTIONS_NUM, offOnOptions);
-    setMenuItemWithOptionNames(mi_renderer, 32, 80, "Renderer", false, muiStyle_text, &rendererOption, RENDERER_OPTIONS_NUM, rendererOptions);
-    setMenuItemWithOptionNames(mi_extra_render, 56, 100, "Extra", false, muiStyle_text, &extraRenderOption, EXTRA_RENDER_OPTIONS_NUM, extraRenderOptions);
+    setMenuItemWithOptionNames(mi_shading_depth, 48, 40, "Depth shade", false, muiStyle_text, &opt_depthShading, DEPTHSHADING_OPTIONS_NUM, depthShadingOptions);
+    setMenuItemWithOptionNames(mi_shading_items, 40, 60, "Things shade", false, muiStyle_text, &opt_thingsShading, OFFON_OPTIONS_NUM, offOnOptions);
+    setMenuItemWithOptionNames(mi_renderer, 32, 80, "Renderer", false, muiStyle_text, &opt_renderer, RENDERER_OPTIONS_NUM, rendererOptions);
+    setMenuItemWithOptionNames(mi_extra_render, 56, 100, "Extra", false, muiStyle_text, &opt_extraRender, EXTRA_RENDER_OPTIONS_NUM, extraRenderOptions);
     setItemPageRange(mi_shading_depth, mi_extra_render, page_rendering);
 
-    setMenuItemWithOptionNames(mi_mapLines, 64, 40, "Map lines", false, muiStyle_text, &thickLinesEnabled, THICKLINES_OPTIONS_NUM, thicklinesOptions);
-    setMenuItemWithOptionNames(mi_waterFx, 80, 60, "Water fx", false, muiStyle_text, &waterfxEnabled, OFFON_OPTIONS_NUM, offOnOptions);
+    setMenuItemWithOptionNames(mi_mapLines, 64, 40, "Map lines", false, muiStyle_text, &opt_thickLines, THICKLINES_OPTIONS_NUM, thicklinesOptions);
+    setMenuItemWithOptionNames(mi_waterFx, 80, 60, "Water fx", false, muiStyle_text, &opt_waterFx, OFFON_OPTIONS_NUM, offOnOptions);
         setMenuItemVisibility(mi_waterFx, false);   // removing this in case I won't be able to fully implement it in this release
-    setMenuItemWithOptionNames(mi_sky, 96, 80, "Sky", false, muiStyle_text, &skyType, SKY_OPTIONS_NUM, skyOptions);
-    setMenuItem(mi_firesky_slider, 96, 80, 0, false, muiStyle_slider, &fireSkyHeight, SKY_HEIGHTS_OPTIONS_NUM); setMenuItemVisibility(mi_firesky_slider, false);
+    setMenuItemWithOptionNames(mi_sky, 96, 80, "Sky", false, muiStyle_text, &opt_sky, SKY_OPTIONS_NUM, skyOptions);
+    setMenuItem(mi_firesky_slider, 96, 80, 0, false, muiStyle_slider, &opt_fireSkyHeight, SKY_HEIGHTS_OPTIONS_NUM); setMenuItemVisibility(mi_firesky_slider, false);
     setItemPageRange(mi_mapLines, mi_firesky_slider, page_effects);
 
-    setMenuItem(mi_enableCheats, 160, 40, "Enable cheats", true, muiStyle_slider, &cheatsRevealedState, CHEATSREVEALED_OPTIONS_NUM);
-    setMenuItemWithOptionNames(mi_cheatAutomap, 96, 80, "Automap", false, muiStyle_text, &cheatAutomapState, AUTOMAP_OPTIONS_NUM, automapOptions);     setMenuItemVisibility(mi_cheatAutomap, false);
-    setMenuItemWithOptionNames(mi_cheatNoclip, 96, 100, "Noclip", false, muiStyle_text, &cheatNoclipEnabled, OFFON_OPTIONS_NUM, offOnOptions);      setMenuItemVisibility(mi_cheatNoclip, false);
-    setMenuItemWithOptionNames(mi_cheatIDDQD, 96, 122, "IDDQD", false, muiStyle_text, &cheatIDDQDenabled, OFFON_OPTIONS_NUM, offOnOptions);        setMenuItemVisibility(mi_cheatIDDQD, false);
-    setMenuItemWithOptionNames(mi_cheatIDKFA, 96, 144, "IDKFA", false, muiStyle_text, &cheatIDKFAdummy, DUMMYIDKFA_OPTIONS_NUM, dummyIDKFAoptions);        setMenuItemVisibility(mi_cheatIDKFA, false);
+    setMenuItem(mi_enableCheats, 160, 40, "Enable cheats", true, muiStyle_slider, &opt_cheatsRevealed, CHEATSREVEALED_OPTIONS_NUM);
+    setMenuItemWithOptionNames(mi_cheatAutomap, 96, 80, "Automap", false, muiStyle_text, &opt_cheatAutomap, AUTOMAP_OPTIONS_NUM, automapOptions);     setMenuItemVisibility(mi_cheatAutomap, false);
+    setMenuItemWithOptionNames(mi_cheatNoclip, 96, 100, "Noclip", false, muiStyle_text, &opt_cheatNoclip, OFFON_OPTIONS_NUM, offOnOptions);      setMenuItemVisibility(mi_cheatNoclip, false);
+    setMenuItemWithOptionNames(mi_cheatIDDQD, 96, 122, "IDDQD", false, muiStyle_text, &opt_cheatIDDQD, OFFON_OPTIONS_NUM, offOnOptions);        setMenuItemVisibility(mi_cheatIDDQD, false);
+    setMenuItemWithOptionNames(mi_cheatIDKFA, 96, 144, "IDKFA", false, muiStyle_text, &opt_cheatIDKFAdummy, DUMMYIDKFA_OPTIONS_NUM, dummyIDKFAoptions);        setMenuItemVisibility(mi_cheatIDKFA, false);
     setItemPageRange(mi_enableCheats, mi_cheatIDKFA, page_cheats);
 
-    setMenuItemWithOptionNames(mi_playerSpeed, 60, 40, "Player speed", false, muiStyle_text, &playerSpeedOption, PLAYERSPEED_OPTIONS_NUM, (char**)(&speedOptions[1]));
-    setMenuItemWithOptionNames(mi_enemySpeed, 60, 70, "Enemy speed", false, muiStyle_text, &enemiesSpeedOption, ENEMYSPEED_OPTIONS_NUM, speedOptions);
-    setMenuItemWithOptionNames(mi_extraBlood, 60, 100, "Extra blood", false, muiStyle_text, &extraBloodOption, OFFON_OPTIONS_NUM, offOnOptions);
-    setMenuItemWithOptionNames(mi_flyMode, 60, 130, "Fly mode", false, muiStyle_text, &flyIsOn, OFFON_OPTIONS_NUM, offOnOptions);
+    setMenuItemWithOptionNames(mi_playerSpeed, 60, 40, "Player speed", false, muiStyle_text, &opt_playerSpeed, PLAYERSPEED_OPTIONS_NUM, (char**)(&speedOptions[1]));
+    setMenuItemWithOptionNames(mi_enemySpeed, 60, 70, "Enemy speed", false, muiStyle_text, &opt_enemySpeed, ENEMYSPEED_OPTIONS_NUM, speedOptions);
+    setMenuItemWithOptionNames(mi_extraBlood, 60, 100, "Extra blood", false, muiStyle_text, &opt_extraBlood, OFFON_OPTIONS_NUM, offOnOptions);
+    setMenuItemWithOptionNames(mi_flyMode, 60, 130, "Fly mode", false, muiStyle_text, &opt_fly, OFFON_OPTIONS_NUM, offOnOptions);
     setItemPageRange(mi_playerSpeed, mi_flyMode, page_extra);
 
-    // Hack to match the inverted ScreenSizeOption (0 is biggest size) to the slider index logic (0 is on the left side)
-    screenSizeIndex = SCREENSIZE_OPTIONS_NUM - 1 - ScreenSizeOption;
+
+    setPrimaryMenuOptions();
 }
 
 /*********************************
@@ -321,7 +370,7 @@ static void handleCheatsMenuVisibility()
     Word i;
     bool cheatsVisible[4] = {false, false, false, false};
 
-    for (i=0; i<2*cheatsRevealedState; ++i) {
+    for (i=0; i<2*opt_cheatsRevealed; ++i) {
         cheatsVisible[i] = true;
     }
 
@@ -377,7 +426,7 @@ static void handleSpecialActionsIfOptionChanged(player_t *player)
         break;
 
         case mi_screenSize:
-            ScreenSizeOption = SCREENSIZE_OPTIONS_NUM-1 - screenSizeIndex;  // ScreenSizeOption is reversed from screenSizeIndex
+            ScreenSizeOption = SCREENSIZE_OPTIONS_NUM-1 - opt_screenSizeIndex;  // ScreenSizeOption is reversed from screenSizeIndex
             if (player) {
                 InitMathTables();
             }
@@ -393,7 +442,7 @@ static void handleSpecialActionsIfOptionChanged(player_t *player)
         break;
 
         case mi_sky:
-            setMenuItemVisibility(mi_firesky_slider, (skyType==SKY_PLAYSTATION));
+            setMenuItemVisibility(mi_firesky_slider, (opt_sky==SKY_PLAYSTATION));
         break;
 
         case mi_firesky_slider:
@@ -405,8 +454,8 @@ static void handleSpecialActionsIfOptionChanged(player_t *player)
         break;
 
         case mi_cheatAutomap:
-            ShowAllThings = (cheatAutomapState & 1);
-            ShowAllLines = (cheatAutomapState & 2) >> 1;
+            ShowAllThings = (opt_cheatAutomap & AUTOMAP_CHEAT_SHOWTHINGS);
+            ShowAllLines = (opt_cheatAutomap & AUTOMAP_CHEAT_SHOWLINES) >> 1;
             S_StartSound(0,sfx_rxplod);
         break;
 

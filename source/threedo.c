@@ -32,7 +32,6 @@ static Item VRAMIOReq;				/* I/O Request for screen copy */
 Item AllSamples[NUMSFX];			/* Items to sound samples */
 Word AllRates[NUMSFX];
 
-Word fpsDisplayed = 0;
 int frameTime;
 
 /**********************************
@@ -504,7 +503,7 @@ void UpdateAndPageFlip(void)
 	}
 
     fps = updateAndGetFPS();
-    if (fpsDisplayed) {
+    if (opt_fps) {
         PrintNumber(8, 8, fps, 0);
         FlushCCBs();
     }

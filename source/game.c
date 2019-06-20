@@ -14,7 +14,7 @@ void G_DoLoadLevel(void)
 	if (players.playerstate == PST_DEAD) {
 		players.playerstate = PST_REBORN;	/* Force rebirth */
 	}
-	
+
 /* Set the sky map for the episode */
 
 	if (gamemap < 9 || gamemap==24) {			/* First 9 levels? */
@@ -28,6 +28,8 @@ void G_DoLoadLevel(void)
 	SkyTexture->data = LoadAResourceHandle(Sky);		/* Preload the sky texture */
 	SetupLevel(gamemap);	/* Load the level into memory */
 	gameaction = ga_nothing;		/* Game in progress */
+
+    resetMenuOptions();
 }
 
 /**********************************
@@ -130,7 +132,7 @@ void G_InitNew(skill_t skill,Word map)
 
 	players.playerstate = PST_REBORN;
 	players.mo = 0;	/* For net consistancy checks */
-	
+
 	DemoRecording = FALSE;		/* No demo in progress */
 	DemoPlayback = FALSE;
 

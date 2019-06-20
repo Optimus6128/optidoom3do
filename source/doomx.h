@@ -3,25 +3,11 @@
 #include <Burger.h>
 #include <celutils.h>
 
+#include "doomopts.h"
+
+
 #define LIGHTSCALESHIFT 3
 
-
-// New Sky Types
-enum {
-    SKY_DEFAULT,
-    SKY_GRADIENT_DAY,
-    SKY_GRADIENT_NIGHT,
-    SKY_GRADIENT_DUSK,
-    SKY_GRADIENT_DAWN,
-    SKY_PLAYSTATION
-};
-
-enum
-{
-    WALL_QUALITY_LO = 0,
-    WALL_QUALITY_MED = 1,
-    WALL_QUALITY_HI = 2
-};
 
 typedef struct MyCCB {		/* Clone of the CCB Block from the 3DO includes */
 	uint32 ccb_Flags;
@@ -61,12 +47,6 @@ typedef struct {
 
 // In phase6.c
 extern Word columnWidth;
-extern Word wallQuality;
-extern Word skyType;
-extern Word depthShadingOption;
-extern Word thingsShadingOption;
-extern Word rendererOption;
-extern Word extraRenderOption;
 extern int *scaleArrayData;
 
 
@@ -98,9 +78,6 @@ extern void initCCBQuadWallFlat(void);
 
 
 // In phase7.c
-extern Word floorQuality;
-extern Word waterfxEnabled;
-
 extern void initCCBarrayFloor(void);
 extern void initCCBarrayFloorFlat(void);
 extern void initCCBarrayFloorFlatVertical(void);
@@ -108,7 +85,6 @@ extern void initSpanDrawFunc(void);
 
 
 // In threedo.c
-extern Word fpsDisplayed;
 extern int frameTime;
 extern void printDbg(int value);
 
@@ -132,21 +108,14 @@ extern int getSkyScale(unsigned int i);
 extern int getTicks(void);
 
 // In xskies.c
-extern Word fireSkyHeight;
-
 extern void initNewSkies(void);
 extern int getSkyHeight(unsigned int i);
 extern void drawNewSky(int which);
 extern void updateFireSkyHeightPal(void);
 
 // In ammain.c
-
 extern Boolean ShowAllLines;
 extern Boolean ShowAllThings;
-extern Word thickLinesEnabled;
-extern Word cheatIDDQDenabled;
-extern Word cheatNoclipEnabled;
-extern Word flyIsOn;
 
 extern void setAutomapLines(bool enabled);
 extern void setAutomapItems(bool enabled);
@@ -155,12 +124,9 @@ extern void toggleIDDQD(player_t *player);
 extern void applyIDKFA(player_t *player);
 extern void toggleFlyMode(player_t *player);
 
-// In tick.c
-extern Word playerSpeedOption;
-extern Word enemiesSpeedOption;
-
 // In mobj.c
-extern Word extraBloodOption;
-
 extern void P_SpawnBloodParticle(Fixed x,Fixed y,Fixed z,Word damage);
 extern void P_SpawnPuffParticle(Fixed x,Fixed y,Fixed z);
+
+// In omain.c
+extern void resetMenuOptions(void);

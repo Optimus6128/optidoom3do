@@ -12,8 +12,6 @@ typedef struct {		/* Respawn think logic */
 
 static Word LevelBitMasks[5] = {MTF_EASY,MTF_EASY,MTF_NORMAL,MTF_HARD,MTF_HARD};
 
-Word extraBloodOption = 0;
-
 /**********************************
 
 	Respawn items in the respawn queue

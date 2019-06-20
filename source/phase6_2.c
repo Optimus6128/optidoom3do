@@ -6,7 +6,7 @@
 static MyCCB CCBArrayWall[MAXSCREENWIDTH];		// Array of CCB structs for a single wall segment
 static MyCCB CCBArrayWallFlat[MAXSCREENWIDTH];	// Array of CCB structs for a single wall segment (untextured)
 
-static const int flatColTexWidth = 1;  static const int flatColTexWidthShr = 0;
+static const int flatColTexWidth = 1;   //  static const int flatColTexWidthShr = 0;
 static const int flatColTexHeight = 8;  static const int flatColTexHeightShr = 3;
 static const int flatColTexStride = 8;
 static unsigned char *texColBufferFlat;
@@ -28,7 +28,7 @@ void initCCBarrayWall(void)
 	int i;
 
     columnWidth = 1;
-    if (wallQuality==WALL_QUALITY_MED)
+    if (opt_wallQuality == WALL_QUALITY_MED)
         columnWidth = 2;
 
 	CCBPtr = CCBArrayWall;
@@ -373,7 +373,7 @@ void DrawSegFullUnshaded(viswall_t *segl, int *scaleData)
 	if (!(ActionBits & (AC_TOPTEXTURE|AC_BOTTOMTEXTURE))) return;
 
     textureLight = segl->seglightlevel;
-    if (!depthShadingOption) textureLight = lightmins[textureLight];
+    if (opt_depthShading == DEPTH_SHADING_DARK) textureLight = lightmins[textureLight];
 
     viscol = viscols;
     do {
@@ -466,7 +466,7 @@ void DrawSegFullFlatUnshaded(viswall_t *segl, int *scaleData)
 	if (!(ActionBits & (AC_TOPTEXTURE|AC_BOTTOMTEXTURE))) return;
 
     textureLight = segl->seglightlevel;
-    if (!depthShadingOption) textureLight = lightmins[textureLight];
+    if (opt_depthShading == DEPTH_SHADING_DARK) textureLight = lightmins[textureLight];
 
     viscol = viscols;
     do {
@@ -562,7 +562,7 @@ void DrawSegHalfUnshaded(viswall_t *segl, int *scaleData)
 	if (!(ActionBits & (AC_TOPTEXTURE|AC_BOTTOMTEXTURE))) return;
 
     textureLight = segl->seglightlevel;
-    if (!depthShadingOption) textureLight = lightmins[textureLight];
+    if (opt_depthShading == DEPTH_SHADING_DARK) textureLight = lightmins[textureLight];
 
     viscol = viscols;
     do {

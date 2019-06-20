@@ -16,23 +16,7 @@ static int *scaleArrayPtr[MAXWALLCMDS];         // start pointers in scaleArray 
 static int scaleArrayIndex;                     // index for new line segment
 int *scaleArrayData;                            // pointer to pass scale wall column data to phase6_1
 
-
-/***************************
-
-	Wall quality settings
-
-****************************/
-
-Word wallQuality = WALL_QUALITY_HI;         // 0=LO(Untextured), 1=MED, 2=HI
 Word columnWidth;                           // column width in pixels (1 for fullRes, 2 for halfRes)
-
-Word depthShadingOption = 2;     // 0=OFF(DARK), 1=OFF(BRIGHT), 2=ON
-Word thingsShadingOption = 0;    // 0=OFF, 1=ON
-Word rendererOption = 0;         // 0=DOOM, 1=LIGOLEAST, 2=LIGOMOST
-Word extraRenderOption = 0;      // 0=OFF, 1=WIREFRAME, 2=CYBER
-
-Word skyType = SKY_DEFAULT;
-
 
 
 /**********************************
@@ -55,13 +39,13 @@ static bool SegCommands_Init()
 
 static void DrawBackground()
 {
-    if (cheatNoclipEnabled | extraRenderOption == 1) {
+    if (opt_cheatNoclip | opt_extraRender == EXTRA_RENDER_WIREFRAME) {
         DrawARect(0,0, ScreenWidth, ScreenHeight, 0);   // To avoid HOM when noclipping outside
         FlushCCBs(); // Flush early to render noclip black quad early before everything, for the same reason as sky below
     }
 
-    if (skyOnView && (skyType!=SKY_DEFAULT)) {
-        drawNewSky(skyType);
+    if (skyOnView && (opt_sky!=SKY_DEFAULT)) {
+        drawNewSky(opt_sky);
         FlushCCBs(); // Flush early to render the sky early before everything, as we hacked the wall renderer to draw earlier than the final flush.
     }
     skyOnView = false;
@@ -84,29 +68,29 @@ static void DrawWalls()
 {
     // Now I actually draw the walls back to front to allow for clipping because of slop
 
-    const bool lightQuality = (depthShadingOption > 1);
+    const bool lightShadingOn = (opt_depthShading == DEPTH_SHADING_ON);
 
     LastSegPtr = viswalls;		// Stop at the first one
 
-    if (rendererOption==0 && extraRenderOption != 1) {
+    if (opt_renderer == RENDERER_DOOM && opt_extraRender != EXTRA_RENDER_WIREFRAME) {
         do {
             --WallSegPtr;			// Last go backwards!!
             scaleArrayData = scaleArrayPtr[--scaleArrayIndex];
 
-            if (wallQuality == WALL_QUALITY_HI) {
-                if (lightQuality) {
+            if (opt_wallQuality == WALL_QUALITY_HI) {
+                if (lightShadingOn) {
                     DrawSegFull(WallSegPtr, scaleArrayData);
                 } else {
                     DrawSegFullUnshaded(WallSegPtr, scaleArrayData);
                 }
-            } else if (wallQuality == WALL_QUALITY_MED) {
-                if (lightQuality) {
+            } else if (opt_wallQuality == WALL_QUALITY_MED) {
+                if (lightShadingOn) {
                     DrawSegHalf(WallSegPtr, scaleArrayData);
                 } else {
                     DrawSegHalfUnshaded(WallSegPtr, scaleArrayData);
                 }
             } else {
-                if (lightQuality) {
+                if (lightShadingOn) {
                     DrawSegFullFlat(WallSegPtr, scaleArrayData);
                 } else {
                     DrawSegFullFlatUnshaded(WallSegPtr, scaleArrayData);
@@ -115,7 +99,7 @@ static void DrawWalls()
         } while (WallSegPtr!=LastSegPtr);
     } else {
 
-        if (extraRenderOption == 1) {
+        if (opt_extraRender == EXTRA_RENDER_WIREFRAME) {
             DisableHardwareClipping();
         }
 
@@ -126,7 +110,7 @@ static void DrawWalls()
             DrawSegFullFlatUnshadedLL(WallSegPtr, scaleArrayData);
         } while (WallSegPtr!=LastSegPtr);
 
-        if (extraRenderOption == 1) {
+        if (opt_extraRender == EXTRA_RENDER_WIREFRAME) {
             FlushCCBs();
             EnableHardwareClipping();
         }
@@ -184,7 +168,7 @@ void SegCommands()
 
         DrawWalls();
 
-        if (extraRenderOption != 1) DrawPlanes();
+        if (opt_extraRender != EXTRA_RENDER_WIREFRAME) DrawPlanes();
 
 	DisableHardwareClipping();		// Sprites require full screen management
 

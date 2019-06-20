@@ -175,9 +175,6 @@ static void CheckCheats(void)
 
 **********************************/
 
-Word playerSpeedOption = 0;   // 0 is 1x, 1=2x
-Word enemiesSpeedOption = 1;  // 0 is 0x, etc
-
 Word P_Ticker(void)
 {
 	player_t *pl;
@@ -227,13 +224,13 @@ Word P_Ticker(void)
 
 
 	P_PlayerThink(pl);	/* Process player in the game */
-	if (playerSpeedOption==1) P_PlayerThink(pl);  // Do it again (2X speed)
+	if (opt_playerSpeed==PLAYER_SPEED_2X) P_PlayerThink(pl);  // Do it again (2X speed)
 
 	if (!(players.AutomapFlags & AF_OPTIONSACTIVE)) {
         int i;
 		RunThinkers();		/* Handle logic for doors, walls etc... */
 
-		for (i=0; i<enemiesSpeedOption; ++i)
+		for (i=0; i<opt_enemySpeed; ++i)
             P_RunMobjBase();	/* Handle critter think logic */
 	}
 	P_UpdateSpecials();	/* Handle wall and floor animations */

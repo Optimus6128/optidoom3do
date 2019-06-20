@@ -56,7 +56,7 @@ static void DrawWallSegmentFlatLL(drawtex_t *tex, Word screenCenterY)
 	bottomRight = topRight + ((run * scaleRight) >> SCALEBITS) + 1;
 
 
-	if (extraRenderOption != 1) {
+	if (opt_extraRender != EXTRA_RENDER_WIREFRAME) {
         const int lengthLeft = bottomLeft - topLeft + 1;
         const int lengthRight = bottomRight - topRight + 1;
         const int lengthDiff = lengthRight - lengthLeft;
@@ -136,7 +136,7 @@ void DrawSegFullFlatUnshadedLL(viswall_t *segl, int *scaleData)
 	if (!(ActionBits & (AC_TOPTEXTURE|AC_BOTTOMTEXTURE))) return;
 
     light = segl->seglightlevel;
-    if (!depthShadingOption) light = lightmins[light];
+    if (opt_depthShading == DEPTH_SHADING_DARK) light = lightmins[light];
 
     scaleLeft = *scaleData;
     scaleRight = *(scaleData + xLength);
