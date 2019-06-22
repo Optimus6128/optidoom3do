@@ -69,15 +69,17 @@ enum
 enum
 {
     PLAYER_SPEED_1X = 0,
-    PLAYER_SPEED_2X = 1
+    PLAYER_SPEED_1_5X = 1,
+    PLAYER_SPEED_2X = 2
 };
 
 // Enemy speed options
 enum
 {
     ENEMY_SPEED_0X = 0,
-    ENEMY_SPEED_1X = 1,
-    ENEMY_SPEED_2X = 2
+    ENEMY_SPEED_0_5X = 1,
+    ENEMY_SPEED_1X = 2,
+    ENEMY_SPEED_2X = 3
 };
 
 

@@ -177,6 +177,8 @@ static void CheckCheats(void)
 
 Word P_Ticker(void)
 {
+    static int speedTicker = 0;
+
 	player_t *pl;
 
 	/* wait for refresh to latch all needed data before */
@@ -224,17 +226,23 @@ Word P_Ticker(void)
 
 
 	P_PlayerThink(pl);	/* Process player in the game */
-	if (opt_playerSpeed==PLAYER_SPEED_2X) P_PlayerThink(pl);  // Do it again (2X speed)
+	if (opt_playerSpeed==PLAYER_SPEED_2X || (opt_playerSpeed==PLAYER_SPEED_1_5X && speedTicker==0)) P_PlayerThink(pl);  // Do it again (2X speed) or once in two times (1.5X speed)
 
 	if (!(players.AutomapFlags & AF_OPTIONSACTIVE)) {
         int i;
 		RunThinkers();		/* Handle logic for doors, walls etc... */
 
-		for (i=0; i<opt_enemySpeed; ++i)
-            P_RunMobjBase();	/* Handle critter think logic */
+		if (opt_enemySpeed > ENEMY_SPEED_0X) {
+            if (opt_enemySpeed >= ENEMY_SPEED_1X || (opt_enemySpeed == ENEMY_SPEED_0_5X && speedTicker==0)) // Do it at least once if >= 1x or once every two times if 0.5x speed
+                P_RunMobjBase();
+            if (opt_enemySpeed == ENEMY_SPEED_2X)   // do it second time if 2x
+                P_RunMobjBase();
+		}
 	}
 	P_UpdateSpecials();	/* Handle wall and floor animations */
 	ST_Ticker();		/* Update status bar */
+
+	speedTicker = (speedTicker + 1) & 1;
 	return gameaction;	/* may have been set to ga_died, ga_completed, */
 						/* or ga_secretexit */
 }

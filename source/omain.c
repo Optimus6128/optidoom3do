@@ -129,9 +129,8 @@ enum {
 #define THICKLINES_OPTIONS_NUM 2
 #define SKY_OPTIONS_NUM 6
 #define SKY_HEIGHTS_OPTIONS_NUM 4
-#define SPEED_OPTIONS_NUM 3
-#define ENEMYSPEED_OPTIONS_NUM SPEED_OPTIONS_NUM
-#define PLAYERSPEED_OPTIONS_NUM (SPEED_OPTIONS_NUM - 1)
+#define PLAYER_SPEED_OPTIONS_NUM 3
+#define ENEMY_SPEED_OPTIONS_NUM 4
 
 
 static char *offOnOptions[OFFON_OPTIONS_NUM] = { "OFF", "ON" };
@@ -144,7 +143,8 @@ static char *automapOptions[AUTOMAP_OPTIONS_NUM] = { "OFF", "THINGS", "LINES", "
 static char *dummyIDKFAoptions[DUMMYIDKFA_OPTIONS_NUM] = { " ", "!" };
 static char *thicklinesOptions[THICKLINES_OPTIONS_NUM] = { "NORMAL", "THICK" };
 static char *skyOptions[SKY_OPTIONS_NUM] = { "DEFAULT", "DAY", "NIGHT", "DUSK", "DAWN", "PSX" };
-static char *speedOptions[SPEED_OPTIONS_NUM] = { "0X", "1X", "2X" };
+static char *playerSpeedOptions[PLAYER_SPEED_OPTIONS_NUM] = { "1X", "1.5X", "2X" };
+static char *enemySpeedOptions[ENEMY_SPEED_OPTIONS_NUM] = { "0X", "0.5X", "1X", "2X" };
 
 
 enum {
@@ -293,8 +293,8 @@ void initMenuOptions()
     setMenuItemWithOptionNames(mi_cheatIDKFA, 96, 144, "IDKFA", false, muiStyle_text, &opt_cheatIDKFAdummy, DUMMYIDKFA_OPTIONS_NUM, dummyIDKFAoptions);        setMenuItemVisibility(mi_cheatIDKFA, false);
     setItemPageRange(mi_enableCheats, mi_cheatIDKFA, page_cheats);
 
-    setMenuItemWithOptionNames(mi_playerSpeed, 60, 40, "Player speed", false, muiStyle_text, &opt_playerSpeed, PLAYERSPEED_OPTIONS_NUM, (char**)(&speedOptions[1]));
-    setMenuItemWithOptionNames(mi_enemySpeed, 60, 70, "Enemy speed", false, muiStyle_text, &opt_enemySpeed, ENEMYSPEED_OPTIONS_NUM, speedOptions);
+    setMenuItemWithOptionNames(mi_playerSpeed, 60, 40, "Player speed", false, muiStyle_text, &opt_playerSpeed, PLAYER_SPEED_OPTIONS_NUM, playerSpeedOptions);
+    setMenuItemWithOptionNames(mi_enemySpeed, 60, 70, "Enemy speed", false, muiStyle_text, &opt_enemySpeed, ENEMY_SPEED_OPTIONS_NUM, enemySpeedOptions);
     setMenuItemWithOptionNames(mi_extraBlood, 60, 100, "Extra blood", false, muiStyle_text, &opt_extraBlood, OFFON_OPTIONS_NUM, offOnOptions);
     setMenuItemWithOptionNames(mi_flyMode, 60, 130, "Fly mode", false, muiStyle_text, &opt_fly, OFFON_OPTIONS_NUM, offOnOptions);
     setItemPageRange(mi_playerSpeed, mi_flyMode, page_extra);
