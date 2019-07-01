@@ -13,6 +13,8 @@
 
 //#define SHOW_LOGOS
 
+#define SCREENS 3				/* Number of screen buffers */
+
 static void LowMemCode(Word Type);
 static void WipeDoom(LongWord *OldScreen,LongWord *NewScreen);
 
@@ -20,7 +22,6 @@ static LongWord LastTicCount;	/* Time mark for page flipping */
 LongWord LastTics;				/* Time elapsed since last page flip */
 Word WorkPage;					/* Which frame is not being displayed */
 
-#define SCREENS 3					/* Need to page flip */
 uint32 MainTask;					/* My own task item */
 static ulong ScreenPageCount;		/* Number of screens */
 static Item ScreenItems[SCREENS];	/* Referances to the game screens */
@@ -170,7 +171,46 @@ static TagArg SoundRateArgs[] = {
 };
 static char FileName[32];
 
-void InitTools(void)
+
+
+static void showLogos()
+{
+#ifdef SHOW_LOGOS       // 0 to disable all these logo fades (for faster testing)
+    Show3DOLogo();				// Show the 3DO Logo
+    RunAProgram("IdLogo IDLogo.cel");
+    #if 0			// Set to 1 for Japanese version
+        RunAProgram("IdLogo LogicLogo.cel");
+        RunAProgram("PlayMovie EALogo.cine");
+        RunAProgram("IdLogo AdiLogo.cel");
+    #else
+        RunAProgram("PlayMovie Logic.cine");
+        RunAProgram("PlayMovie AdiLogo.cine");
+    #endif
+#endif
+}
+
+static void loadSoundFx()
+{
+	Word i = 0;
+	do {
+        if (!loadPsxSamples) {
+            sprintf(FileName,"Sounds/Sound%02d.aiff",i+1);
+        } else {
+            sprintf(FileName,"Sounds/psx/Sound%02d.aiff",i+1);
+        }
+
+		AllSamples[i] = LoadSample(FileName);
+		if (AllSamples[i]<0) {
+			AllSamples[i] = 0;
+		}
+		if (AllSamples[i]) {
+			GetAudioItemInfo(AllSamples[i],SoundRateArgs);
+			AllRates[i] = (Word)(((LongWord)SoundRateArgs[0].ta_Arg)/(44100UL*2UL));	/* Get the DSP rate for the sound */
+		}
+	} while (++i<(NUMSFX-1));
+}
+
+static void initSystem()
 {
 	Word i;		/* Temp */
 	long width, height;	/* Screen width & height */
@@ -179,36 +219,24 @@ void InitTools(void)
 	Item MyVDLItem;
 		/* Read page PRF-85 for info */
 
-#ifdef SHOW_LOGOS       // 0 to disable all these logo fades (for faster testing)
-	Show3DOLogo();				/* Show the 3DO Logo */
-	RunAProgram("IdLogo IDLogo.cel");
-#if 0			/* Set to 1 for Japanese version */
-	RunAProgram("IdLogo LogicLogo.cel");
-	RunAProgram("PlayMovie EALogo.cine");
-	RunAProgram("IdLogo AdiLogo.cel");
-#else
-	RunAProgram("PlayMovie Logic.cine");
-	RunAProgram("PlayMovie AdiLogo.cine");
-#endif
-#endif
 
-	if (OpenGraphicsFolio() ||	/* Start up the graphics system */
+ 	if (OpenGraphicsFolio() ||	/* Start up the graphics system */
 		(OpenAudioFolio()<0) ||		/* Start up the audio system */
 		(OpenMathFolio()<0) ) {
-FooBar:
+    FooBar:
 		exit(10);
 	}
 
-#if 0	/* Set to 1 for the PAL version, 0 for the NTSC version */
-	QueryGraphics(QUERYGRAF_TAG_DEFAULTDISPLAYTYPE,&width);
-	if (width==DI_TYPE_NTSC) {
-		goto FooBar();
-	}
-#endif
+    #if 0	/* Set to 1 for the PAL version, 0 for the NTSC version */
+        QueryGraphics(QUERYGRAF_TAG_DEFAULTDISPLAYTYPE,&width);
+        if (width==DI_TYPE_NTSC) {
+            goto FooBar();
+        }
+    #endif
 
-#if 0	/* Remove for final build! */
-	ChangeDirectory("/CD-ROM");
-#endif
+    #if 0	/* Remove for final build! */
+        ChangeDirectory("/CD-ROM");
+    #endif
 
 	ScreenTags[0].ta_Arg = (void *)GETBANKBITS(GrafBase->gf_ZeroPage);
 	ScreenGroupItem = CreateScreenGroup(ScreenItems,ScreenTags);
@@ -250,35 +278,39 @@ FooBar:
 
 	InitSoundPlayer("system/audio/dsp/varmono8.dsp",0); /* Init memory for the sound player */
 	InitMusicPlayer("system/audio/dsp/dcsqxdstereo.dsp");	/* Init memory for the music player */
-//	InitMusicPlayer("system/audio/dsp/fixedstereosample.dsp");	/* Init memory for the music player */
+    //	InitMusicPlayer("system/audio/dsp/fixedstereosample.dsp");	/* Init memory for the music player */
 
 	MainTask = KernelBase->kb_CurrentTask->t.n_Item;	/* My task Item */
 	VRAMIOReq = GetVRAMIOReq();
 	SetMyScreen(0);				/* Init the video display */
+}
 
-	i = 0;
-	do {
-		sprintf(FileName,"Sounds/Sound%02d.aiff",i+1);
-		AllSamples[i] = LoadSample(FileName);
-		if (AllSamples[i]<0) {
-			AllSamples[i] = 0;
-		}
-		if (AllSamples[i]) {
-			GetAudioItemInfo(AllSamples[i],SoundRateArgs);
-			AllRates[i] = (Word)(((LongWord)SoundRateArgs[0].ta_Arg)/(44100UL*2UL));	/* Get the DSP rate for the sound */
-		}
-	} while (++i<(NUMSFX-1));
+
+void Init()
+{
+    initSystem();
+
+    showLogos();
+
+    startModMenu();   // And for the below reason, this has to be my own cracktro using my own mini fonts, etc..
+    loadSoundFx();  // For some reason, this cannot be loaded later or sound effects will be missing (issues with memory allocation?)
+
 
 	MinHandles = 1200;		/* I will need lot's of memory handles */
+
 	InitMemory();			/* Init the memory manager */
 	InitResource();			/* Init the resource manager */
+
 	InterceptKey();			/* Init events */
 	SetErrBombFlag(TRUE);	/* Any OS errors will kill me */
 	MemPurgeCallBack = LowMemCode;
 
+
 	initTimer();
+	setPrimaryMenuOptions();    // we had to do this here, because some of the initial option menus (floor quality) are needed for early rendering inits
 	initAllCCBelements();
 }
+
 
 /**********************************
 
@@ -472,13 +504,8 @@ static void renderDbg()
 
 **********************************/
 
-
-void UpdateAndPageFlip(void)
+static void updateWipeScreen()
 {
-	LongWord NewTick;
-    int fps;
-
-	FlushCCBs();
 	if (DoWipe) {
 		Word PrevPage;
 		void *NewImage;
@@ -501,14 +528,23 @@ void UpdateAndPageFlip(void)
 		memcpy(OldImage,VideoPointer,320*200*2);
 		WipeDoom((LongWord *)OldImage,(LongWord *)NewImage);			/* Perform the wipe */
 	}
+}
 
-    fps = updateAndGetFPS();
+static void updateMyFpsAndDebugPrint()
+{
+    int fps = updateAndGetFPS();
+
     if (opt_fps) {
         PrintNumber(8, 8, fps, 0);
         FlushCCBs();
     }
 
     renderDbg();
+}
+
+void updateScreenAndWait()
+{
+	LongWord NewTick;
 
 	DisplayScreen(ScreenItems[WorkPage],0);		/* Display the hidden page */
 	if (++WorkPage>=SCREENS) {		/* Next screen in line */
@@ -523,6 +559,17 @@ void UpdateAndPageFlip(void)
 
 	frameTime = getTicks();
 	++nframe;
+}
+
+void UpdateAndPageFlip(void)
+{
+	FlushCCBs();
+
+	updateWipeScreen();
+
+	updateMyFpsAndDebugPrint();
+
+    updateScreenAndWait();
 }
 
 
@@ -758,7 +805,8 @@ Word ReadJoyButtons(Word PadNum)
 
 int main(void)
 {
-	InitTools();		/* Init the 3DO tool system */
+	Init();
+
 	UpdateAndPageFlip();	/* Init the video display's vars */
 	ReadPrefsFile();		/* Load defaults */
 	D_DoomMain();		/* Start doom */

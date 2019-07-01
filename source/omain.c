@@ -230,7 +230,7 @@ void resetMenuOptions() // Reset some menu options every time we start a new lev
     opt_cheatAutomap = AUTOMAP_CHEAT_OFF;
 }
 
-static void setPrimaryMenuOptions() // Set menu options only once at start up
+void setPrimaryMenuOptions() // Set menu options only once at start up
 {
     // Hack to match the inverted ScreenSizeOption (0 is biggest size) to the slider index logic (0 is on the left side)
     opt_screenSizeIndex = SCREENSIZE_OPTIONS_NUM - 1 - ScreenSizeOption;
@@ -298,9 +298,6 @@ void initMenuOptions()
     setMenuItemWithOptionNames(mi_extraBlood, 60, 100, "Extra blood", false, muiStyle_text, &opt_extraBlood, OFFON_OPTIONS_NUM, offOnOptions);
     setMenuItemWithOptionNames(mi_flyMode, 60, 130, "Fly mode", false, muiStyle_text, &opt_fly, OFFON_OPTIONS_NUM, offOnOptions);
     setItemPageRange(mi_playerSpeed, mi_flyMode, page_extra);
-
-
-    setPrimaryMenuOptions();
 }
 
 /*********************************

@@ -74,6 +74,7 @@ void initAllCCBelements()
     initCCBarrayFloorFlat();
     initCCBarrayFloorFlatVertical();
     initCCBQuadWallFlat();
+    initCCBQuadWallTextured();
 
     initSpanDrawFunc();
 	initNewSkies();

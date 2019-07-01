@@ -229,7 +229,7 @@ Word P_Ticker(void)
 	if (opt_playerSpeed==PLAYER_SPEED_2X || (opt_playerSpeed==PLAYER_SPEED_1_5X && speedTicker==0)) P_PlayerThink(pl);  // Do it again (2X speed) or once in two times (1.5X speed)
 
 	if (!(players.AutomapFlags & AF_OPTIONSACTIVE)) {
-        int i;
+
 		RunThinkers();		/* Handle logic for doors, walls etc... */
 
 		if (opt_enemySpeed > ENEMY_SPEED_0X) {

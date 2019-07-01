@@ -73,8 +73,9 @@ extern void drawCCBarray(MyCCB* lastCCB, MyCCB *CCBArrayPtr);  // extern needed 
 
 
 // In phase6ll.c
-extern void DrawSegFullFlatUnshadedLL(viswall_t *segl, int *scaleData);
+extern void DrawSegUnshadedLL(viswall_t *segl, int *scaleData, bool isTextured);
 extern void initCCBQuadWallFlat(void);
+extern void initCCBQuadWallTextured(void);
 
 
 // In phase7.c
@@ -87,6 +88,7 @@ extern void initSpanDrawFunc(void);
 // In threedo.c
 extern int frameTime;
 extern void printDbg(int value);
+extern void updateScreenAndWait(void);
 
 // In threedor.c
 extern Byte *SpanPtr;
@@ -130,3 +132,9 @@ extern void P_SpawnPuffParticle(Fixed x,Fixed y,Fixed z);
 
 // In omain.c
 extern void resetMenuOptions(void);
+extern void setPrimaryMenuOptions(void);
+
+
+// In modmenu.c
+extern bool loadPsxSamples;
+extern void startModMenu(void);
