@@ -357,7 +357,65 @@ static void PrepareWallparts(viswall_t *segl, Word texWidth, int *scaleData)
     }
 }
 
-static void DrawSegAnyLL(viswall_t *segl, int *scaleData, bool isTop, bool isTextured)
+static void PrepareWallpartsLo(viswall_t *segl, Word texWidth, int *scaleData)
+{
+    int texLeft = (segl->offset - IMFixMul( finetangent[(segl->CenterAngle+xtoviewangle[segl->LeftX])>>ANGLETOFINESHIFT], segl->distance)) >> FRACBITS;
+    int texRight = (segl->offset - IMFixMul( finetangent[(segl->CenterAngle+xtoviewangle[segl->RightX])>>ANGLETOFINESHIFT], segl->distance)) >> FRACBITS;
+
+    wallpart_t *wt = wallparts;
+
+    doWireTex = false;
+    if (texLeft > -3 && texRight < texWidth + 2) {
+        int texOffset, texLength;
+
+        if (texLeft < 0) texLeft = 0;
+        if (texRight > texWidth - 1) texRight = texWidth - 1;
+        texOffset = texLeft;
+        texLength = texRight - texLeft + 1;
+
+        if (texLength < 1) texLength = 1;
+
+        wt->textureOffset = texOffset;
+        wt->textureLength = texLength;
+
+        wt->scaleLeft = *scaleData;
+        wt->scaleRight = *(scaleData + segl->RightX - segl->LeftX);
+
+        wt->xLeft = segl->LeftX;
+        wt->xRight = segl->RightX + 1;
+
+        ++fullWallPartCount;
+        doWireTex = true;
+    } else {
+        wt->textureOffset = 0;
+        wt->textureLength = texWidth - 1;
+
+        wt->scaleLeft = *scaleData;
+        wt->scaleRight = *(scaleData + segl->RightX - segl->LeftX);
+
+        wt->xLeft = segl->LeftX;
+        wt->xRight = segl->RightX + 1;
+
+        ++brokenWallPartCount;
+    }
+    wallpartsCount = 1;
+}
+
+static void PrepareWallpartsFlat(viswall_t *segl, int *scaleData)
+{
+    wallpart_t *wt = wallparts;
+    const int length = segl->RightX - segl->LeftX;
+
+    wt->scaleLeft = *scaleData;
+    wt->scaleRight = *(scaleData + length);
+
+    wt->xLeft = segl->LeftX;
+    wt->xRight = segl->RightX + 1;
+
+    wallpartsCount = 1;
+}
+
+static void DrawSegAnyLL(viswall_t *segl, int *scaleData, bool isTop)
 {
     texture_t *tex;
     if (isTop) {
@@ -377,16 +435,20 @@ static void DrawSegAnyLL(viswall_t *segl, int *scaleData, bool isTop, bool isTex
     drawtex.height = tex->height;
     drawtex.data = (Byte *)*tex->data;
 
-    PrepareWallparts(segl, tex->width, scaleData);
-
-    if (isTextured) {
+    if (opt_wallQuality >= WALL_QUALITY_MED) {
+        if (opt_wallQuality == WALL_QUALITY_HI) {
+            PrepareWallparts(segl, tex->width, scaleData);
+        } else {
+            PrepareWallpartsLo(segl, tex->width, scaleData);
+        }
         DrawWallSegmentTexturedLL(&drawtex, CenterY);
     } else {
+        PrepareWallpartsFlat(segl, scaleData);
         DrawWallSegmentFlatLL(&drawtex, CenterY);
     }
 }
 
-void DrawSegUnshadedLL(viswall_t *segl, int *scaleData, bool isTextured)
+void DrawSegUnshadedLL(viswall_t *segl, int *scaleData)
 {
     Word ActionBits = segl->WallActions;
 	if (!(ActionBits & (AC_TOPTEXTURE|AC_BOTTOMTEXTURE))) return;
@@ -396,8 +458,8 @@ void DrawSegUnshadedLL(viswall_t *segl, int *scaleData, bool isTextured)
 
 
     if (ActionBits&AC_TOPTEXTURE)
-        DrawSegAnyLL(segl, scaleData, true, isTextured);
+        DrawSegAnyLL(segl, scaleData, true);
 
     if (ActionBits&AC_BOTTOMTEXTURE)
-        DrawSegAnyLL(segl, scaleData, false, isTextured);
+        DrawSegAnyLL(segl, scaleData, false);
 }

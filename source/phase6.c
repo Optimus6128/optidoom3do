@@ -109,7 +109,7 @@ static void DrawWalls()
             --WallSegPtr;			// Last go backwards!!
             scaleArrayData = scaleArrayPtr[--scaleArrayIndex];
 
-            DrawSegUnshadedLL(WallSegPtr, scaleArrayData, (opt_wallQuality != WALL_QUALITY_LO));
+            DrawSegUnshadedLL(WallSegPtr, scaleArrayData);
 
         } while (WallSegPtr!=LastSegPtr);
 
