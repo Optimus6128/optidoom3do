@@ -48,6 +48,8 @@ typedef struct {
 // In phase6.c
 extern Word columnWidth;
 extern int *scaleArrayData;
+extern bool background_clear;
+extern bool specialWireframeCase;
 
 
 // In phase6_1.c
@@ -69,13 +71,16 @@ extern void DrawSegFullFlat(viswall_t *segl, int *scaleData);
 extern void DrawSegFullFlatUnshaded(viswall_t *segl, int *scaleData);
 extern void DrawSegHalf(viswall_t *segl, int *scaleData);
 extern void DrawSegHalfUnshaded(viswall_t *segl, int *scaleData);
-extern void drawCCBarray(MyCCB* lastCCB, MyCCB *CCBArrayPtr);  // extern needed for phase6_1.c using this to draw sky columns
+extern void drawCCBarray(MyCCB* lastCCB, MyCCB *CCBArrayPtr);  // extern needed for phase6_1.c using this to draw sky columns, also will use with phase6ll.c and others
 
 
 // In phase6ll.c
 extern void DrawSegUnshadedLL(viswall_t *segl, int *scaleData, bool isTextured);
 extern void initCCBQuadWallFlat(void);
 extern void initCCBQuadWallTextured(void);
+
+extern int fullWallPartCount;
+extern int brokenWallPartCount;
 
 
 // In phase7.c
@@ -89,6 +94,7 @@ extern void initSpanDrawFunc(void);
 extern int frameTime;
 extern void printDbg(int value);
 extern void updateScreenAndWait(void);
+extern void DisableHardwareClippingWithoutFlush(void);
 
 // In threedor.c
 extern Byte *SpanPtr;

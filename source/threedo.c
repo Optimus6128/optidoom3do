@@ -35,6 +35,19 @@ Word AllRates[NUMSFX];
 
 int frameTime;
 
+
+#define DEBUG_OPT_HACK
+
+// When we want to set few alternative rendering options at every start up, for repeating tests and not having to change the same options every time in game
+static void optHack()
+{
+    #ifdef DEBUG_OPT_HACK
+        opt_floorQuality = FLOOR_QUALITY_LO;
+        opt_depthShading = DEPTH_SHADING_BRIGHT;
+        background_clear = true;
+    #endif
+}
+
 /**********************************
 
 	Run an external program and wait for compleation
@@ -307,7 +320,8 @@ void Init()
 
 
 	initTimer();
-	setPrimaryMenuOptions();    // we had to do this here, because some of the initial option menus (floor quality) are needed for early rendering inits
+	setPrimaryMenuOptions();    // We had to do this here, because some of the initial option menus (floor quality) are needed for early rendering inits
+	optHack();                  // These too, just for repeatitive debugging tests
 	initAllCCBelements();
 }
 
@@ -741,6 +755,13 @@ void EnableHardwareClipping(void)
 void DisableHardwareClipping(void)
 {
 	FlushCCBs();		/* Failsafe */
+	SetClipOrigin(VideoItem,0,0);		/* Set the clip top for the screen */
+	SetClipWidth(VideoItem,320);
+	SetClipHeight(VideoItem,200);		/* I only want 200 lines */
+}
+
+void DisableHardwareClippingWithoutFlush()
+{
 	SetClipOrigin(VideoItem,0,0);		/* Set the clip top for the screen */
 	SetClipWidth(VideoItem,320);
 	SetClipHeight(VideoItem,200);		/* I only want 200 lines */

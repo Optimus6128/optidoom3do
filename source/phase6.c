@@ -18,6 +18,9 @@ int *scaleArrayData;                            // pointer to pass scale wall co
 
 Word columnWidth;                           // column width in pixels (1 for fullRes, 2 for halfRes)
 
+bool background_clear = false;
+bool specialWireframeCase;
+
 
 /**********************************
 
@@ -39,12 +42,12 @@ static bool SegCommands_Init()
 
 static void DrawBackground()
 {
-    if (opt_cheatNoclip | opt_extraRender == EXTRA_RENDER_WIREFRAME) {
+    if (background_clear | opt_cheatNoclip | specialWireframeCase) {
         DrawARect(0,0, ScreenWidth, ScreenHeight, 0);   // To avoid HOM when noclipping outside
         FlushCCBs(); // Flush early to render noclip black quad early before everything, for the same reason as sky below
     }
 
-    if (skyOnView && (opt_sky!=SKY_DEFAULT)) {
+    if (skyOnView && (opt_sky!=SKY_DEFAULT) && !specialWireframeCase) {
         drawNewSky(opt_sky);
         FlushCCBs(); // Flush early to render the sky early before everything, as we hacked the wall renderer to draw earlier than the final flush.
     }
@@ -72,7 +75,10 @@ static void DrawWalls()
 
     LastSegPtr = viswalls;		// Stop at the first one
 
-    if (opt_renderer == RENDERER_DOOM && opt_extraRender != EXTRA_RENDER_WIREFRAME) {
+    fullWallPartCount = 0;
+    brokenWallPartCount = 0;
+
+    if (opt_renderer == RENDERER_DOOM && !specialWireframeCase) {
         do {
             --WallSegPtr;			// Last go backwards!!
             scaleArrayData = scaleArrayPtr[--scaleArrayIndex];
@@ -99,10 +105,6 @@ static void DrawWalls()
         } while (WallSegPtr!=LastSegPtr);
     } else {
 
-        if (opt_extraRender == EXTRA_RENDER_WIREFRAME) {
-            DisableHardwareClipping();
-        }
-
         do {
             --WallSegPtr;			// Last go backwards!!
             scaleArrayData = scaleArrayPtr[--scaleArrayIndex];
@@ -112,9 +114,13 @@ static void DrawWalls()
         } while (WallSegPtr!=LastSegPtr);
 
         if (opt_extraRender == EXTRA_RENDER_WIREFRAME) {
+            DisableHardwareClippingWithoutFlush();
             FlushCCBs();
             EnableHardwareClipping();
         }
+
+        printDbg(fullWallPartCount);
+        printDbg(brokenWallPartCount);
     }
 }
 
@@ -161,6 +167,8 @@ void SegCommands()
 {
     if (!SegCommands_Init()) return;
 
+    specialWireframeCase = (opt_extraRender == EXTRA_RENDER_WIREFRAME && opt_wallQuality == WALL_QUALITY_LO);
+
     EnableHardwareClipping();		// Turn on all hardware clipping to remove slop
 
         DrawBackground();
@@ -169,7 +177,7 @@ void SegCommands()
 
         DrawWalls();
 
-        if (opt_extraRender != EXTRA_RENDER_WIREFRAME) DrawPlanes();
+        if (!specialWireframeCase) DrawPlanes();
 
 	DisableHardwareClipping();		// Sprites require full screen management
 

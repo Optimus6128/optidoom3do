@@ -426,16 +426,6 @@ void AM_Control(player_t *player)
 
 **********************************/
 
-void DrawThickLine(Word x1,Word y1,Word x2,Word y2,Word color)
-{
-    if (opt_thickLines) {
-        const Word darkColor = ((((color >> 10) & 31) >> 1) << 10) | ((((color >> 5) & 31) >> 1) << 5) | ((color & 31) >> 1);
-        DrawLine(x1,y1,x2,y2,darkColor,3);
-    }
-    DrawLine(x1,y1,x2,y2,color,1);
-}
-
-
 void AM_Drawer(void)
 {
 	player_t *p;		/* Pointer to current player record */

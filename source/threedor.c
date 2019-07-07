@@ -16,7 +16,7 @@
 
 
 
-#define CCBTotal 0x200
+#define CCBTotal 0x400
 
 static MyCCB CCBArray[CCBTotal];		/* Array of CCB structs */
 static MyCCB *CurrentCCB = &CCBArray[0];	/* Pointer to empty CCB */
@@ -304,6 +304,15 @@ Quadrant6:
 
 	++DestCCB;			/* Next CCB */
 	CurrentCCB = DestCCB;	/* Save the CCB pointer */
+}
+
+void DrawThickLine(Word x1,Word y1,Word x2,Word y2,Word color)
+{
+    if (opt_thickLines) {
+        const Word darkColor = ((((color >> 10) & 31) >> 1) << 10) | ((((color >> 5) & 31) >> 1) << 5) | ((color & 31) >> 1);
+        DrawLine(x1,y1,x2,y2,darkColor,3);
+    }
+    DrawLine(x1,y1,x2,y2,color,1);
 }
 
 /**********************************
