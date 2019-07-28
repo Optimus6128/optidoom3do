@@ -1,6 +1,8 @@
 #include "Doom.h"
 #include <String.h>
 
+//#define DEBUG_MENU_HACK
+
 #define OPTION_OFFSET_X     16      // Horizontal pixel offset of option name from end of label
 #define SLIDER_POSX         106     // X coord for slider bars
 #define SLIDER_WIDTH        88      // Slider width
@@ -45,6 +47,11 @@ static void *sliderShapes;
 
 // ======== Variables for all the option values ========
 
+    Word opt_dbg1;
+    Word opt_dbg2;
+    Word opt_dbg3;
+    Word opt_dbg4;
+
     Word opt_fps;
     Word opt_wallQuality;
     Word opt_floorQuality;
@@ -79,6 +86,14 @@ enum {
 	mi_soundVolume,     // Sfx Volume
 	mi_musicVolume,     // Music volume
 	mi_controls,        // Control settings
+
+#ifdef DEBUG_MENU_HACK
+    mi_dbg1,
+    mi_dbg2,
+    mi_dbg3,
+    mi_dbg4,
+#endif
+
 	mi_fps,             // FPS display on/off
 	mi_screenSize,      // Screen size settings
 	mi_wallQuality,     // Wall quality (fullres(hi), halfres(med), untextured(lo))
@@ -106,6 +121,9 @@ enum {
 enum {
     page_audio,
     page_controls,
+#ifdef DEBUG_MENU_HACK
+    page_debug,
+#endif
     page_performance,
     page_rendering,
     page_effects,
@@ -117,6 +135,11 @@ enum {
 #define AUDIOSLIDERS_OPTIONS_NUM 16
 #define CONTROLS_OPTIONS_NUM 6
 #define CHEATSREVEALED_OPTIONS_NUM 3
+
+#define DEBUG1_OPTIONS_NUM 4
+#define DEBUG2_OPTIONS_NUM 2
+#define DEBUG3_OPTIONS_NUM 2
+#define DEBUG4_OPTIONS_NUM 3
 
 #define WALLQUALITY_OPTIONS_NUM 3
 #define FLOORQUALITY_OPTIONS_NUM 3
@@ -137,7 +160,7 @@ static char *offOnOptions[OFFON_OPTIONS_NUM] = { "OFF", "ON" };
 static char *wallQualityOptions[WALLQUALITY_OPTIONS_NUM] = { "LO", "MED", "HI"};
 static char *floorQualityOptions[FLOORQUALITY_OPTIONS_NUM] = { "LO", "MED", "HI" };
 static char *depthShadingOptions[DEPTHSHADING_OPTIONS_NUM] = { "DARK", "BRIGHT", "ON" };
-static char *rendererOptions[RENDERER_OPTIONS_NUM] = { "DOOM", "LIGOLEAST" };
+static char *rendererOptions[RENDERER_OPTIONS_NUM] = { "DOOM", "POLY" };
 static char *extraRenderOptions[EXTRA_RENDER_OPTIONS_NUM] = { "OFF", "WIREFRAME", "CYBER" };
 static char *automapOptions[AUTOMAP_OPTIONS_NUM] = { "OFF", "THINGS", "LINES", "ALL" };
 static char *dummyIDKFAoptions[DUMMYIDKFA_OPTIONS_NUM] = { " ", "!" };
@@ -170,7 +193,11 @@ typedef struct {
 static MenuItem menuItems[NUM_MENUITEMS];
 static Word itemPage[NUM_MENUITEMS];
 
-static char *pageLabel[NUM_PAGES] = { "AUDIO", "CONTROLS", "PERFORMANCE", "RENDERING", "EFFECTS", "CHEATS", "EXTRA" };
+static char *pageLabel[NUM_PAGES] = { "AUDIO", "CONTROLS",
+#ifdef DEBUG_MENU_HACK
+"DEBUG",
+#endif
+"PERFORMANCE", "RENDERING", "EFFECTS", "CHEATS", "EXTRA" };
 
 
 static void setMenuItem(Word id, int posX, int posY, char *label, bool centered, Word muiStyle, Word *optionValuePtr, Word optionsRange)
@@ -254,6 +281,11 @@ void setPrimaryMenuOptions() // Set menu options only once at start up
     opt_extraBlood = false;
     opt_fly = false;
 
+    opt_dbg1 = 0;
+    opt_dbg2 = 0;
+    opt_dbg3 = 0;
+    opt_dbg4 = 0;
+
     resetMenuOptions();
 }
 
@@ -266,6 +298,14 @@ void initMenuOptions()
     setMenuItem(mi_controls, 160, 40, "Controls", true, muiStyle_special, &ControlType, CONTROLS_OPTIONS_NUM);
     setMenuItemLoopBehaviour(mi_controls, false);
     setItemPageRange(mi_controls, mi_controls, page_controls);
+
+#ifdef DEBUG_MENU_HACK
+    setMenuItem(mi_dbg1, 160, 40, 0, true, muiStyle_slider, &opt_dbg1, DEBUG1_OPTIONS_NUM);
+    setMenuItem(mi_dbg2, 160, 80, 0, true, muiStyle_slider, &opt_dbg2, DEBUG2_OPTIONS_NUM);
+    setMenuItem(mi_dbg3, 160, 120, 0, true, muiStyle_slider, &opt_dbg3, DEBUG3_OPTIONS_NUM);
+    setMenuItem(mi_dbg4, 160, 160, 0, true, muiStyle_slider, &opt_dbg4, DEBUG4_OPTIONS_NUM);
+    setItemPageRange(mi_dbg1, mi_dbg4, page_debug);
+#endif
 
     setMenuItemWithOptionNames(mi_fps, 112, 36, "Fps", false, muiStyle_text, &opt_fps, OFFON_OPTIONS_NUM, offOnOptions);
     setMenuItem(mi_screenSize, 160, 58, "Screen size", true, muiStyle_slider, &opt_screenSizeIndex, SCREENSIZE_OPTIONS_NUM);

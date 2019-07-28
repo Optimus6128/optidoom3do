@@ -80,7 +80,9 @@ void initCCBarrayWallFlat(void)
 		CCBPtr->ccb_NextPtr = (MyCCB *)(sizeof(MyCCB)-8);	// Create the next offset
 
 		// Set all the defaults
-        CCBPtr->ccb_Flags = CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_USEAV|CCB_ACSC|CCB_ALSC|CCB_SPABS|CCB_PPABS|CCB_LDPLUT;
+        CCBPtr->ccb_Flags = CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_USEAV|CCB_ACSC|CCB_ALSC|CCB_SPABS|CCB_PPABS;
+
+        if (i==0) CCBPtr->ccb_Flags |= CCB_LDPLUT;  // First CEL column will set the palette for the rest
 
         CCBPtr->ccb_PRE0 = pre0;
         CCBPtr->ccb_PRE1 = pre1;
@@ -120,6 +122,9 @@ static void DrawWallSegmentFull(drawtex_t *tex, Word screenCenterY)
 
 	MyCCB *CCBPtr;
 	Word colnum7;
+	int pre0, pre1;
+
+	Byte *texBitmap = &tex->data[32];
 
 	if (xPos > tex->xEnd) return;
 
@@ -135,6 +140,10 @@ static void DrawWallSegmentFull(drawtex_t *tex, Word screenCenterY)
 		frac += tex->height;		// Make sure it's on the shape
 	}
 	frac&=0x7f;		// Zap unneeded bits
+	colnum7 = frac & 7;	// Get the pixel skip
+
+    pre0 = (colnum7<<24) | 0x03;
+    pre1 = 0x3E005000 | (colnum7+run-1);	// Project the pixels
 
     CCBPtr = CCBArrayWall;
     vc = viscols;
@@ -143,15 +152,12 @@ static void DrawWallSegmentFull(drawtex_t *tex, Word screenCenterY)
         colnum = vc->column + colnumOffset;	// Get the starting column offset
         colnum &= (tex->width-1);		// Wrap around the texture
         colnum = (colnum*tex->height)+frac;	// Index to the shape
-
-        colnum7 = colnum & 7;	// Get the pixel skip
         colnum >>= 1;           // Pixel to byte offset
-        colnum += 32;			// Index past the PLUT
         colnum &= ~3;			// Long word align the source
 
-        CCBPtr->ccb_PRE0 = (colnum7<<24) | 0x03;
-        CCBPtr->ccb_PRE1 = 0x3E005000 | (colnum7+run-1);	// Project the pixels
-        CCBPtr->ccb_SourcePtr = (CelData*)&tex->data[colnum];	// Get the source ptr
+        CCBPtr->ccb_PRE0 = pre0;
+        CCBPtr->ccb_PRE1 = pre1;
+        CCBPtr->ccb_SourcePtr = (CelData*)&texBitmap[colnum];	// Get the source ptr
         CCBPtr->ccb_XPos = xPos << 16;
         CCBPtr->ccb_YPos = (top<<16) + 0xFF00;
         CCBPtr->ccb_HDY = vc->scale<<(20-SCALEBITS);
@@ -178,6 +184,9 @@ static void DrawWallSegmentHalf(drawtex_t *tex, Word screenCenterY)
 
 	MyCCB *CCBPtr;
 	Word colnum7;
+	int pre0, pre1;
+
+	Byte *texBitmap = &tex->data[32];
 
 	if (xPos > tex->xEnd) return;
 
@@ -193,6 +202,10 @@ static void DrawWallSegmentHalf(drawtex_t *tex, Word screenCenterY)
 		frac += tex->height;		// Make sure it's on the shape
 	}
 	frac&=0x7f;		// Zap unneeded bits
+	colnum7 = frac & 7;	// Get the pixel skip
+
+    pre0 = (colnum7<<24) | 0x03;
+    pre1 = 0x3E005000 | (colnum7+run-1);	// Project the pixels
 
     CCBPtr = CCBArrayWall;
     vc = viscols;
@@ -201,15 +214,12 @@ static void DrawWallSegmentHalf(drawtex_t *tex, Word screenCenterY)
         colnum = vc->column + colnumOffset;	// Get the starting column offset
         colnum &= (tex->width-1);		// Wrap around the texture
         colnum = (colnum*tex->height)+frac;	// Index to the shape
-
-        colnum7 = colnum & 7;	// Get the pixel skip
         colnum >>= 1;           // Pixel to byte offset
-        colnum += 32;			// Index past the PLUT
         colnum &= ~3;			// Long word align the source
 
-        CCBPtr->ccb_PRE0 = (colnum7<<24) | 0x03;
-        CCBPtr->ccb_PRE1 = 0x3E005000 | (colnum7+run-1);	// Project the pixels
-        CCBPtr->ccb_SourcePtr = (CelData*)&tex->data[colnum];	// Get the source ptr
+        CCBPtr->ccb_PRE0 = pre0;
+        CCBPtr->ccb_PRE1 = pre1;
+        CCBPtr->ccb_SourcePtr = (CelData*)&texBitmap[colnum];	// Get the source ptr
         CCBPtr->ccb_XPos = xPos << 16;
         CCBPtr->ccb_YPos = (top<<16) + 0xFF00;
         CCBPtr->ccb_HDY = vc->scale<<(20-SCALEBITS);
@@ -246,7 +256,6 @@ static void DrawWallSegmentFlat(drawtex_t *tex, Word screenCenterY)
     do {
         top = screenCenterY - ((vc->scale*tex->topheight) >> (HEIGHTBITS+SCALEBITS));	// Screen Y
 
-        CCBPtr->ccb_PLUTPtr = tex->data;
         CCBPtr->ccb_XPos = xPos << 16;
         CCBPtr->ccb_YPos = (top<<16) + 0xFF00;
         CCBPtr->ccb_VDY = (run * vc->scale) << (16-flatColTexHeightShr-SCALEBITS);
@@ -257,6 +266,7 @@ static void DrawWallSegmentFlat(drawtex_t *tex, Word screenCenterY)
     }while (++xPos <= tex->xEnd);
 
     // Call for the final render of the linked list of all the column cels of the single wall segment
+    CCBArrayWallFlat[0].ccb_PLUTPtr = tex->data;    // plut pointer only for first element
     drawCCBarray(--CCBPtr, CCBArrayWallFlat);
 }
 

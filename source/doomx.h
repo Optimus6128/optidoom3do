@@ -75,12 +75,9 @@ extern void drawCCBarray(MyCCB* lastCCB, MyCCB *CCBArrayPtr);  // extern needed 
 
 
 // In phase6ll.c
-extern void DrawSegUnshadedLL(viswall_t *segl, int *scaleData);
+extern void DrawSegUnshadedPL(viswall_t *segl, int *scaleData);
 extern void initCCBQuadWallFlat(void);
 extern void initCCBQuadWallTextured(void);
-
-extern int fullWallPartCount;
-extern int brokenWallPartCount;
 
 
 // In phase7.c

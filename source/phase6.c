@@ -72,11 +72,9 @@ static void DrawWalls()
     // Now I actually draw the walls back to front to allow for clipping because of slop
 
     const bool lightShadingOn = (opt_depthShading == DEPTH_SHADING_ON);
+    bool tooTightForPoly = false;
 
     LastSegPtr = viswalls;		// Stop at the first one
-
-    fullWallPartCount = 0;
-    brokenWallPartCount = 0;
 
     if (opt_renderer == RENDERER_DOOM && !specialWireframeCase) {
         do {
@@ -104,12 +102,46 @@ static void DrawWalls()
             }
         } while (WallSegPtr!=LastSegPtr);
     } else {
-
         do {
             --WallSegPtr;			// Last go backwards!!
             scaleArrayData = scaleArrayPtr[--scaleArrayIndex];
 
-            DrawSegUnshadedLL(WallSegPtr, scaleArrayData);
+            if (opt_wallQuality ==  WALL_QUALITY_LO) {  // flat
+                DrawSegUnshadedPL(WallSegPtr, scaleArrayData); // so, always poly
+            } else {
+                const int texLeft = (WallSegPtr->offset - IMFixMul( finetangent[(WallSegPtr->CenterAngle+xtoviewangle[WallSegPtr->LeftX])>>ANGLETOFINESHIFT], WallSegPtr->distance)) >> FRACBITS;
+                const int texRight = (WallSegPtr->offset - IMFixMul( finetangent[(WallSegPtr->CenterAngle+xtoviewangle[WallSegPtr->RightX])>>ANGLETOFINESHIFT], WallSegPtr->distance)) >> FRACBITS;
+
+                int texLength = texRight - texLeft;
+                const int pixLength = WallSegPtr->RightX - WallSegPtr->LeftX + 1;
+                const int texWidth = WallSegPtr->t_texture->width;  // using top texture (center and top) for now
+
+                if (pixLength < 8) {
+                    tooTightForPoly = true;
+                } else {
+                    if (texLength < 1) texLength = 1;
+                    tooTightForPoly = ((pixLength * texWidth) / texLength) < 8;
+                }
+
+
+                if (tooTightForPoly) {
+                    if (opt_wallQuality == WALL_QUALITY_HI) {
+                        //if (lightShadingOn) {
+                            //DrawSegFull(WallSegPtr, scaleArrayData);
+                        //} else {
+                            DrawSegFullUnshaded(WallSegPtr, scaleArrayData);
+                        //}
+                    } else if (opt_wallQuality == WALL_QUALITY_MED) {
+                        //if (lightShadingOn) {
+                            //DrawSegHalf(WallSegPtr, scaleArrayData);
+                        //} else {
+                            DrawSegHalfUnshaded(WallSegPtr, scaleArrayData);
+                        //}
+                    }
+                } else {
+                    DrawSegUnshadedPL(WallSegPtr, scaleArrayData);  // go poly anyway
+                }
+            }
 
         } while (WallSegPtr!=LastSegPtr);
 
@@ -118,9 +150,6 @@ static void DrawWalls()
             FlushCCBs();
             EnableHardwareClipping();
         }
-
-        printDbg(fullWallPartCount);
-        printDbg(brokenWallPartCount);
     }
 }
 

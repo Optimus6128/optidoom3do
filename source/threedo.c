@@ -549,6 +549,9 @@ static void updateMyFpsAndDebugPrint()
     int fps = updateAndGetFPS();
 
     if (opt_fps) {
+        if (fps <= 2) {
+            opt_renderer = RENDERER_DOOM;
+        }
         PrintNumber(8, 8, fps, 0);
         FlushCCBs();
     }

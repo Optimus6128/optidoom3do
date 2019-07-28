@@ -38,7 +38,7 @@ enum
 enum
 {
     RENDERER_DOOM = 0,
-    RENDERER_LIGOLEAST = 1
+    RENDERER_POLY = 1
 };
 
 // Extra render options
@@ -102,3 +102,8 @@ extern Word opt_playerSpeed;
 extern Word opt_enemySpeed;
 extern Word opt_extraBlood;
 extern Word opt_fly;
+
+extern Word opt_dbg1;
+extern Word opt_dbg2;
+extern Word opt_dbg3;
+extern Word opt_dbg4;

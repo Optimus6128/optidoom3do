@@ -16,7 +16,7 @@
 
 
 
-#define CCBTotal 0x400
+#define CCBTotal 0x200
 
 static MyCCB CCBArray[CCBTotal];		/* Array of CCB structs */
 static MyCCB *CurrentCCB = &CCBArray[0];	/* Pointer to empty CCB */
