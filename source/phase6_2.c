@@ -27,7 +27,7 @@ void initCCBarrayWall(void)
 	MyCCB *CCBPtr;
 	int i;
 
-    columnWidth = 1;
+    int columnWidth = 1;
     if (opt_wallQuality == WALL_QUALITY_MED)
         columnWidth = 2;
 
@@ -302,10 +302,10 @@ static void DrawSegAny(viswall_t *segl, bool isTop, bool isFlat)
     if (isFlat) {
         DrawWallSegmentFlat(&drawtex, CenterY);
     } else {
-        if (columnWidth==1) {
-            DrawWallSegmentFull(&drawtex, CenterY);
-        } else {
+        if (opt_wallQuality == WALL_QUALITY_MED) {
             DrawWallSegmentHalf(&drawtex, CenterY);
+        } else {
+            DrawWallSegmentFull(&drawtex, CenterY);
         }
     }
 }

@@ -345,7 +345,7 @@ void SegLoop(viswall_t *segl)
     }
 
 // I can draw the sky right now!!
-    if (!specialWireframeCase) {
+    if (opt_extraRender != EXTRA_RENDER_WIREFRAME) {
         if (ActionBits & AC_ADDSKY) {
             skyOnView = true;
             if (opt_sky==SKY_DEFAULT) {

@@ -36,7 +36,7 @@ Word AllRates[NUMSFX];
 int frameTime;
 
 
-#define DEBUG_OPT_HACK
+//#define DEBUG_OPT_HACK
 
 // When we want to set few alternative rendering options at every start up, for repeating tests and not having to change the same options every time in game
 static void optHack()

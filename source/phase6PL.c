@@ -259,7 +259,7 @@ static void DrawWallSegmentTexturedQuad(drawtex_t *tex)
 
 **********************************/
 
-static void calcColumnOffsets(viswall_t *segl)
+/*static void calcColumnOffsets(viswall_t *segl)
 {
     const int xRight = segl->RightX;
     int x = segl->LeftX;
@@ -268,7 +268,7 @@ static void calcColumnOffsets(viswall_t *segl)
     do {
         *texColOffset++ = (segl->offset - IMFixMul( finetangent[(segl->CenterAngle+xtoviewangle[x])>>ANGLETOFINESHIFT], segl->distance)) >> FRACBITS;
     } while(++x <= xRight);
-}
+}*/
 
 static void calcColumnOffsets2(viswall_t *segl)
 {
@@ -285,25 +285,6 @@ static void calcColumnOffsets2(viswall_t *segl)
         x+=2;
     } while(x <= xRight);
 }
-
-/*static void calcColumnOffsets4(viswall_t *segl)
-{
-    const int xRight = segl->RightX;
-    int x = segl->LeftX;
-    int *texColOffset = texColumnOffset;
-
-    texColOffset[0] = (segl->offset - IMFixMul( finetangent[(segl->CenterAngle+xtoviewangle[x])>>ANGLETOFINESHIFT], segl->distance)) >> FRACBITS;
-    do {
-        texColOffset[4] = (segl->offset - IMFixMul( finetangent[(segl->CenterAngle+xtoviewangle[x+4])>>ANGLETOFINESHIFT], segl->distance)) >> FRACBITS;
-        texColOffset[2] = (texColOffset[0] + texColOffset[4]) >> 1;
-        texColOffset[1] = (texColOffset[0] + texColOffset[2]) >> 1;
-        texColOffset[3] = (texColOffset[2] + texColOffset[4]) >> 1;
-
-        texColOffset += 4;
-        x+=4;
-    } while(x <= xRight);
-}*/
-
 
 static void PrepareBrokenWallParts(viswall_t *segl, Word texWidth, int *scaleData)
 {
@@ -442,9 +423,81 @@ void DrawSegUnshadedPL(viswall_t *segl, int *scaleData)
 
     texColumnOffsetPrepared = false;
 
-    if (ActionBits&AC_TOPTEXTURE)
+    if (topTexOn)
         DrawSegAnyPL(segl, scaleData, true, true);
 
-    if (ActionBits&AC_BOTTOMTEXTURE)
+    if (bottomTexOn)
         DrawSegAnyPL(segl, scaleData, false, shouldPrepareAgain);
+}
+
+
+// ============ Wireframe renderer ============
+
+
+static void DrawWallSegmentWireframePL(drawtex_t *tex)
+{
+	int topLeft, topRight;
+	int bottomLeft, bottomRight;
+
+    const int run = (tex->topheight - tex->bottomheight) >> HEIGHTBITS;
+
+    const int screenCenterX = ScreenWidth >> 1;
+    const int screenCenterY = ScreenHeight >> 1;
+
+    const int xLeft = wallParts->xLeft - screenCenterX;
+    const int xRight = wallParts->xRight - screenCenterX;
+    const int xLength = xRight - xLeft;
+
+    const int scaleLeft = wallParts->scaleLeft;
+    const int scaleRight = wallParts->scaleRight;
+
+    const Word color = *((Word*)tex->data);
+
+    if (run <= 0) return;
+    if (xLength < 1) return;
+
+	topLeft = ScreenHeight - (CenterY - ((scaleLeft * tex->topheight) >> (HEIGHTBITS+SCALEBITS))) - screenCenterY;
+	topRight = ScreenHeight - (CenterY - ((scaleRight * tex->topheight) >> (HEIGHTBITS+SCALEBITS))) - screenCenterY;
+	bottomLeft = topLeft - ((run * scaleLeft) >> SCALEBITS);
+	bottomRight = topRight - ((run * scaleRight) >> SCALEBITS);
+
+    DrawThickLine(xLeft, topLeft, xRight, topRight, color);
+    DrawThickLine(xRight, topRight, xRight, bottomRight, color);
+    DrawThickLine(xRight, bottomRight, xLeft, bottomLeft, color);
+    DrawThickLine(xLeft, bottomLeft, xLeft, topLeft, color);
+}
+
+static void DrawSegWireframeAnyPL(viswall_t *segl, int *scaleData, bool isTop)
+{
+    texture_t *tex;
+    if (isTop) {
+        tex = segl->t_texture;
+
+        drawtex.topheight = segl->t_topheight;
+        drawtex.bottomheight = segl->t_bottomheight;
+    } else {
+        tex = segl->b_texture;
+
+        drawtex.topheight = segl->b_topheight;
+        drawtex.bottomheight = segl->b_bottomheight;
+    }
+    drawtex.data = (Byte *)*tex->data;
+
+    PrepareWallPartsFlat(segl, scaleData);
+    DrawWallSegmentWireframePL(&drawtex);
+}
+
+void DrawSegWireframePL(viswall_t *segl, int *scaleData)
+{
+    const Word ActionBits = segl->WallActions;
+    const bool topTexOn = (bool)(ActionBits & AC_TOPTEXTURE);
+    const bool bottomTexOn = (bool)(ActionBits & AC_BOTTOMTEXTURE);
+
+	if (!(topTexOn || bottomTexOn)) return;
+
+    if (topTexOn)
+        DrawSegWireframeAnyPL(segl, scaleData, true);
+
+    if (bottomTexOn)
+        DrawSegWireframeAnyPL(segl, scaleData, false);
 }

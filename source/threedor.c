@@ -16,7 +16,7 @@
 
 
 
-#define CCBTotal 0x200
+#define CCBTotal 0x400
 
 static MyCCB CCBArray[CCBTotal];		/* Array of CCB structs */
 static MyCCB *CurrentCCB = &CCBArray[0];	/* Pointer to empty CCB */
@@ -49,6 +49,13 @@ Word LightTable[32] = {
 	0x10D0,0x10D0,0x1B00,0x1B00,0x18D0,0x18D0,0x1F00,0x1F00,
 	0x1F00,0x1F00,0x1F00,0x1F00,0x1F00,0x1F00,0x1F00,0x1F00
 };
+
+
+int getSkyScale(unsigned int i)
+{
+    if (i >= SCREENSIZE_OPTIONS_NUM) i = SCREENSIZE_OPTIONS_NUM-1;
+    return SkyScales[i];
+}
 
 static void initCCBarray(void)
 {
@@ -315,6 +322,7 @@ void DrawThickLine(Word x1,Word y1,Word x2,Word y2,Word color)
     DrawLine(x1,y1,x2,y2,color,1);
 }
 
+
 /**********************************
 
 	This code is functionally equivalent to the Burgerlib
@@ -367,113 +375,6 @@ void DrawARect(Word x1,Word y1,Word Width,Word Height,Word color)
 
 **********************************/
 
-/**********************************
-
-	Drawing the sky is the easiest, so I'll do this first.
-	The parms are,
-	tx_x = screen x coord for the virtual screen.
-	colnum = index for which scan line to draw from the source image. Note that
-		this number has all bits set so I must mask off the unneeded bits for
-		texture wraparound.
-
-	No light shading is used for the sky. The scale factor is a constant.
-
-**********************************/
-
-/*
-extern Word tx_x;
-extern int tx_scale;
-
-void DrawSkyLine(void)
-{
-	Byte *Source;
-	Word Colnum;
-	MyCCB* DestCCB;			// Pointer to new CCB entry
-
-	DestCCB = CurrentCCB;		// Copy pointer to local
-	if (DestCCB>=&CCBArray[CCBTotal]) {		// Am I full already?
-		FlushCCBs();				// Draw all the CCBs/Lines
-		DestCCB = CCBArray;
-	}
-	Colnum = (((xtoviewangle[tx_x]+viewangle)>>ANGLETOSKYSHIFT)&0xFF)<<6;
-	Source = (Byte *)(*SkyTexture->data);	// Index to the true shape
-
-	DestCCB->ccb_Flags = CCB_SPABS|CCB_LDSIZE|CCB_LDPRS|
-	CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|
-	CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_PPABS|CCB_LDPLUT;	// ccb_flags
-	DestCCB->ccb_PRE0 = 0x03;
-	DestCCB->ccb_PRE1 = 0x3E005000|(128-1);	// Project the pixels
-	DestCCB->ccb_PLUTPtr = Source;		// Get the palette ptr
-	DestCCB->ccb_SourcePtr = (CelData *)&Source[Colnum+32];	// Get the source ptr
-	DestCCB->ccb_XPos = tx_x<<16;		// Set the x and y coord for start
-	DestCCB->ccb_YPos = 0<<16;
-	DestCCB->ccb_HDX = 0<<20;		// Convert 6 bit frac to CCB scale
-	DestCCB->ccb_HDY = SkyScales[ScreenSizeOption];	// Video stretch factor
-	DestCCB->ccb_VDX = columnWidth<<16;
-	DestCCB->ccb_VDY = 0<<16;
-	DestCCB->ccb_PIXC = 0x1F00;		// PIXC control
-	++DestCCB;			// Next CCB
-	CurrentCCB = DestCCB;	// Save the CCB pointer
-}
-*/
-
-int getSkyScale(unsigned int i)
-{
-    if (i >= SCREENSIZE_OPTIONS_NUM) i = SCREENSIZE_OPTIONS_NUM-1;
-    return SkyScales[i];
-}
-
-/**********************************
-
-	Drawing the wall columns are a little trickier, so I'll do this next.
-	The parms are,
-	tx_x = screen x coord for the virtual screen.
-	y = screen y coord for the virtual screen.
-	bottom = screen y coord for the BOTTOM of the pixel run. Subtract from top
-		to get the exact destination pixel run count.
-	colnum = index for which scan line to draw from the source image. Note that
-		this number has all bits set so I must mask off the unneeded bits for
-		texture wraparound.
-
-	No light shading is used. The scale factor is a constant.
-
-**********************************/
-
-/*
-void DrawWallColumn(Word y,Word Colnum,Byte *Source,Word Run)
-{
-	MyCCB* DestCCB;			// Pointer to new CCB entry
-	Word Colnum7;
-
-	DestCCB = CurrentCCB;		// Copy pointer to local
-	if (DestCCB>=&CCBArray[CCBTotal]) {		// Am I full already?
-		FlushCCBs();				// Draw all the CCBs/Lines
-		DestCCB = CCBArray;
-	}
-
-	Colnum7 = Colnum & 7;	// Get the pixel skip
-	Colnum = Colnum>>1;		// Pixel to byte offset
-	Colnum += 32;			// Index past the PLUT
-	Colnum &= ~3;			// Long word align the source
-	DestCCB->ccb_Flags = CCB_SPABS|CCB_LDSIZE|CCB_LDPRS|
-	CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|
-	CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_PPABS|CCB_LDPLUT|CCB_USEAV|CCB_ACSC|CCB_ALSC;	// ccb_flags
-	DestCCB->ccb_PRE0 = (Colnum7<<24)|0x03;
-	DestCCB->ccb_PRE1 = 0x3E005000|(Colnum7+Run-1);	// Project the pixels
-	DestCCB->ccb_PLUTPtr = Source;		// Get the palette ptr
-	DestCCB->ccb_SourcePtr = (CelData *)&Source[Colnum];	// Get the source ptr
-	DestCCB->ccb_XPos = tx_x<<16;		// Set the x and y coord for start
-	DestCCB->ccb_YPos = (y<<16)+0xFF00;
-	DestCCB->ccb_HDX = 0<<20;		// Convert 6 bit frac to CCB scale
-	DestCCB->ccb_HDY = tx_scale<<(20-SCALEBITS);
-	DestCCB->ccb_VDX = columnWidth<<16;
-	DestCCB->ccb_VDY = 0<<16;
-	DestCCB->ccb_PIXC = LightTable[tx_texturelight>>LIGHTSCALESHIFT];		// PIXC control
-
-	++DestCCB;			// Next CCB
-	CurrentCCB = DestCCB;	// Save the CCB pointer
-}
-*/
 
 /**********************************
 

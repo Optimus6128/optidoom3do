@@ -46,10 +46,8 @@ typedef struct {
 
 
 // In phase6.c
-extern Word columnWidth;
 extern int *scaleArrayData;
 extern bool background_clear;
-extern bool specialWireframeCase;
 
 
 // In phase6_1.c
@@ -74,8 +72,9 @@ extern void DrawSegHalfUnshaded(viswall_t *segl, int *scaleData);
 extern void drawCCBarray(MyCCB* lastCCB, MyCCB *CCBArrayPtr);  // extern needed for phase6_1.c using this to draw sky columns, also will use with phase6ll.c and others
 
 
-// In phase6ll.c
+// In phase6PL.c
 extern void DrawSegUnshadedPL(viswall_t *segl, int *scaleData);
+extern void DrawSegWireframePL(viswall_t *segl, int *scaleData);
 extern void initCCBQuadWallFlat(void);
 extern void initCCBQuadWallTextured(void);
 

@@ -16,10 +16,8 @@ static int *scaleArrayPtr[MAXWALLCMDS];         // start pointers in scaleArray 
 static int scaleArrayIndex;                     // index for new line segment
 int *scaleArrayData;                            // pointer to pass scale wall column data to phase6_1
 
-Word columnWidth;                           // column width in pixels (1 for fullRes, 2 for halfRes)
 
 bool background_clear = false;
-bool specialWireframeCase;
 
 
 /**********************************
@@ -42,12 +40,12 @@ static bool SegCommands_Init()
 
 static void DrawBackground()
 {
-    if (background_clear | opt_cheatNoclip | specialWireframeCase) {
+    if (background_clear | opt_cheatNoclip | (opt_extraRender==EXTRA_RENDER_WIREFRAME)) {
         DrawARect(0,0, ScreenWidth, ScreenHeight, 0);   // To avoid HOM when noclipping outside
         FlushCCBs(); // Flush early to render noclip black quad early before everything, for the same reason as sky below
     }
 
-    if (skyOnView && (opt_sky!=SKY_DEFAULT) && !specialWireframeCase) {
+    if (skyOnView && (opt_sky!=SKY_DEFAULT) && (opt_extraRender!=EXTRA_RENDER_WIREFRAME)) {
         drawNewSky(opt_sky);
         FlushCCBs(); // Flush early to render the sky early before everything, as we hacked the wall renderer to draw earlier than the final flush.
     }
@@ -76,7 +74,7 @@ static void DrawWalls()
 
     LastSegPtr = viswalls;		// Stop at the first one
 
-    if (opt_renderer == RENDERER_DOOM && !specialWireframeCase) {
+    if (opt_renderer == RENDERER_DOOM) {
         do {
             --WallSegPtr;			// Last go backwards!!
             scaleArrayData = scaleArrayPtr[--scaleArrayIndex];
@@ -144,13 +142,21 @@ static void DrawWalls()
             }
 
         } while (WallSegPtr!=LastSegPtr);
-
-        if (opt_extraRender == EXTRA_RENDER_WIREFRAME) {
-            DisableHardwareClippingWithoutFlush();
-            FlushCCBs();
-            EnableHardwareClipping();
-        }
     }
+}
+
+void DrawWallsWireframe()
+{
+    LastSegPtr = viswalls;
+
+    do {
+        scaleArrayData = scaleArrayPtr[--scaleArrayIndex];
+        DrawSegWireframePL(--WallSegPtr, scaleArrayData);
+    } while (WallSegPtr!=LastSegPtr);
+
+    DisableHardwareClippingWithoutFlush();
+    FlushCCBs();
+    EnableHardwareClipping();
 }
 
 static void DrawPlanes()
@@ -196,17 +202,18 @@ void SegCommands()
 {
     if (!SegCommands_Init()) return;
 
-    specialWireframeCase = (opt_extraRender == EXTRA_RENDER_WIREFRAME && opt_wallQuality == WALL_QUALITY_LO);
-
     EnableHardwareClipping();		// Turn on all hardware clipping to remove slop
 
         DrawBackground();
 
         StartSegLoop();
 
-        DrawWalls();
-
-        if (!specialWireframeCase) DrawPlanes();
+        if (opt_extraRender == EXTRA_RENDER_WIREFRAME) {
+            DrawWallsWireframe();
+        } else {
+            DrawWalls();
+            DrawPlanes();
+        }
 
 	DisableHardwareClipping();		// Sprites require full screen management
 
