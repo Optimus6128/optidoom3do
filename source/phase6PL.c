@@ -20,7 +20,7 @@ static bool texColumnOffsetPrepared;
 
 static drawtex_t drawtex;
 
-static Word ambientLight;
+static Word pixcLight;
 
 static MyCCB CCBQuadWallFlat;
 static MyCCB CCBQuadWallTextured[MAX_WALL_PARTS];
@@ -124,7 +124,7 @@ static void DrawWallSegmentFlatPL(drawtex_t *tex)
 
 
     CCBQuadWallFlat.ccb_PLUTPtr = tex->data;
-    CCBQuadWallFlat.ccb_PIXC = LightTable[ambientLight>>LIGHTSCALESHIFT];
+    CCBQuadWallFlat.ccb_PIXC = pixcLight;
 
     DrawCels(VideoItem,(CCB*)&CCBQuadWallFlat);
 }
@@ -142,6 +142,7 @@ static void DrawWallSegmentTexturedQuadSubdivided(drawtex_t *tex, int run, Word 
     const int recHeight = reciprocalLength[run];
 
     if (count < 1) return;
+
 
     CCBPtr = CCBQuadWallTextured;
     do {
@@ -173,6 +174,12 @@ static void DrawWallSegmentTexturedQuadSubdivided(drawtex_t *tex, int run, Word 
         colnum >>= 1;           // Pixel to byte offset
         colnum &= ~3;			// Long word align the source
 
+        if (opt_depthShading == DEPTH_SHADING_ON) {
+            int textureLight = ((scaleLeft*lightcoef)>>16) - lightsub;
+            if (textureLight < lightmin) textureLight = lightmin;
+            if (textureLight > lightmax) textureLight = lightmax;
+            pixcLight = LightTable[textureLight>>LIGHTSCALESHIFT];
+        }
 
         topLeft = CenterY - ((scaleLeft * tex->topheight) >> (HEIGHTBITS+SCALEBITS)) - 1;
         topRight = CenterY - ((scaleRight * tex->topheight) >> (HEIGHTBITS+SCALEBITS)) - 1;
@@ -194,7 +201,7 @@ static void DrawWallSegmentTexturedQuadSubdivided(drawtex_t *tex, int run, Word 
 
 
         CCBPtr->ccb_SourcePtr = (CelData*)&texBitmap[colnum];
-        CCBPtr->ccb_PIXC = LightTable[ambientLight>>LIGHTSCALESHIFT];// | 0x0080; // alpha test for overdrawing
+        CCBPtr->ccb_PIXC = pixcLight;// | 0x0080; // alpha test for overdrawing
 
 
         CCBPtr->ccb_PRE0 = pre0part | ((texLength - 1) << 6);
@@ -208,12 +215,11 @@ static void DrawWallSegmentTexturedQuadSubdivided(drawtex_t *tex, int run, Word 
 }
 
 
-static void DrawWallSegmentTexturedQuad(drawtex_t *tex)
+static void DrawWallSegmentTexturedQuad(drawtex_t *tex, viswall_t *segl)
 {
     Word frac;
     Word colnum7;
     Word pre0part, pre1part;
-
 
     int texHeight = tex->height;
     int run = (tex->topheight - tex->bottomheight) >> HEIGHTBITS;
@@ -222,6 +228,14 @@ static void DrawWallSegmentTexturedQuad(drawtex_t *tex)
     if (texStride < 8) texStride = 8;
 
     if (run <= 0 || run >= RECIPROCAL_MAX_NUM) return;
+
+    if (opt_depthShading == DEPTH_SHADING_ON) {
+        const int l = segl->seglightlevel;
+        lightmin = lightmins[l];
+        lightmax = l;
+        lightsub = lightsubs[l];
+        lightcoef = lightcoefs[l];
+    }
 
 
     frac = tex->texturemid - (tex->topheight<<FIXEDTOHEIGHT);	// Get the anchor point
@@ -398,7 +412,7 @@ static void DrawSegAnyPL(viswall_t *segl, int *scaleData, bool isTop, bool shoul
 
     if (opt_wallQuality > WALL_QUALITY_LO) {
         if (shouldPrepareWallParts) PrepareWallParts(segl, tex->width, scaleData);
-        if (wallPartsCount > 0 && wallPartsCount < MAX_WALL_PARTS) DrawWallSegmentTexturedQuad(&drawtex);
+        if (wallPartsCount > 0 && wallPartsCount < MAX_WALL_PARTS) DrawWallSegmentTexturedQuad(&drawtex, segl);
     } else {
         PrepareWallPartsFlat(segl, scaleData);
         DrawWallSegmentFlatPL(&drawtex);
@@ -413,12 +427,13 @@ void DrawSegUnshadedPL(viswall_t *segl, int *scaleData)
     const bool bottomTexOn = (bool)(ActionBits & AC_BOTTOMTEXTURE);
 
     const bool shouldPrepareAgain = !(topTexOn && bottomTexOn && (segl->t_texture->width == segl->b_texture->width));
-
+    Word ambientLight;
 
 	if (!(topTexOn || bottomTexOn)) return;
 
     ambientLight = segl->seglightlevel;
     if (opt_depthShading == DEPTH_SHADING_DARK) ambientLight = lightmins[ambientLight];
+    pixcLight = LightTable[ambientLight>>LIGHTSCALESHIFT];
 
 
     texColumnOffsetPrepared = false;

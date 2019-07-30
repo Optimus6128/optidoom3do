@@ -124,17 +124,17 @@ static void DrawWalls()
 
                 if (tooTightForPoly) {
                     if (opt_wallQuality == WALL_QUALITY_HI) {
-                        //if (lightShadingOn) {
-                            //DrawSegFull(WallSegPtr, scaleArrayData);
-                        //} else {
+                        if (lightShadingOn) {
+                            DrawSegFull(WallSegPtr, scaleArrayData);
+                        } else {
                             DrawSegFullUnshaded(WallSegPtr, scaleArrayData);
-                        //}
+                        }
                     } else if (opt_wallQuality == WALL_QUALITY_MED) {
-                        //if (lightShadingOn) {
-                            //DrawSegHalf(WallSegPtr, scaleArrayData);
-                        //} else {
+                        if (lightShadingOn) {
+                            DrawSegHalf(WallSegPtr, scaleArrayData);
+                        } else {
                             DrawSegHalfUnshaded(WallSegPtr, scaleArrayData);
-                        //}
+                        }
                     }
                 } else {
                     DrawSegUnshadedPL(WallSegPtr, scaleArrayData);  // go poly anyway
