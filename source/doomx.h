@@ -86,6 +86,10 @@ extern void initCCBarrayFloorFlatVertical(void);
 extern void initSpanDrawFunc(void);
 
 
+// In phase8.c
+extern Word spriteLight;
+
+
 // In threedo.c
 extern int frameTime;
 extern void printDbg(int value);

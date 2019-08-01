@@ -16,6 +16,8 @@ Word spropening[MAXSCREENWIDTH];		/* clipped range */
 
 **********************************/
 
+Word spriteLight;
+
 static void Merge(Word *Source1,Word Count1,Word *Source2,Word Count2,Word *Dest)
 {
 	Word Cache;
@@ -208,6 +210,12 @@ void DrawVisSprite(vissprite_t *vis)
 
 	Clipped = FALSE;		/* Assume I don't clip */
 
+
+	spriteLight = 255;
+	if (opt_thingsShading) {
+        spriteLight = vis->thing->subsector->sector->lightlevel;
+	}
+
 /* scan drawsegs from end to start for obscuring segs */
 /* the first drawseg that has a greater scale is the clip seg */
 
@@ -340,7 +348,6 @@ void DrawVisSprite(vissprite_t *vis)
 static void DrawAWeapon(pspdef_t *psp,Word Shadow)
 {
 	Short *Input;		/* Pointer to the xy offset'd shape */
-//	Word Color;
 	Word RezNum;
 	int x,y;
 	state_t *StatePtr;
@@ -355,14 +362,19 @@ static void DrawAWeapon(pspdef_t *psp,Word Shadow)
 	if (Shadow) {
 		((LongWord *)Input)[13] = 0x9C81;	/* Set the shadow bits */
 	} else {
-		((LongWord *)Input)[13] = 0x1F00;	/* Normal PMode */
-#if 0
-		if (StatePtr->SpriteFrame & FF_FULLBRIGHT) {
-			Color = 255;			/* Full bright */
-		} else {					/* Ambient light */
-			Color = players.mo->subsector->sector->lightlevel;
-		}
-#endif
+        int shade = 0x1F00;
+
+        if (opt_thingsShading) {
+
+            if (StatePtr->SpriteFrame & FF_FULLBRIGHT) {
+                shade = 255;			/* Full bright */
+            } else {					/* Ambient light */
+                shade = players.mo->subsector->sector->lightlevel;
+            }
+            shade = LightTable[shade>>LIGHTSCALESHIFT];
+        }
+
+		((LongWord *)Input)[13] = shade;	/* Normal PMode */
 	}
 	x = Input[0];
 	y = Input[1];

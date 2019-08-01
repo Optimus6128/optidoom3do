@@ -496,7 +496,7 @@ void DrawSpriteNoClip(vissprite_t *vis)
 	if (ColorMap&0x8000) {
 		((LongWord *)patch)[13] = 0x9C81;
 	} else {
-		((LongWord *)patch)[13] = LightTable[(ColorMap&0xFF)>>LIGHTSCALESHIFT];
+		((LongWord *)patch)[13] = LightTable[((ColorMap&0xFF) * spriteLight) >>(8 + LIGHTSCALESHIFT)];
 	}
 	if (ColorMap&0x4000) {
 		x = vis->x2;
@@ -640,7 +640,7 @@ void DrawSpriteClip(Word x1,Word x2,vissprite_t *vis)
 	y = ((Word *)patch)[3];		/* Get offset to the sprite shape data */
 	StartLinePtr = &((Byte *)patch)[y+16];	/* Get pointer to first line of data */
 	SpriteWidth = GetShapeHeight(&((Word *)patch)[1]);
-	SpritePIXC = (vis->colormap&0x8000) ? 0x9C81 : LightTable[(vis->colormap&0xFF)>>LIGHTSCALESHIFT];
+	SpritePIXC = (vis->colormap&0x8000) ? 0x9C81 : LightTable[((vis->colormap&0xFF) * spriteLight) >> (8 + LIGHTSCALESHIFT)];
 	y = vis->y1;
 	SpriteY = (y+ScreenYOffset)<<16;	/* Unmolested Y coord */
 	y2 = vis->y2;
