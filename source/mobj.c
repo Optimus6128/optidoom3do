@@ -358,11 +358,11 @@ void P_SpawnPuffParticle(Fixed x,Fixed y,Fixed z)
 
 	z += (255-GetRandom(511))<<10;		/* Randomize the z */
 	th = SpawnMObj(x,y,z,&mobjinfo[MT_PUFF]);		/* Create a puff */
-	th->flags |= MF_MISSILE;    // That will allow additional movement on X and Y when being on air
+	th->flags |= (MF_MISSILE | MF_PARTICLE);    // That will allow additional movement on X and Y when being on air
 
-    th->momx = FRACUNIT * (2 - GetRandom(4));
-	th->momy = FRACUNIT * (2 - GetRandom(4));
-	th->momz = FRACUNIT * GetRandom(4);
+    th->momx = FRACUNIT * (3 - GetRandom(6));
+	th->momy = FRACUNIT * (3 - GetRandom(6));
+	th->momz = FRACUNIT * GetRandom(2);
 	Sub1RandomTick(th);
 
 /* Don't make punches spark on the wall */
@@ -400,10 +400,10 @@ void P_SpawnBloodParticle(Fixed x,Fixed y,Fixed z,Word damage)
 
 	z += (255-GetRandom(511))<<10;	/* Move a little for the Z */
 	th = SpawnMObj(x,y,z,&mobjinfo[MT_BLOOD]);	/* Create the blood (Hamburger) */
+    th->flags |= (MF_MISSILE | MF_PARTICLE);    // That will allow additional movement on X and Y when being on air
 
 	if (halfTypes & 3)  // few of them up (and not missile blocking during regular attack) and others around;
     {
-        th->flags |= MF_MISSILE;    // That will allow additional movement on X and Y when being on air
         th->momx = FRACUNIT * (4 - GetRandom(8));
         th->momy = FRACUNIT * (4 - GetRandom(8));
         th->momz = FRACUNIT * (5 + GetRandom(10));

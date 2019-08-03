@@ -77,7 +77,7 @@ void P_TryMove2(void)
 	return;
 }
 
-static Word PM_CrossCheck(line_t *ld) 
+static Word PM_CrossCheck(line_t *ld)
 {
 	if (PM_BoxCrossLine (ld))	{
 		if (!PIT_CheckLine(ld)) {
@@ -364,7 +364,7 @@ Word PIT_CheckThing (mobj_t *thing)
 //
 // missiles can hit other things
 //
-	if (tmthing->flags & MF_MISSILE)
+	if ((tmthing->flags & MF_MISSILE) && !(tmthing->flags & MF_PARTICLE))
 	{
 	// see if it went over / under
 		if (tmthing->z > thing->z + thing->height)

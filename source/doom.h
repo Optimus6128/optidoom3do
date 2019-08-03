@@ -346,6 +346,7 @@ typedef struct {		/* Describe a floor texture */
 #define	MF_SKULLFLY		0x1000000	// skull in flight
 #define	MF_NOTDMATCH	0x2000000	// don't spawn in death match (key cards)
 #define	MF_SEETARGET	0x4000000	// is target visible?
+#define	MF_PARTICLE		0x8000000	// particle (for extra blood)
 
 typedef struct mobj_s {
 	struct mobj_s *prev,*next;	/* Linked list entries */

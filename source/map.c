@@ -66,7 +66,7 @@ Boolean P_TryMove(mobj_t *thing, Fixed x, Fixed y)
 
 	if (latchedmovething) {
 		/* missile bash into a monster */
-		if (thing->flags & MF_MISSILE) {
+		if ((thing->flags & MF_MISSILE) && !(thing->flags & MF_PARTICLE)) {
 			damage = (GetRandom(7)+1)*thing->InfoPtr->damage;	/* Ouch! */
 			DamageMObj(latchedmovething,thing,thing->target,damage);
 		/* skull bash into a monster */
@@ -327,15 +327,15 @@ void LineAttack(mobj_t *t1,angle_t angle,Fixed distance,Fixed slope,Word damage)
             if (!opt_extraBlood) {
                 P_SpawnPuff(shootx2,shooty2,shootz2);	/* Make a spark on the target */
             } else {
-                for (i=0; i<8; ++i)
-                    P_SpawnPuffParticle(shootx2,shooty2,shootz2);
+                for (i=0; i<4; ++i)
+                    P_SpawnPuffParticle(shootx2,shooty2,shootz2);	// More particles
             }
 		} else {
 		    if (!opt_extraBlood) {
                 P_SpawnBlood(shootx2,shooty2,shootz2,damage);	/* Squirt some blood! */
 		    } else {
-                for (i=0; i<16; ++i)
-                    P_SpawnBloodParticle(shootx2,shooty2,shootz2,damage);
+                for (i=0; i<8; ++i)
+                    P_SpawnBloodParticle(shootx2,shooty2,shootz2,damage);	// More particles
 		    }
 		}
 		DamageMObj(linetarget,t1,t1,damage);		/* Do the damage */
@@ -357,6 +357,12 @@ void LineAttack(mobj_t *t1,angle_t angle,Fixed distance,Fixed slope,Word damage)
 				return;		/* it's a sky hack wall */
 			}
 		}
-		P_SpawnPuff(shootx2,shooty2,shootz2);		/* Make a puff of smoke */
+		if (!opt_extraBlood) {
+            P_SpawnPuff(shootx2,shooty2,shootz2);	/* Make a spark on the target */
+		} else {
+		    for (i=0; i<2; ++i) {
+                P_SpawnPuffParticle(shootx2,shooty2,shootz2);	// More particles
+		    }
+        }
 	}
 }

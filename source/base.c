@@ -13,26 +13,26 @@ static int testflags;
 /**********************************
 
 	Float up or down at a set speed, used by flying monsters
-	
+
 **********************************/
 
 static void FloatChange(mobj_t *mo)
 {
 	mobj_t *Target;
 	Fixed dist, delta;
-	
-	Target = mo->target;		/* Get the target object */	
+
+	Target = mo->target;		/* Get the target object */
 	delta = (Target->z + (mo->height>>1)) - mo->z;	/* Get the height differance */
 
 	dist = GetApproxDistance(Target->x - mo->x,Target->y - mo->y);	/* Distance to target */
 	delta = delta*3;		/* Mul by 3 for a fudge factor */
-	
+
 	if (delta<0) {		/* Delta is signed... */
 		if (dist < (-delta) ) {		/* Negate */
 			mo->z -= FLOATSPEED;	/* Adjust the height */
 		}
 		return;
-	}	 
+	}
 	if (dist < delta) {		/* Normal compare */
 		mo->z += FLOATSPEED;	/* Adjust the height */
 	}
@@ -42,7 +42,7 @@ static void FloatChange(mobj_t *mo)
 /**********************************
 
 	Move a critter in the Z axis
-	
+
 **********************************/
 
 static Word P_ZMovement(mobj_t *mo)
@@ -196,7 +196,7 @@ static Boolean PB_CheckLine (line_t *ld)
 	return TRUE;
 }
 
-static Word PB_CrossCheck(line_t *ld) 
+static Word PB_CrossCheck(line_t *ld)
 {
 	if (PB_BoxCrossLine(ld)) {
 		if (!PB_CheckLine(ld)) {
@@ -255,6 +255,10 @@ static Word PB_CheckThing (mobj_t *thing)
 //
 // missiles can hit other things
 //
+
+    // particles will not stop if hit
+    if (testflags & MF_PARTICLE) return TRUE;
+
 	if (testflags & MF_MISSILE) {
 	// see if it went over / under
 		if (mo->z > thing->z + thing->height)
@@ -445,7 +449,7 @@ static Word P_XYMovement (mobj_t *mo)
 				return TRUE;
 			}
 
-			if (mo->flags & MF_MISSILE) {	// explode a missile
+			if ((mo->flags & MF_MISSILE) && !(mo->flags & MF_PARTICLE)) {	// explode a missile
 				if (ceilingline && ceilingline->backsector &&
 					ceilingline->backsector->CeilingPic==-1) {	// hack to prevent missiles exploding against the sky
 					P_RemoveMobj(mo);
@@ -488,7 +492,7 @@ static Word P_XYMovement (mobj_t *mo)
 /**********************************
 
 	Process all the critter logic
-	
+
 **********************************/
 
 static void P_MobjThinker(mobj_t *mobj)
@@ -538,7 +542,7 @@ static void P_MobjThinker(mobj_t *mobj)
 /**********************************
 
 	Execute base think logic for the critters every tic
-	
+
 **********************************/
 
 void P_RunMobjBase(void)
