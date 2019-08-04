@@ -1,0 +1,2 @@
+Throw your commercial Doom ISO renamed as doom.iso here and run the batch file to decompile to the created CD folder at the root of the repo.
+Only then you can go through the rest of the compiling process, building back the final ISO and encrypting it.

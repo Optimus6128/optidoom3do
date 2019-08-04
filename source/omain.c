@@ -101,7 +101,7 @@ enum {
 	mi_shading_depth,   // Depth shading option (on, off (dark/bright))
 	mi_shading_items,   // Shading enable option for items (weapons, enemies, things, etc)
 	mi_renderer,        // Selection of the new renderers (polygons instead of columns, etc)
-	mi_extra_render,    // Extra experimental rendering things (pure wireframe, cybertexture, etc)
+	mi_extra_render,    // Extra experimental rendering things (pure wireframe, etc)
 	mi_mapLines,        // Map thick lines on/off
 	mi_waterFx,         // Water fx on/off
 	mi_sky,             // New skies
@@ -145,7 +145,7 @@ enum {
 #define FLOORQUALITY_OPTIONS_NUM 3
 #define DEPTHSHADING_OPTIONS_NUM 3
 #define RENDERER_OPTIONS_NUM 2
-#define EXTRA_RENDER_OPTIONS_NUM 3
+#define EXTRA_RENDER_OPTIONS_NUM 2
 #define OFFON_OPTIONS_NUM 2
 #define AUTOMAP_OPTIONS_NUM 4
 #define DUMMYIDKFA_OPTIONS_NUM 2
@@ -161,7 +161,7 @@ static char *wallQualityOptions[WALLQUALITY_OPTIONS_NUM] = { "LO", "MED", "HI"};
 static char *floorQualityOptions[FLOORQUALITY_OPTIONS_NUM] = { "LO", "MED", "HI" };
 static char *depthShadingOptions[DEPTHSHADING_OPTIONS_NUM] = { "DARK", "BRIGHT", "ON" };
 static char *rendererOptions[RENDERER_OPTIONS_NUM] = { "DOOM", "POLY" };
-static char *extraRenderOptions[EXTRA_RENDER_OPTIONS_NUM] = { "OFF", "WIREFRAME", "CYBER" };
+static char *extraRenderOptions[EXTRA_RENDER_OPTIONS_NUM] = { "OFF", "WIREFRAME" };
 static char *automapOptions[AUTOMAP_OPTIONS_NUM] = { "OFF", "THINGS", "LINES", "ALL" };
 static char *dummyIDKFAoptions[DUMMYIDKFA_OPTIONS_NUM] = { " ", "!" };
 static char *thicklinesOptions[THICKLINES_OPTIONS_NUM] = { "NORMAL", "THICK" };

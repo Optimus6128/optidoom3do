@@ -149,12 +149,13 @@ void DrawWallsWireframe()
 {
     LastSegPtr = viswalls;
 
+    DisableHardwareClippingWithoutFlush();
+
     do {
         scaleArrayData = scaleArrayPtr[--scaleArrayIndex];
         DrawSegWireframePL(--WallSegPtr, scaleArrayData);
     } while (WallSegPtr!=LastSegPtr);
 
-    DisableHardwareClippingWithoutFlush();
     FlushCCBs();
     EnableHardwareClipping();
 }

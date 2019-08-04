@@ -11,7 +11,7 @@
 
 #include "bench.h"
 
-//#define SHOW_LOGOS
+#define SHOW_LOGOS
 
 #define SCREENS 3				/* Number of screen buffers */
 
@@ -549,9 +549,9 @@ static void updateMyFpsAndDebugPrint()
     int fps = updateAndGetFPS();
 
     if (opt_fps) {
-        if (fps <= 2) {
-            opt_renderer = RENDERER_DOOM;
-        }
+        #ifdef DEBUG_OPT_HACK
+            if (fps <= 2) opt_renderer = RENDERER_DOOM;
+        #endif
         PrintNumber(8, 8, fps, 0);
         FlushCCBs();
     }

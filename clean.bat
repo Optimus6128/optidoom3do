@@ -1,8 +1,5 @@
 del *.iso
-cd takeme
-del LaunchMe.
-cd ..
 cd source
-del LaunchMe.
-dmake clean
+del LaunchMe.*
+make clean
 pause
