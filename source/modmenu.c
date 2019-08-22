@@ -1,4 +1,5 @@
 #include "doom.h"
+#include "bench.h"
 
 #include <Init3do.h>
 

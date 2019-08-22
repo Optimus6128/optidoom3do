@@ -51,39 +51,39 @@ extern bool background_clear;
 
 
 // In phase6_1.c
-extern void SegLoop(viswall_t *segl);
-extern void PrepareSegLoop(void);
-extern void initCCBarraySky(void);
+void SegLoop(viswall_t *segl);
+void PrepareSegLoop(void);
+void initCCBarraySky(void);
 
 extern bool skyOnView;
 
 
 // In phase6_2.c
 
-extern void initCCBarrayWall(void);
-extern void initCCBarrayWallFlat(void);
+void initCCBarrayWall(void);
+void initCCBarrayWallFlat(void);
 
-extern void DrawSegFull(viswall_t *segl, int *scaleData);
-extern void DrawSegFullUnshaded(viswall_t *segl, int *scaleData);
-extern void DrawSegFullFlat(viswall_t *segl, int *scaleData);
-extern void DrawSegFullFlatUnshaded(viswall_t *segl, int *scaleData);
-extern void DrawSegHalf(viswall_t *segl, int *scaleData);
-extern void DrawSegHalfUnshaded(viswall_t *segl, int *scaleData);
-extern void drawCCBarray(MyCCB* lastCCB, MyCCB *CCBArrayPtr);  // extern needed for phase6_1.c using this to draw sky columns, also will use with phase6ll.c and others
+void DrawSegFull(viswall_t *segl, int *scaleData);
+void DrawSegFullUnshaded(viswall_t *segl, int *scaleData);
+void DrawSegFullFlat(viswall_t *segl, int *scaleData);
+void DrawSegFullFlatUnshaded(viswall_t *segl, int *scaleData);
+void DrawSegHalf(viswall_t *segl, int *scaleData);
+void DrawSegHalfUnshaded(viswall_t *segl, int *scaleData);
+void drawCCBarray(MyCCB* lastCCB, MyCCB *CCBArrayPtr);
 
 
 // In phase6PL.c
-extern void DrawSegUnshadedPL(viswall_t *segl, int *scaleData);
-extern void DrawSegWireframePL(viswall_t *segl, int *scaleData);
-extern void initCCBQuadWallFlat(void);
-extern void initCCBQuadWallTextured(void);
+void DrawSegUnshadedPL(viswall_t *segl, int *scaleData);
+void DrawSegWireframePL(viswall_t *segl, int *scaleData);
+void initCCBQuadWallFlat(void);
+void initCCBQuadWallTextured(void);
 
 
 // In phase7.c
-extern void initCCBarrayFloor(void);
-extern void initCCBarrayFloorFlat(void);
-extern void initCCBarrayFloorFlatVertical(void);
-extern void initSpanDrawFunc(void);
+void initCCBarrayFloor(void);
+void initCCBarrayFloorFlat(void);
+void initCCBarrayFloorFlatVertical(void);
+void initSpanDrawFunc(void);
 
 
 // In phase8.c
@@ -92,55 +92,52 @@ extern Word spriteLight;
 
 // In threedo.c
 extern int frameTime;
-extern void printDbg(int value);
-extern void updateScreenAndWait(void);
-extern void DisableHardwareClippingWithoutFlush(void);
+void printDbg(int value);
+void updateScreenAndWait(void);
+void DisableHardwareClippingWithoutFlush(void);
 
 // In threedor.c
 extern Byte *SpanPtr;
 extern Byte *CelLine190;            // strange pointer to something having to do with one of the sprite routines
 extern Word LightTable[32];
 
-extern void initAllCCBelements(void);
-extern void FlushCCBs(void);
-extern void resetSpanPointer(void);
-extern void AddCelToCurrentCCB(CCB* cel);
-extern void setColorGradient16(int c0, int c1, int r0, int g0, int b0, int r1, int g1, int b1, uint16* bmp);
-extern void DrawASpan(Word Count,LongWord xfrac,LongWord yfrac,Fixed ds_xstep,Fixed ds_ystep,Byte *Dest);
-extern void DrawASpanLo(Word Count,LongWord xfrac,LongWord yfrac,Fixed ds_xstep,Fixed ds_ystep,Byte *Dest);
-extern void DrawThickLine(Word x1,Word y1,Word x2,Word y2,Word color);
-extern void clearSpanArray(void);
-extern int getSkyScale(unsigned int i);
-
-// In bench.c
-extern int getTicks(void);
+void initAllCCBelements(void);
+void FlushCCBs(void);
+void resetSpanPointer(void);
+void AddCelToCurrentCCB(CCB* cel);
+void setColorGradient16(int c0, int c1, int r0, int g0, int b0, int r1, int g1, int b1, uint16* bmp);
+void DrawASpan(Word Count,LongWord xfrac,LongWord yfrac,Fixed ds_xstep,Fixed ds_ystep,Byte *Dest);
+void DrawASpanLo(Word Count,LongWord xfrac,LongWord yfrac,Fixed ds_xstep,Fixed ds_ystep,Byte *Dest);
+void DrawThickLine(Word x1,Word y1,Word x2,Word y2,Word color);
+void clearSpanArray(void);
+int getSkyScale(unsigned int i);
 
 // In xskies.c
-extern void initNewSkies(void);
-extern int getSkyHeight(unsigned int i);
-extern void drawNewSky(int which);
-extern void updateFireSkyHeightPal(void);
+void initNewSkies(void);
+int getSkyHeight(unsigned int i);
+void drawNewSky(int which);
+void updateFireSkyHeightPal(void);
 
 // In ammain.c
 extern Boolean ShowAllLines;
 extern Boolean ShowAllThings;
 
-extern void setAutomapLines(bool enabled);
-extern void setAutomapItems(bool enabled);
-extern void toggleNoclip(player_t *player);
-extern void toggleIDDQD(player_t *player);
-extern void applyIDKFA(player_t *player);
-extern void toggleFlyMode(player_t *player);
+void setAutomapLines(bool enabled);
+void setAutomapItems(bool enabled);
+void toggleNoclip(player_t *player);
+void toggleIDDQD(player_t *player);
+void applyIDKFA(player_t *player);
+void toggleFlyMode(player_t *player);
 
 // In mobj.c
-extern void P_SpawnBloodParticle(Fixed x,Fixed y,Fixed z,Word damage);
-extern void P_SpawnPuffParticle(Fixed x,Fixed y,Fixed z);
+void P_SpawnBloodParticle(Fixed x,Fixed y,Fixed z,Word damage);
+void P_SpawnPuffParticle(Fixed x,Fixed y,Fixed z);
 
 // In omain.c
-extern void resetMenuOptions(void);
-extern void setPrimaryMenuOptions(void);
+void resetMenuOptions(void);
+void setPrimaryMenuOptions(void);
 
 
 // In modmenu.c
 extern bool loadPsxSamples;
-extern void startModMenu(void);
+void startModMenu(void);
