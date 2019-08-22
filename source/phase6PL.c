@@ -40,7 +40,7 @@ static int reciprocalLength[RECIPROCAL_MAX_NUM];
 void initCCBQuadWallFlat()
 {
     const int flatTexSize = flatTexStride * flatTexHeight;
-    texBufferFlat = (unsigned char*)malloc(flatTexSize * sizeof(unsigned char));
+    texBufferFlat = (unsigned char*)AllocAPointer(flatTexSize * sizeof(unsigned char));
     memset(texBufferFlat, 0, flatTexSize);
 
     CCBQuadWallFlat.ccb_Flags = CCB_SPABS|CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_PPABS|CCB_LDPLUT|CCB_USEAV|CCB_ACSC|CCB_ALSC|CCB_LAST;

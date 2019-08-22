@@ -59,7 +59,7 @@ void initCCBarrayWallFlat(void)
 	Word pre0, pre1;
 
     const int flatColTextSize = flatColTexStride * flatColTexHeight;
-    texColBufferFlat = (unsigned char*)malloc(flatColTextSize * sizeof(unsigned char));
+    texColBufferFlat = (unsigned char*)AllocAPointer(flatColTextSize * sizeof(unsigned char));
     memset(texColBufferFlat, 0, flatColTextSize);
 
 
