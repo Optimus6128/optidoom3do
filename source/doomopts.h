@@ -26,6 +26,15 @@ enum
     FLOOR_QUALITY_HI = 2
 };
 
+// Screen scaling options
+enum
+{
+    SCREEN_SCALE_1x1 = 0,
+    SCREEN_SCALE_1x2 = 1,
+    SCREEN_SCALE_2x1 = 2,
+    SCREEN_SCALE_2x2 = 3
+};
+
 // Depth shading options
 enum
 {

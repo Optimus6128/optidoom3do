@@ -55,6 +55,7 @@ static void *sliderShapes;
     Word opt_fps;
     Word opt_wallQuality;
     Word opt_floorQuality;
+    Word opt_screenScale;
     Word opt_depthShading;
     Word opt_thingsShading;
     Word opt_renderer;
@@ -98,6 +99,7 @@ enum {
 	mi_screenSize,      // Screen size settings
 	mi_wallQuality,     // Wall quality (fullres(hi), halfres(med), untextured(lo))
 	mi_floorQuality,    // Floor/Ceiling quality (textured, flat)
+	mi_screenScale,		// Pixel scaling of screen (1x1, 1x2, 2x1, 2x2)
 	mi_shading_depth,   // Depth shading option (on, off (dark/bright))
 	mi_shading_items,   // Shading enable option for items (weapons, enemies, things, etc)
 	mi_renderer,        // Selection of the new renderers (polygons instead of columns, etc)
@@ -143,6 +145,7 @@ enum {
 
 #define WALLQUALITY_OPTIONS_NUM 3
 #define FLOORQUALITY_OPTIONS_NUM 3
+#define SCREENSCALE_OPTIONS_NUM 4
 #define DEPTHSHADING_OPTIONS_NUM 3
 #define RENDERER_OPTIONS_NUM 2
 #define EXTRA_RENDER_OPTIONS_NUM 2
@@ -159,6 +162,7 @@ enum {
 static char *offOnOptions[OFFON_OPTIONS_NUM] = { "OFF", "ON" };
 static char *wallQualityOptions[WALLQUALITY_OPTIONS_NUM] = { "LO", "MED", "HI"};
 static char *floorQualityOptions[FLOORQUALITY_OPTIONS_NUM] = { "LO", "MED", "HI" };
+static char *screenScaleOptions[SCREENSCALE_OPTIONS_NUM] = { "1x1", "1x2", "2x1", "2x2" };
 static char *depthShadingOptions[DEPTHSHADING_OPTIONS_NUM] = { "DARK", "BRIGHT", "ON" };
 static char *rendererOptions[RENDERER_OPTIONS_NUM] = { "DOOM", "POLY" };
 static char *extraRenderOptions[EXTRA_RENDER_OPTIONS_NUM] = { "OFF", "WIREFRAME" };
@@ -257,14 +261,31 @@ void resetMenuOptions() // Reset some menu options every time we start a new lev
     opt_cheatAutomap = AUTOMAP_CHEAT_OFF;
 }
 
-void setPrimaryMenuOptions() // Set menu options only once at start up
+void setScreenSizeSliderFromOption()
 {
     // Hack to match the inverted ScreenSizeOption (0 is biggest size) to the slider index logic (0 is on the left side)
     opt_screenSizeIndex = SCREENSIZE_OPTIONS_NUM - 1 - ScreenSizeOption;
+}
+
+void setScreenSizeOptionFromSlider()
+{
+	ScreenSizeOption = SCREENSIZE_OPTIONS_NUM-1 - opt_screenSizeIndex;  // ScreenSizeOption is reversed from screenSizeIndex
+}
+
+void setScreenScaleValuesFromOption()
+{
+	screenScaleX = (opt_screenScale & 2) >> 1;
+	screenScaleY = opt_screenScale & 1;
+}
+
+void setPrimaryMenuOptions() // Set menu options only once at start up
+{
+	setScreenSizeSliderFromOption();
 
     opt_fps = false;
     opt_wallQuality = WALL_QUALITY_HI;
     opt_floorQuality = FLOOR_QUALITY_HI;
+    opt_screenScale = SCREEN_SCALE_1x1;
     opt_depthShading = DEPTH_SHADING_ON;
     opt_thingsShading = false;
     opt_renderer = RENDERER_DOOM;
@@ -311,7 +332,8 @@ void initMenuOptions()
     setMenuItem(mi_screenSize, 160, 58, "Screen size", true, muiStyle_slider, &opt_screenSizeIndex, SCREENSIZE_OPTIONS_NUM);
     setMenuItemWithOptionNames(mi_wallQuality, 112, 94, "Wall", false, muiStyle_text | muiStyle_slider, &opt_wallQuality, WALLQUALITY_OPTIONS_NUM, wallQualityOptions);
     setMenuItemWithOptionNames(mi_floorQuality, 96, 126, "Floor", false, muiStyle_text | muiStyle_slider, &opt_floorQuality, FLOORQUALITY_OPTIONS_NUM, floorQualityOptions);
-    setItemPageRange(mi_fps, mi_floorQuality, page_performance);
+    setMenuItemWithOptionNames(mi_screenScale, 96, 158, "Scale", false, muiStyle_text, &opt_screenScale, SCREENSCALE_OPTIONS_NUM, screenScaleOptions);
+    setItemPageRange(mi_fps, mi_screenScale, page_performance);
 
     setMenuItemWithOptionNames(mi_shading_depth, 48, 40, "Depth shade", false, muiStyle_text, &opt_depthShading, DEPTHSHADING_OPTIONS_NUM, depthShadingOptions);
     setMenuItemWithOptionNames(mi_shading_items, 40, 60, "Things shade", false, muiStyle_text, &opt_thingsShading, OFFON_OPTIONS_NUM, offOnOptions);
@@ -463,7 +485,9 @@ static void handleSpecialActionsIfOptionChanged(player_t *player)
         break;
 
         case mi_screenSize:
-            ScreenSizeOption = SCREENSIZE_OPTIONS_NUM-1 - opt_screenSizeIndex;  // ScreenSizeOption is reversed from screenSizeIndex
+		case mi_screenScale:
+        	setScreenSizeOptionFromSlider();
+        	setScreenScaleValuesFromOption();
             if (player) {
                 InitMathTables();
             }

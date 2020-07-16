@@ -13,7 +13,7 @@
 
 #define SHOW_LOGOS
 
-#define SCREENS 3				/* Number of screen buffers */
+#define SCREENS 4				/* Number of screen buffers */
 
 static void LowMemCode(Word Type);
 static void WipeDoom(LongWord *OldScreen,LongWord *NewScreen);
@@ -32,6 +32,8 @@ static Byte *ScreenMaps[SCREENS];	/* Pointer to the bitmap screens */
 static Item VRAMIOReq;				/* I/O Request for screen copy */
 Item AllSamples[NUMSFX];			/* Items to sound samples */
 Word AllRates[NUMSFX];
+
+static int maxFlipScreens = SCREENS - 1;
 
 int frameTime;
 
@@ -423,6 +425,8 @@ void ClearPrefsFile(void)
 	ScreenSizeOption = 2;		/* Default screen size option */
 	LowDetail = FALSE;			/* Detail mode */
 	WritePrefsFile();			/* Output the new prefs */
+
+	setScreenSizeSliderFromOption();
 }
 
 /**********************************
@@ -459,8 +463,9 @@ void ReadPrefsFile(void)
 	ControlType = PrefFile[5];
 	MaxLevel = PrefFile[6];
 	ScreenSizeOption = PrefFile[7];
-
 	LowDetail = PrefFile[8];
+
+	setScreenSizeSliderFromOption();
 
 	if ((StartSkill >= (sk_nightmare+1)) ||
 		(StartMap >= 27) ||
@@ -529,11 +534,11 @@ static void updateWipeScreen()
 		NewImage = VideoPointer;	/* Pointer to the NEW image */
 		PrevPage = WorkPage-1;	/* Get the currently displayed page */
 		if (PrevPage==-1) {		/* Wrapped? */
-			PrevPage = SCREENS-1;
+			PrevPage = maxFlipScreens-1;
 		}
 		SetMyScreen(PrevPage);		/* Set videopointer to display buffer */
 		if (!PrevPage) {
-			PrevPage=SCREENS;
+			PrevPage=maxFlipScreens;
 		}
 		--PrevPage;
 		OldImage = (Byte *) &ScreenMaps[PrevPage][0];	/* Get work buffer */
@@ -564,7 +569,7 @@ void updateScreenAndWait()
 	LongWord NewTick;
 
 	DisplayScreen(ScreenItems[WorkPage],0);		/* Display the hidden page */
-	if (++WorkPage>=SCREENS) {		/* Next screen in line */
+	if (++WorkPage>=maxFlipScreens) {		/* Next screen in line */
 		WorkPage = 0;
 	}
 	SetMyScreen(WorkPage);		/* Set the 3DO vars */
@@ -604,7 +609,7 @@ void DrawPlaque(Word RezNum)
 
 	PrevPage = WorkPage-1;
 	if (PrevPage==-1) {
-		PrevPage = SCREENS-1;
+		PrevPage = maxFlipScreens-1;
 	}
 	FlushCCBs();		/* Flush pending draws */
 	SetMyScreen(PrevPage);		/* Draw to the active screen */
@@ -799,7 +804,7 @@ Word ReadJoyButtons(Word PadNum)
 			++FileNum;
 			PrevPage = WorkPage-1;	/* Get the currently displayed page */
 			if (PrevPage==-1) {		/* Wrapped? */
-				PrevPage = SCREENS-1;
+				PrevPage = maxFlipScreens-1;
 			}
 			OldImage = (Short *) &ScreenMaps[PrevPage][0];	/* Get work buffer */
 			i = 0;

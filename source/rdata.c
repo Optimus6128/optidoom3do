@@ -14,14 +14,7 @@ typedef struct {		/* Actual structure of TEXTURE1 */
 
 static Word ScreenWidths[6] = {280,256,224,192,160,128};
 static Word ScreenHeights[6] = {160,144,128,112,96,80};
-static Fixed Stretchs[6] = {
-	STRETCH(280,160),
-	STRETCH(256,144),
-	STRETCH(224,128),
-	STRETCH(192,112),
-	STRETCH(160, 96),
-	STRETCH(128, 80)
-};
+
 Word NumTextures;		/* Number of textures in the game */
 Word FirstTexture;		/* First texture resource */
 Word NumFlats;			/* Number of flats in the game */
@@ -31,6 +24,9 @@ void ***FlatInfo;		/* Array describing flats */
 texture_t **TextureTranslation;	/* Indexs to textures for global animation */
 void ***FlatTranslation;		/* Indexs to textures for global animation */
 texture_t *SkyTexture;		/* Pointer to the sky texture */
+
+int screenScaleX = 0;
+int screenScaleY = 0;
 
 /**********************************
 
@@ -103,8 +99,8 @@ void InitMathTables(void)
 	Fixed j;
 	Word i;
 
-	ScreenWidth = ScreenWidths[ScreenSizeOption];
-	ScreenHeight = ScreenHeights[ScreenSizeOption];
+	ScreenWidth = ScreenWidths[ScreenSizeOption] >> screenScaleX;
+	ScreenHeight = ScreenHeights[ScreenSizeOption] >> screenScaleY;
 	CenterX = (ScreenWidth/2);
 	CenterY = (ScreenHeight/2);
 	ScreenXOffset = ((320-ScreenWidth)/2);
@@ -112,7 +108,7 @@ void InitMathTables(void)
 	GunXScale = (ScreenWidth*0x100000)/320;		/* Get the 3DO scale factor for the gun shape */
 	GunYScale = (ScreenHeight*0x10000)/160;		/* And the y scale */
 
-	Stretch = Stretchs[ScreenSizeOption];
+	Stretch = STRETCH(ScreenWidth, ScreenHeight);
 	StretchWidth = Stretch*((int)ScreenWidth/2);
 
 	/* Create the viewangletox table */

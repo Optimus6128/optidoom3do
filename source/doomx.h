@@ -90,6 +90,10 @@ void initSpanDrawFunc(void);
 extern Word spriteLight;
 
 
+// In rdata.c
+extern int screenScaleX;
+extern int screenScaleY;
+
 // In threedo.c
 extern int frameTime;
 void printDbg(int value);
@@ -136,6 +140,7 @@ void P_SpawnPuffParticle(Fixed x,Fixed y,Fixed z);
 // In omain.c
 void resetMenuOptions(void);
 void setPrimaryMenuOptions(void);
+void setScreenSizeSliderFromOption(void);
 
 
 // In modmenu.c
