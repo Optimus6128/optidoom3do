@@ -30,6 +30,7 @@
 #define MAXOPENINGS MAXSCREENWIDTH*64	/* Space for sil tables */
 #define MAXSCREENHEIGHT 160		/* Maximum height allowed */
 #define MAXSCREENWIDTH 280		/* Maximum width allowed */
+#define SCREENS 4				/* Number of screen buffers (3 visible, 1 offscreen) */
 #define	SLOPERANGE 2048			/* Number of entries in tantoangle table */
 #define	SLOPEBITS 11			/* Power of 2 for SLOPERANGE (2<<11) */
 #define	HEIGHTBITS 6			/* Number of bits for texture height */
@@ -636,6 +637,8 @@ extern Fixed Stretch;		/* Stretch factor */
 extern Fixed StretchWidth;	/* Stretch factor * ScreenWidth */
 extern Word ScreenXOffset;	/* True X coord for projected screen */
 extern Word ScreenYOffset;	/* True Y coord for projected screen */
+extern Word ScreenXOffsetUnscaled;	/* True X coord for projected screen (before screen scale)*/
+extern Word ScreenYOffsetUnscaled;	/* True Y coord for projected screen (before screen scale)*/
 extern LongWord GunXScale;	/* Scale factor for player's weapon for X */
 extern LongWord GunYScale;	/* Scale factor for player's weapon for Y */
 extern Fixed lightmins[256];	/* Minimum light factors */

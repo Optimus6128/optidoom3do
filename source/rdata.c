@@ -99,14 +99,21 @@ void InitMathTables(void)
 	Fixed j;
 	Word i;
 
-	ScreenWidth = ScreenWidths[ScreenSizeOption] >> screenScaleX;
-	ScreenHeight = ScreenHeights[ScreenSizeOption] >> screenScaleY;
+	// Get the unaffected by scale values first
+	ScreenWidth = ScreenWidths[ScreenSizeOption];
+	ScreenHeight = ScreenHeights[ScreenSizeOption];
+	ScreenXOffsetUnscaled = ((320-ScreenWidth)/2);
+	ScreenYOffsetUnscaled = ((160-ScreenHeight)/2);
+	GunXScale = (ScreenWidth*0x100000)/320;		/* Get the 3DO scale factor for the gun shape */
+	GunYScale = (ScreenHeight*0x10000)/160;		/* And the y scale */
+
+	// Now the scaled based ones
+	ScreenWidth >>= screenScaleX;
+	ScreenHeight >>= screenScaleY;
 	CenterX = (ScreenWidth/2);
 	CenterY = (ScreenHeight/2);
 	ScreenXOffset = ((320-ScreenWidth)/2);
 	ScreenYOffset = ((160-ScreenHeight)/2);
-	GunXScale = (ScreenWidth*0x100000)/320;		/* Get the 3DO scale factor for the gun shape */
-	GunYScale = (ScreenHeight*0x10000)/160;		/* And the y scale */
 
 	Stretch = STRETCH(ScreenWidth, ScreenHeight);
 	StretchWidth = Stretch*((int)ScreenWidth/2);

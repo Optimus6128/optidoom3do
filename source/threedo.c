@@ -13,7 +13,6 @@
 
 #define SHOW_LOGOS
 
-#define SCREENS 4				/* Number of screen buffers */
 
 static void LowMemCode(Word Type);
 static void WipeDoom(LongWord *OldScreen,LongWord *NewScreen);
@@ -74,12 +73,17 @@ static void RunAProgram(char *ProgramName)
 
 **********************************/
 
-static void SetMyScreen(Word Page)
+void SetMyScreen(Word Page)
 {
 	VideoItem = VideoItems[Page];			/* Get the bitmap item # */
 	VideoScreen = ScreenItems[Page];
 	VideoPointer = (Byte *) &ScreenMaps[Page][0];
 	CelLine190 = (Byte *) &VideoPointer[190*640];
+}
+
+Byte *getVideoPointer(Word Page)
+{
+	return (Byte *) &ScreenMaps[Page][0];
 }
 
 /**********************************
@@ -322,6 +326,7 @@ void Init()
 
 
 	initTimer();
+
 	setPrimaryMenuOptions();    // We had to do this here, because some of the initial option menus (floor quality) are needed for early rendering inits
 	optHack();                  // These too, just for repeatitive debugging tests
 	initAllCCBelements();

@@ -96,6 +96,9 @@ extern int screenScaleY;
 
 // In threedo.c
 extern int frameTime;
+extern Word WorkPage;
+void SetMyScreen(Word Page);
+Byte *getVideoPointer(Word Page);
 void printDbg(int value);
 void updateScreenAndWait(void);
 void DisableHardwareClippingWithoutFlush(void);
@@ -138,6 +141,7 @@ void P_SpawnBloodParticle(Fixed x,Fixed y,Fixed z,Word damage);
 void P_SpawnPuffParticle(Fixed x,Fixed y,Fixed z);
 
 // In omain.c
+extern bool useOffscreenBuffer;
 void resetMenuOptions(void);
 void setPrimaryMenuOptions(void);
 void setScreenSizeSliderFromOption(void);

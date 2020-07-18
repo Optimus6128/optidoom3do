@@ -1,5 +1,8 @@
 #include "Doom.h"
 
+#include <celutils.h>
+
+
 /* Data */
 
 viswall_t viswalls[MAXWALLCMDS];		/* Visible wall array */
@@ -18,6 +21,30 @@ Word extralight;		/* bumped light from gun blasts */
 angle_t clipangle;		/* Leftmost clipping angle */
 angle_t doubleclipangle; /* Doubled leftmost clipping angle */
 
+
+static int offscreenPage = SCREENS-1;
+CCB *offscreenCel;
+
+static void renderOffscreenBuffer()
+{
+	const int screenStartOffset = ((ScreenYOffset >> 1) * 320 * 2 + (ScreenYOffset & 1) + (ScreenXOffset << 1)) * 2;
+	const int woffset = 320 - 2;
+	const int vcnt = (ScreenHeight / 2) - 1;
+	Byte *offscreenVramPointer = (Byte*)(getVideoPointer(offscreenPage) + screenStartOffset);
+
+	offscreenCel->ccb_SourcePtr = (CelData*)offscreenVramPointer;
+	offscreenCel->ccb_PRE0 = (offscreenCel->ccb_PRE0 & ~(((1<<10) - 1)<<6)) | (vcnt << 6);
+	offscreenCel->ccb_PRE1 = (offscreenCel->ccb_PRE1 & (65536 - 1024)) | (woffset << 16) | ScreenWidth | PRE1_LRFORM;
+
+	offscreenCel->ccb_XPos = ScreenXOffsetUnscaled << 16;
+	offscreenCel->ccb_YPos = ScreenYOffsetUnscaled << 16;
+	offscreenCel->ccb_HDX = (1 + screenScaleX) << 20;
+	offscreenCel->ccb_VDY = (1 + screenScaleY) << 16;
+
+	AddCelToCurrentCCB(offscreenCel);
+	FlushCCBs();
+}
+
 /**********************************
 
 	Init the math tables for the refresh system
@@ -29,6 +56,8 @@ void R_Init(void)
 	R_InitData();			/* Init the data (Via loading or calculations) */
 	clipangle = xtoviewangle[0];	/* Get the left clip angle from viewport */
 	doubleclipangle = clipangle*2;	/* Precalc angle * 2 */
+
+	offscreenCel = CreateCel(320, 200, 16, CREATECEL_UNCODED, getVideoPointer(offscreenPage));
 }
 
 /**********************************
@@ -75,7 +104,21 @@ void R_RenderPlayerView (void)
 {
 	R_Setup();		/* Init variables based on camera angle */
 	BSP();			/* Traverse the BSP tree for possible walls to render */
+
+	FlushCCBs();
+	if (useOffscreenBuffer) {
+		SetMyScreen(offscreenPage);	// Offscreen buffer is the last
+	}
+
 	SegCommands();	/* Draw all everything Z Sorted */
 	DrawColors();	/* Draw color overlay if needed */
-	DrawWeapons();		/* Draw the weapons on top of the screen */
+
+	FlushCCBs();
+    if (useOffscreenBuffer) {
+		SetMyScreen(WorkPage);	// Must restore visible screenpage if previously set to offscreen
+		renderOffscreenBuffer();
+    }
+
+    DrawWeapons();		/* Draw the weapons on top of the screen */
+    FlushCCBs();
 }

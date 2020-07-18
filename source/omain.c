@@ -13,7 +13,8 @@ static Word cursorFrame;		// Skull animation frame
 static Word cursorCount;		// Time mark to animate the skull
 static Word cursorPos;			// Y position of the skull
 static Word moveCount;			// Time mark to move the skull
-static Word toggleIDKFAcount;        // A count to turn IDKFA exclamation mark off after triggered (because it doesn't have two option states)
+static Word toggleIDKFAcount;   // A count to turn IDKFA exclamation mark off after triggered (because it doesn't have two option states)
+bool useOffscreenBuffer = false;// Use only when screen scale is not 1x1
 
 enum { BAR, HANDLE};    // Sub shapes for slider bar
 
@@ -276,6 +277,7 @@ void setScreenScaleValuesFromOption()
 {
 	screenScaleX = (opt_screenScale & 2) >> 1;
 	screenScaleY = opt_screenScale & 1;
+	useOffscreenBuffer = (screenScaleX | screenScaleY);
 }
 
 void setPrimaryMenuOptions() // Set menu options only once at start up

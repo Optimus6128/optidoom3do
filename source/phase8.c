@@ -380,8 +380,8 @@ static void DrawAWeapon(pspdef_t *psp,Word Shadow)
 	y = Input[1];
 	x = ((psp->WeaponX+x)*(int)GunXScale)>>20;
 	y = ((psp->WeaponY+SCREENGUNY+y)*(int)GunYScale)>>16;
-	x+=ScreenXOffset;
-	y+=ScreenYOffset+2;			/* Add 2 pixels to cover up the hole in the bottom */
+	x+=ScreenXOffsetUnscaled;
+	y+=ScreenYOffsetUnscaled+2;			/* Add 2 pixels to cover up the hole in the bottom */
 	DrawMShape(x,y,&Input[2]);	/* Draw the weapon's shape */
 	ReleaseAResource(RezNum);
 }

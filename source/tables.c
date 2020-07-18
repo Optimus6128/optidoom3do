@@ -2075,6 +2075,8 @@ Fixed Stretch;		/* Stretch factor */
 Fixed StretchWidth;	/* Stretch factor * ScreenWidth */
 Word ScreenXOffset;	/* True X coord for projected screen */
 Word ScreenYOffset;	/* True Y coord for projected screen */
+Word ScreenXOffsetUnscaled;	/* True X coord for projected screen (before screen scale)*/
+Word ScreenYOffsetUnscaled;	/* True Y coord for projected screen (before screen scale)*/
 LongWord GunXScale;	/* Scale factor for player's weapon for X */
 LongWord GunYScale;	/* Scale factor for player's weapon for Y */
 Fixed lightmins[256];	/* Minimum light factors */
