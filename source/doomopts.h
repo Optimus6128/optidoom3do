@@ -98,6 +98,7 @@ extern Word opt_fps;
 extern Word opt_wallQuality;
 extern Word opt_floorQuality;
 extern Word opt_depthShading;
+extern Word opt_fitToScreen;
 extern Word opt_thingsShading;
 extern Word opt_renderer;
 extern Word opt_extraRender;

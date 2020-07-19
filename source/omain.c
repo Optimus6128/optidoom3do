@@ -57,6 +57,7 @@ static void *sliderShapes;
     Word opt_wallQuality;
     Word opt_floorQuality;
     Word opt_screenScale;
+    Word opt_fitToScreen;
     Word opt_depthShading;
     Word opt_thingsShading;
     Word opt_renderer;
@@ -101,6 +102,7 @@ enum {
 	mi_wallQuality,     // Wall quality (fullres(hi), halfres(med), untextured(lo))
 	mi_floorQuality,    // Floor/Ceiling quality (textured, flat)
 	mi_screenScale,		// Pixel scaling of screen (1x1, 1x2, 2x1, 2x2)
+	mi_fitToScreen,		// Switch to fit small window to fullscreen (On/Off)
 	mi_shading_depth,   // Depth shading option (on, off (dark/bright))
 	mi_shading_items,   // Shading enable option for items (weapons, enemies, things, etc)
 	mi_renderer,        // Selection of the new renderers (polygons instead of columns, etc)
@@ -277,7 +279,7 @@ void setScreenScaleValuesFromOption()
 {
 	screenScaleX = (opt_screenScale & 2) >> 1;
 	screenScaleY = opt_screenScale & 1;
-	useOffscreenBuffer = (screenScaleX | screenScaleY);
+	useOffscreenBuffer = (screenScaleX | screenScaleY | opt_fitToScreen);
 }
 
 void setPrimaryMenuOptions() // Set menu options only once at start up
@@ -288,6 +290,7 @@ void setPrimaryMenuOptions() // Set menu options only once at start up
     opt_wallQuality = WALL_QUALITY_HI;
     opt_floorQuality = FLOOR_QUALITY_HI;
     opt_screenScale = SCREEN_SCALE_1x1;
+    opt_fitToScreen = false;
     opt_depthShading = DEPTH_SHADING_ON;
     opt_thingsShading = false;
     opt_renderer = RENDERER_DOOM;
@@ -334,21 +337,22 @@ void initMenuOptions()
     setMenuItem(mi_screenSize, 160, 58, "Screen size", true, muiStyle_slider, &opt_screenSizeIndex, SCREENSIZE_OPTIONS_NUM);
     setMenuItemWithOptionNames(mi_wallQuality, 112, 94, "Wall", false, muiStyle_text | muiStyle_slider, &opt_wallQuality, WALLQUALITY_OPTIONS_NUM, wallQualityOptions);
     setMenuItemWithOptionNames(mi_floorQuality, 96, 126, "Floor", false, muiStyle_text | muiStyle_slider, &opt_floorQuality, FLOORQUALITY_OPTIONS_NUM, floorQualityOptions);
-    setMenuItemWithOptionNames(mi_screenScale, 96, 158, "Scale", false, muiStyle_text, &opt_screenScale, SCREENSCALE_OPTIONS_NUM, screenScaleOptions);
-    setItemPageRange(mi_fps, mi_screenScale, page_performance);
+	setItemPageRange(mi_fps, mi_floorQuality, page_performance);
 
-    setMenuItemWithOptionNames(mi_shading_depth, 48, 40, "Depth shade", false, muiStyle_text, &opt_depthShading, DEPTHSHADING_OPTIONS_NUM, depthShadingOptions);
-    setMenuItemWithOptionNames(mi_shading_items, 40, 60, "Things shade", false, muiStyle_text, &opt_thingsShading, OFFON_OPTIONS_NUM, offOnOptions);
-    setMenuItemWithOptionNames(mi_renderer, 32, 80, "Renderer", false, muiStyle_text, &opt_renderer, RENDERER_OPTIONS_NUM, rendererOptions);
-    setMenuItemWithOptionNames(mi_extra_render, 56, 100, "Extra", false, muiStyle_text, &opt_extraRender, EXTRA_RENDER_OPTIONS_NUM, extraRenderOptions);
-    setItemPageRange(mi_shading_depth, mi_extra_render, page_rendering);
+    setMenuItemWithOptionNames(mi_screenScale, 92, 40, "Scale", false, muiStyle_text, &opt_screenScale, SCREENSCALE_OPTIONS_NUM, screenScaleOptions);
+    setMenuItemWithOptionNames(mi_fitToScreen, 40, 60, "Fit to screen", false, muiStyle_text, &opt_fitToScreen, OFFON_OPTIONS_NUM, offOnOptions);
+	setMenuItemWithOptionNames(mi_shading_depth, 40, 80, "Depth shade", false, muiStyle_text, &opt_depthShading, DEPTHSHADING_OPTIONS_NUM, depthShadingOptions);
+    setMenuItemWithOptionNames(mi_shading_items, 36, 100, "Things shade", false, muiStyle_text, &opt_thingsShading, OFFON_OPTIONS_NUM, offOnOptions);
+    setMenuItemWithOptionNames(mi_renderer, 48, 120, "Renderer", false, muiStyle_text, &opt_renderer, RENDERER_OPTIONS_NUM, rendererOptions);
+    setItemPageRange(mi_screenScale, mi_renderer, page_rendering);
 
-    setMenuItemWithOptionNames(mi_mapLines, 64, 40, "Map lines", false, muiStyle_text, &opt_thickLines, THICKLINES_OPTIONS_NUM, thicklinesOptions);
-    setMenuItemWithOptionNames(mi_waterFx, 80, 60, "Water fx", false, muiStyle_text, &opt_waterFx, OFFON_OPTIONS_NUM, offOnOptions);
+    setMenuItemWithOptionNames(mi_extra_render, 48, 40, "Gimmicks", false, muiStyle_text, &opt_extraRender, EXTRA_RENDER_OPTIONS_NUM, extraRenderOptions);
+    setMenuItemWithOptionNames(mi_mapLines, 48, 60, "Map lines", false, muiStyle_text, &opt_thickLines, THICKLINES_OPTIONS_NUM, thicklinesOptions);
+    setMenuItemWithOptionNames(mi_waterFx, 80, 80, "Water fx", false, muiStyle_text, &opt_waterFx, OFFON_OPTIONS_NUM, offOnOptions);
         setMenuItemVisibility(mi_waterFx, false);   // removing this in case I won't be able to fully implement it in this release
-    setMenuItemWithOptionNames(mi_sky, 96, 80, "Sky", false, muiStyle_text, &opt_sky, SKY_OPTIONS_NUM, skyOptions);
-    setMenuItem(mi_firesky_slider, 96, 80, 0, false, muiStyle_slider, &opt_fireSkyHeight, SKY_HEIGHTS_OPTIONS_NUM); setMenuItemVisibility(mi_firesky_slider, false);
-    setItemPageRange(mi_mapLines, mi_firesky_slider, page_effects);
+    setMenuItemWithOptionNames(mi_sky, 96, 100, "Sky", false, muiStyle_text, &opt_sky, SKY_OPTIONS_NUM, skyOptions);
+    setMenuItem(mi_firesky_slider, 96, 120, 0, false, muiStyle_slider, &opt_fireSkyHeight, SKY_HEIGHTS_OPTIONS_NUM); setMenuItemVisibility(mi_firesky_slider, false);
+    setItemPageRange(mi_extra_render, mi_firesky_slider, page_effects);
 
     setMenuItem(mi_enableCheats, 160, 40, "Enable cheats", true, muiStyle_slider, &opt_cheatsRevealed, CHEATSREVEALED_OPTIONS_NUM);
     setMenuItemWithOptionNames(mi_cheatAutomap, 96, 80, "Automap", false, muiStyle_text, &opt_cheatAutomap, AUTOMAP_OPTIONS_NUM, automapOptions);     setMenuItemVisibility(mi_cheatAutomap, false);
@@ -488,6 +492,7 @@ static void handleSpecialActionsIfOptionChanged(player_t *player)
 
         case mi_screenSize:
 		case mi_screenScale:
+		case mi_fitToScreen:
         	setScreenSizeOptionFromSlider();
         	setScreenScaleValuesFromOption();
             if (player) {

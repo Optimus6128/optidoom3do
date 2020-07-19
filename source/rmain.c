@@ -33,13 +33,21 @@ static void renderOffscreenBuffer()
 	Byte *offscreenVramPointer = (Byte*)(getVideoPointer(offscreenPage) + screenStartOffset);
 
 	offscreenCel->ccb_SourcePtr = (CelData*)offscreenVramPointer;
+	offscreenCel->ccb_Flags |= CCB_BGND;
 	offscreenCel->ccb_PRE0 = (offscreenCel->ccb_PRE0 & ~(((1<<10) - 1)<<6)) | (vcnt << 6);
 	offscreenCel->ccb_PRE1 = (offscreenCel->ccb_PRE1 & (65536 - 1024)) | (woffset << 16) | ScreenWidth | PRE1_LRFORM;
 
-	offscreenCel->ccb_XPos = ScreenXOffsetUnscaled << 16;
-	offscreenCel->ccb_YPos = ScreenYOffsetUnscaled << 16;
-	offscreenCel->ccb_HDX = (1 + screenScaleX) << 20;
-	offscreenCel->ccb_VDY = (1 + screenScaleY) << 16;
+	if (opt_fitToScreen) {
+		offscreenCel->ccb_XPos = 0;
+		offscreenCel->ccb_YPos = 0;
+		offscreenCel->ccb_HDX = (320 << 20) / ScreenWidth;
+		offscreenCel->ccb_VDY = (160 << 16) / ScreenHeight;
+	} else {
+		offscreenCel->ccb_XPos = ScreenXOffsetUnscaled << 16;
+		offscreenCel->ccb_YPos = ScreenYOffsetUnscaled << 16;
+		offscreenCel->ccb_HDX = (1 + screenScaleX) << 20;
+		offscreenCel->ccb_VDY = (1 + screenScaleY) << 16;
+	}
 
 	AddCelToCurrentCCB(offscreenCel);
 	FlushCCBs();

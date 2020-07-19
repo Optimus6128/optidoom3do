@@ -104,8 +104,14 @@ void InitMathTables(void)
 	ScreenHeight = ScreenHeights[ScreenSizeOption];
 	ScreenXOffsetUnscaled = ((320-ScreenWidth)/2);
 	ScreenYOffsetUnscaled = ((160-ScreenHeight)/2);
-	GunXScale = (ScreenWidth*0x100000)/320;		/* Get the 3DO scale factor for the gun shape */
-	GunYScale = (ScreenHeight*0x10000)/160;		/* And the y scale */
+
+	if (opt_fitToScreen) {
+		GunXScale = 0x100000;
+		GunYScale = 0x10000;
+	} else {
+		GunXScale = (ScreenWidth*0x100000)/320;		/* Get the 3DO scale factor for the gun shape */
+		GunYScale = (ScreenHeight*0x10000)/160;		/* And the y scale */
+	}
 
 	// Now the scaled based ones
 	ScreenWidth >>= screenScaleX;
