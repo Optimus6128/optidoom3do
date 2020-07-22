@@ -6,39 +6,29 @@
 #include <Init3do.h>
 #include <celutils.h>
 
-static int SkyHeights[6] = {
-	160,
-	144,
-	128,
-	112,
-	96,
-	80
-};
-
 #define GRADIENT_SKY_HEIGHT 128
 #define GRADIENT_SKIES_NUM 4
 CCB *gradientSkyCel[GRADIENT_SKIES_NUM];
-uint16 gradientSkyBmp[GRADIENT_SKIES_NUM * GRADIENT_SKY_HEIGHT];
+uint16 *gradientSkyBmp;
 
 #define FIRESKY_PIECES 4
 #define FIRESKY_WIDTH 32
 #define FIRESKY_HEIGHT 128
 CCB *fireSkyCel;
-uint8 fireSkyBmp[FIRESKY_WIDTH * FIRESKY_HEIGHT];
+uint8 *fireSkyBmp;
 
 #define SKY_COLORS_NUM 32
 #define SKY_HEIGHT_PALS 4
-uint16 fireSkyPal[SKY_HEIGHT_PALS * SKY_COLORS_NUM];
+uint16 *fireSkyPal;
 
 #define RANDTAB_SIZE 1024   // must be power of two
-static uint8 randTab[RANDTAB_SIZE];
+static uint8 *randTab;
 static uint8 nextRandIndex = 0;
 
-// Helper function to get the sky height in pixels in order to erase or replace the exact portion of the screen with the new type of skies
-int getSkyHeight(unsigned int i)
+
+int getSkyScale()
 {
-    if (i >= SCREENSIZE_OPTIONS_NUM) i = SCREENSIZE_OPTIONS_NUM-1;
-    return SkyHeights[i];
+    return (Fixed)(1048576.0*((float)ScreenHeight/160.0));
 }
 
 void setSkyColors(int r0,int g0,int b0, int r1,int g1,int b1, int r2,int g2,int b2, int r3,int g3,int b3, int r4,int g4,int b4, uint16 *bmp)
@@ -54,6 +44,11 @@ void initNewSkies()
 {
     int i, x, y;
     int lowSkyCol = 8;
+
+    gradientSkyBmp = (uint16*)AllocAPointer(2 * GRADIENT_SKIES_NUM * GRADIENT_SKY_HEIGHT);
+    fireSkyBmp = (uint8*)AllocAPointer(FIRESKY_WIDTH * FIRESKY_HEIGHT);
+    fireSkyPal = (uint16*)AllocAPointer(2 * SKY_HEIGHT_PALS * SKY_COLORS_NUM);
+    randTab = (uint8*)AllocAPointer(RANDTAB_SIZE);
 
     for (i=0; i<GRADIENT_SKIES_NUM; ++i) {
         gradientSkyCel[i] = CreateCel(GRADIENT_SKY_HEIGHT, 1, 16, CREATECEL_UNCODED, &gradientSkyBmp[GRADIENT_SKY_HEIGHT * i]);
@@ -152,7 +147,7 @@ static void drawFireSkyCels()
     int i;
     int skyPieceWidth = ScreenWidth >> 2;
     int skyPieceScaleX = (skyPieceWidth << 20) / FIRESKY_WIDTH;
-    int skyPieceScaleY = (ScreenHeight << 16) / getSkyHeight(ScreenSizeOption);
+    int skyPieceScaleY = (ScreenHeight << 16) / 160;
 
     int playerAngleShift = ((xtoviewangle[0]+viewangle)>>ANGLETOSKYSHIFT) % skyPieceWidth;
 
@@ -188,7 +183,7 @@ void drawNewSky(int which)
         {
             const int gradSkyId = which - SKY_GRADIENT_DAY;
             CCB *skyCel = gradientSkyCel[gradSkyId];
-            skyCel->ccb_HDY = getSkyScale(ScreenSizeOption);
+            skyCel->ccb_HDY = getSkyScale();
             skyCel->ccb_VDX = ScreenWidth << 16;
 
             AddCelToCurrentCCB(skyCel);
@@ -200,7 +195,7 @@ void drawNewSky(int which)
         break;
 
         default:
-            DrawARect(0,0, ScreenWidth, getSkyHeight(ScreenSizeOption), 0);
+            DrawARect(0,0, ScreenWidth, ScreenHeight, 0);
         break;
     }
 }

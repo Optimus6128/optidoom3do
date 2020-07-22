@@ -89,10 +89,12 @@ void initSpanDrawFunc(void);
 // In phase8.c
 extern Word spriteLight;
 
-
 // In rdata.c
 extern int screenScaleX;
 extern int screenScaleY;
+
+// In rmain.c
+void setupOffscreenCel(void);
 
 // In threedo.c
 extern int frameTime;
@@ -117,12 +119,11 @@ void DrawASpan(Word Count,LongWord xfrac,LongWord yfrac,Fixed ds_xstep,Fixed ds_
 void DrawASpanLo(Word Count,LongWord xfrac,LongWord yfrac,Fixed ds_xstep,Fixed ds_ystep,Byte *Dest);
 void DrawThickLine(Word x1,Word y1,Word x2,Word y2,Word color);
 void clearSpanArray(void);
-int getSkyScale(unsigned int i);
 
 // In xskies.c
 void initNewSkies(void);
-int getSkyHeight(unsigned int i);
 void drawNewSky(int which);
+int getSkyScale(void);
 void updateFireSkyHeightPal(void);
 
 // In ammain.c

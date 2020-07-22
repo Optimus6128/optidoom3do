@@ -26,18 +26,6 @@ Byte *CelLine190;
 Byte SpanArray[MAXSCREENWIDTH*MAXSCREENHEIGHT];	/* Buffer for floor textures */
 Byte *SpanPtr = SpanArray;		/* Pointer to empty buffer */
 
-#define SKYSCALE(x) (Fixed)(1048576.0*(x/160.0))
-
-static Fixed SkyScales[6] = {
-	SKYSCALE(160.0),
-	SKYSCALE(144.0),
-	SKYSCALE(128.0),
-	SKYSCALE(112.0),
-	SKYSCALE(96.0),
-	SKYSCALE(80.0)
-};
-
-
 /* 1/16 - 8/16 */
 // 0x0000,0x0400,0x0800,0x0C00,0x1000,0x1400,0x1800,0x1C00,
 // 0x00D0,0x1300,0x08D0,0x1700,0x10D0,0x1B00,0x18D0,0x1F00,
@@ -50,12 +38,6 @@ Word LightTable[32] = {
 	0x1F00,0x1F00,0x1F00,0x1F00,0x1F00,0x1F00,0x1F00,0x1F00
 };
 
-
-int getSkyScale(unsigned int i)
-{
-    if (i >= SCREENSIZE_OPTIONS_NUM) i = SCREENSIZE_OPTIONS_NUM-1;
-    return SkyScales[i];
-}
 
 static void initCCBarray(void)
 {

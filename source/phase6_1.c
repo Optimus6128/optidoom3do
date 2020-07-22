@@ -25,7 +25,7 @@ void initCCBarraySky(void)
 	MyCCB *CCBPtr;
 	int i;
 
-	const int skyScale = getSkyScale(ScreenSizeOption);
+	const int skyScale = getSkyScale();
 
 	CCBPtr = CCBArraySky;
 	for (i=0; i<MAXSCREENWIDTH; ++i) {
@@ -345,7 +345,7 @@ void SegLoop(viswall_t *segl)
     }
 
 // I can draw the sky right now!!
-    if (opt_extraRender != EXTRA_RENDER_WIREFRAME) {
+    if (opt_gimmicks != GIMMICKS_WIREFRAME) {
         if (ActionBits & AC_ADDSKY) {
             skyOnView = true;
             if (opt_sky==SKY_DEFAULT) {

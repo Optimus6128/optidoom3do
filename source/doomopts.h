@@ -53,9 +53,10 @@ enum
 // Extra render options
 enum
 {
-    EXTRA_RENDER_OFF = 0,
-    EXTRA_RENDER_WIREFRAME = 1,
-    EXTRA_RENDER_CYBER = 2
+    GIMMICKS_OFF = 0,
+    GIMMICKS_WIREFRAME = 1,
+    GIMMICKS_CUBE = 2,
+    GIMMICKS_CYBER = 3
 };
 
 // Cheats revealed options
@@ -101,7 +102,7 @@ extern Word opt_depthShading;
 extern Word opt_fitToScreen;
 extern Word opt_thingsShading;
 extern Word opt_renderer;
-extern Word opt_extraRender;
+extern Word opt_gimmicks;
 extern Word opt_thickLines;
 extern Word opt_waterfx;
 extern Word opt_sky;

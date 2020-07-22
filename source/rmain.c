@@ -2,6 +2,12 @@
 
 #include <celutils.h>
 
+#include "engine_main.h"
+#include "engine_mesh.h"
+#include "engine_texture.h"
+#include "procgen_mesh.h"
+#include "bench.h"
+
 
 /* Data */
 
@@ -23,19 +29,48 @@ angle_t doubleclipangle; /* Doubled leftmost clipping angle */
 
 
 static int offscreenPage = SCREENS-1;
-CCB *offscreenCel;
+static CCB *offscreenCel;
+static Mesh *cubeMesh;
+static Texture *feedbackTex;
 
-static void renderOffscreenBuffer()
+static void updateOffscreenCel(CCB *cel)
 {
 	const int screenStartOffset = ((ScreenYOffset >> 1) * 320 * 2 + (ScreenYOffset & 1) + (ScreenXOffset << 1)) * 2;
 	const int woffset = 320 - 2;
 	const int vcnt = (ScreenHeight / 2) - 1;
 	Byte *offscreenVramPointer = (Byte*)(getVideoPointer(offscreenPage) + screenStartOffset);
 
-	offscreenCel->ccb_SourcePtr = (CelData*)offscreenVramPointer;
-	offscreenCel->ccb_Flags |= CCB_BGND;
-	offscreenCel->ccb_PRE0 = (offscreenCel->ccb_PRE0 & ~(((1<<10) - 1)<<6)) | (vcnt << 6);
-	offscreenCel->ccb_PRE1 = (offscreenCel->ccb_PRE1 & (65536 - 1024)) | (woffset << 16) | ScreenWidth | PRE1_LRFORM;
+	cel->ccb_SourcePtr = (CelData*)offscreenVramPointer;
+	cel->ccb_Flags |= CCB_BGND;
+	cel->ccb_PRE0 = (cel->ccb_PRE0 & ~(((1<<10) - 1)<<6)) | (vcnt << 6);
+	cel->ccb_PRE1 = (cel->ccb_PRE1 & (65536 - 1024)) | (woffset << 16) | ScreenWidth | PRE1_LRFORM;
+	cel->ccb_Width = ScreenWidth;
+	cel->ccb_Height = ScreenHeight;
+}
+
+static void renderGimmick3D()
+{
+	int i;
+	const int t = getTicks() >> 4;
+	setMeshPosition(cubeMesh, 0, 32, 640);
+	setMeshRotation(cubeMesh, t, t >> 1, t >> 2);
+
+	transformGeometry(cubeMesh);
+	//updateMeshCELs(cubeMesh);
+
+	for (i=0; i<cubeMesh->quadsNum; ++i) {
+		QuadData *qd = &cubeMesh->quad[i];
+		updateOffscreenCel(qd->cel);
+		cubeMesh->tex[qd->textureId].width = ScreenWidth;
+		cubeMesh->tex[qd->textureId].height = ScreenHeight;
+	}
+
+	renderTransformedGeometry(cubeMesh);
+}
+
+void setupOffscreenCel()
+{
+	updateOffscreenCel(offscreenCel);
 
 	if (opt_fitToScreen) {
 		offscreenCel->ccb_XPos = 0;
@@ -48,7 +83,10 @@ static void renderOffscreenBuffer()
 		offscreenCel->ccb_HDX = (1 + screenScaleX) << 20;
 		offscreenCel->ccb_VDY = (1 + screenScaleY) << 16;
 	}
+}
 
+static void renderOffscreenBuffer()
+{
 	AddCelToCurrentCCB(offscreenCel);
 	FlushCCBs();
 }
@@ -66,6 +104,9 @@ void R_Init(void)
 	doubleclipangle = clipangle*2;	/* Precalc angle * 2 */
 
 	offscreenCel = CreateCel(320, 200, 16, CREATECEL_UNCODED, getVideoPointer(offscreenPage));
+	feedbackTex = initFeedbackTexture(0, 0, 320, 200, SCREENS);
+	cubeMesh = initGenMesh(256, feedbackTex, MESH_OPTION_CPU_CCW_TEST, MESH_CUBE, NULL);
+	setMeshPolygonOrder(cubeMesh, true, true);
 }
 
 /**********************************
@@ -129,4 +170,8 @@ void R_RenderPlayerView (void)
 
     DrawWeapons();		/* Draw the weapons on top of the screen */
     FlushCCBs();
+
+	if (opt_gimmicks == GIMMICKS_CUBE) {
+		renderGimmick3D();
+	}
 }

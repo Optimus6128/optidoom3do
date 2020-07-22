@@ -40,12 +40,12 @@ static bool SegCommands_Init()
 
 static void DrawBackground()
 {
-    if (background_clear | opt_cheatNoclip | (opt_extraRender==EXTRA_RENDER_WIREFRAME)) {
+    if (background_clear | opt_cheatNoclip | (opt_gimmicks==GIMMICKS_WIREFRAME)) {
         DrawARect(0,0, ScreenWidth, ScreenHeight, 0);   // To avoid HOM when noclipping outside
         FlushCCBs(); // Flush early to render noclip black quad early before everything, for the same reason as sky below
     }
 
-    if (skyOnView && (opt_sky!=SKY_DEFAULT) && (opt_extraRender!=EXTRA_RENDER_WIREFRAME)) {
+    if (skyOnView && (opt_sky!=SKY_DEFAULT) && (opt_gimmicks!=GIMMICKS_WIREFRAME)) {
         drawNewSky(opt_sky);
         FlushCCBs(); // Flush early to render the sky early before everything, as we hacked the wall renderer to draw earlier than the final flush.
     }
@@ -209,7 +209,7 @@ void SegCommands()
 
         StartSegLoop();
 
-        if (opt_extraRender == EXTRA_RENDER_WIREFRAME) {
+        if (opt_gimmicks == GIMMICKS_WIREFRAME) {
             DrawWallsWireframe();
         } else {
             DrawWalls();
