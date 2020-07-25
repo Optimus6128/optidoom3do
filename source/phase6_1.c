@@ -105,17 +105,13 @@ static visplane_t *FindPlane(visplane_t *check, viswall_t *segl, int start)
 
         i = OPENMARK;
         set = check->open;	/* A brute force method to fill in the visplane record FAST! */
-        j = ScreenWidth/8;
+        j = ScreenWidth/4;
         do {
             set[0] = i;
             set[1] = i;
             set[2] = i;
             set[3] = i;
-            set[4] = i;
-            set[5] = i;
-            set[6] = i;
-            set[7] = i;
-            set+=8;
+            set+=4;
         } while (--j);
     }
 	return check;
