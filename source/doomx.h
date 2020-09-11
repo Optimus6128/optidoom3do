@@ -92,8 +92,10 @@ extern Word spriteLight;
 // In rdata.c
 extern int screenScaleX;
 extern int screenScaleY;
+void initScreenSizeValues(void);
 
 // In rmain.c
+extern int offscreenPage;
 void setupOffscreenCel(void);
 
 // In threedo.c
@@ -143,6 +145,7 @@ void P_SpawnPuffParticle(Fixed x,Fixed y,Fixed z);
 
 // In omain.c
 extern bool useOffscreenBuffer;
+extern bool useOffscreenGrid;
 void resetMenuOptions(void);
 void setPrimaryMenuOptions(void);
 void setScreenSizeSliderFromOption(void);

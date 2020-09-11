@@ -15,6 +15,7 @@ static Word cursorPos;			// Y position of the skull
 static Word moveCount;			// Time mark to move the skull
 static Word toggleIDKFAcount;   // A count to turn IDKFA exclamation mark off after triggered (because it doesn't have two option states)
 bool useOffscreenBuffer = false;// Use only when screen scale is not 1x1
+bool useOffscreenGrid = false;	// Use only when grid screen effects are running
 
 enum { BAR, HANDLE};    // Sub shapes for slider bar
 
@@ -151,7 +152,7 @@ enum {
 #define SCREENSCALE_OPTIONS_NUM 4
 #define DEPTHSHADING_OPTIONS_NUM 3
 #define RENDERER_OPTIONS_NUM 2
-#define GIMMICK_OPTIONS_NUM 3
+#define GIMMICK_OPTIONS_NUM 6
 #define OFFON_OPTIONS_NUM 2
 #define AUTOMAP_OPTIONS_NUM 4
 #define DUMMYIDKFA_OPTIONS_NUM 2
@@ -168,7 +169,7 @@ static char *floorQualityOptions[FLOORQUALITY_OPTIONS_NUM] = { "LO", "MED", "HI"
 static char *screenScaleOptions[SCREENSCALE_OPTIONS_NUM] = { "1x1", "1x2", "2x1", "2x2" };
 static char *depthShadingOptions[DEPTHSHADING_OPTIONS_NUM] = { "DARK", "BRIGHT", "ON" };
 static char *rendererOptions[RENDERER_OPTIONS_NUM] = { "DOOM", "POLY" };
-static char *gimmickOptions[GIMMICK_OPTIONS_NUM] = { "OFF", "WIREFRAME", "CUBE" };
+static char *gimmickOptions[GIMMICK_OPTIONS_NUM] = { "OFF", "WIREFRAME", "CUBE", "DISTORT", "WARP", "CYBER" };
 static char *automapOptions[AUTOMAP_OPTIONS_NUM] = { "OFF", "THINGS", "LINES", "ALL" };
 static char *dummyIDKFAoptions[DUMMYIDKFA_OPTIONS_NUM] = { " ", "!" };
 static char *thicklinesOptions[THICKLINES_OPTIONS_NUM] = { "NORMAL", "THICK" };
@@ -275,21 +276,19 @@ void setScreenSizeOptionFromSlider()
 	ScreenSizeOption = SCREENSIZE_OPTIONS_NUM-1 - opt_screenSizeIndex;  // ScreenSizeOption is reversed from screenSizeIndex
 }
 
-void checkIfShouldUseOffScreenBuffer()
-{
-	useOffscreenBuffer = (screenScaleX | screenScaleY | opt_fitToScreen | (opt_gimmicks == GIMMICKS_CUBE));
-}
-
 void setScreenScaleValuesFromOption()
 {
 	screenScaleX = (opt_screenScale & 2) >> 1;
 	screenScaleY = opt_screenScale & 1;
-	checkIfShouldUseOffScreenBuffer();
+	useOffscreenBuffer = (screenScaleX | screenScaleY | opt_fitToScreen | (opt_gimmicks == GIMMICKS_CUBE));
+	useOffscreenGrid = (opt_gimmicks >= GIMMICKS_DISTORT && opt_gimmicks <= GIMMICKS_WARP);
 }
 
 void setPrimaryMenuOptions() // Set menu options only once at start up
 {
 	setScreenSizeSliderFromOption();
+	setScreenScaleValuesFromOption();
+	InitMathTables();	// This for an early init of default sky CCBs
 
     opt_fps = false;
     opt_wallQuality = WALL_QUALITY_HI;
@@ -508,7 +507,12 @@ static void handleSpecialActionsIfOptionChanged(player_t *player)
         break;
 
         case mi_gimmicks:
-        	checkIfShouldUseOffScreenBuffer();
+			setScreenSizeOptionFromSlider();
+			setScreenScaleValuesFromOption();
+        	if (opt_gimmicks >= GIMMICKS_CUBE && opt_gimmicks <= GIMMICKS_WARP) {
+				initScreenSizeValues();
+				setupOffscreenCel();
+        	}
 		break;
 
         case mi_wallQuality:

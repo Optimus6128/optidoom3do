@@ -10,6 +10,10 @@
 #define REC_FPSHR 20
 #define NUM_REC_Z 32768
 
+extern int icos[256];
+extern int isin[256];
+
+
 void initEngine(void);
 
 void transformGeometry(Mesh *ms);

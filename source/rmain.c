@@ -3,6 +3,7 @@
 #include <celutils.h>
 
 #include "engine_main.h"
+#include "engine_grid.h"
 #include "engine_mesh.h"
 #include "engine_texture.h"
 #include "procgen_mesh.h"
@@ -28,7 +29,8 @@ angle_t clipangle;		/* Leftmost clipping angle */
 angle_t doubleclipangle; /* Doubled leftmost clipping angle */
 
 
-static int offscreenPage = SCREENS-1;
+int offscreenPage = SCREENS-1;
+
 static CCB *offscreenCel;
 static Mesh *cubeMesh;
 static Texture *feedbackTex;
@@ -43,7 +45,7 @@ static void updateOffscreenCel(CCB *cel)
 	cel->ccb_SourcePtr = (CelData*)offscreenVramPointer;
 	cel->ccb_Flags |= CCB_BGND;
 	cel->ccb_PRE0 = (cel->ccb_PRE0 & ~(((1<<10) - 1)<<6)) | (vcnt << 6);
-	cel->ccb_PRE1 = (cel->ccb_PRE1 & (65536 - 1024)) | (woffset << 16) | ScreenWidth | PRE1_LRFORM;
+	cel->ccb_PRE1 = (cel->ccb_PRE1 & (65536 - 1024)) | (woffset << 16) | (ScreenWidth-1) | PRE1_LRFORM;
 	cel->ccb_Width = ScreenWidth;
 	cel->ccb_Height = ScreenHeight;
 }
@@ -83,6 +85,28 @@ void setupOffscreenCel()
 		offscreenCel->ccb_HDX = (1 + screenScaleX) << 20;
 		offscreenCel->ccb_VDY = (1 + screenScaleY) << 16;
 	}
+
+	updateScreenGridCels();
+}
+
+static void renderOffscreenBufferGrid()
+{
+	const int t = getTicks() >> 6;
+
+	switch(opt_gimmicks) {
+		case GIMMICKS_DISTORT:
+			updateGridFx(GRID_FX_DISTORT, t);
+		break;
+
+		case GIMMICKS_WARP:
+			updateGridFx(GRID_FX_WARP, t);
+		break;
+
+		default:
+		break;
+	}
+
+	renderGrid();
 }
 
 static void renderOffscreenBuffer()
@@ -107,6 +131,8 @@ void R_Init(void)
 	feedbackTex = initFeedbackTexture(0, 0, 320, 200, SCREENS);
 	cubeMesh = initGenMesh(256, feedbackTex, MESH_OPTION_CPU_CCW_TEST, MESH_CUBE, NULL);
 	setMeshPolygonOrder(cubeMesh, true, true);
+
+	initGrid(8, 8);
 }
 
 /**********************************
@@ -155,7 +181,7 @@ void R_RenderPlayerView (void)
 	BSP();			/* Traverse the BSP tree for possible walls to render */
 
 	FlushCCBs();
-	if (useOffscreenBuffer) {
+	if (useOffscreenBuffer || useOffscreenGrid) {
 		SetMyScreen(offscreenPage);	// Offscreen buffer is the last
 	}
 
@@ -163,15 +189,18 @@ void R_RenderPlayerView (void)
 	DrawColors();	/* Draw color overlay if needed */
 
 	FlushCCBs();
-    if (useOffscreenBuffer) {
+    if (useOffscreenBuffer || useOffscreenGrid) {
 		SetMyScreen(WorkPage);	// Must restore visible screenpage if previously set to offscreen
-		renderOffscreenBuffer();
+		if (useOffscreenGrid) {
+			renderOffscreenBufferGrid();
+		} else {
+			renderOffscreenBuffer();
+			if (opt_gimmicks == GIMMICKS_CUBE) {
+				renderGimmick3D();
+			}
+		}
     }
 
     DrawWeapons();		/* Draw the weapons on top of the screen */
     FlushCCBs();
-
-	if (opt_gimmicks == GIMMICKS_CUBE) {
-		renderGimmick3D();
-	}
 }

@@ -12,8 +12,8 @@ typedef struct {		/* Actual structure of TEXTURE1 */
 	texture_t Array[1];	/* Array of entries[Count] */
 } Filemaptexture_t;
 
-static Word ScreenWidths[6] = {280,256,224,192,160,128};
-static Word ScreenHeights[6] = {160,144,128,112,96,80};
+static Word ScreenWidths[SCREENSIZE_OPTIONS_NUM] = {280,256,224,192,160,128};
+static Word ScreenHeights[SCREENSIZE_OPTIONS_NUM] = {160,144,128,112,96,80};
 
 Word NumTextures;		/* Number of textures in the game */
 Word FirstTexture;		/* First texture resource */
@@ -94,11 +94,8 @@ void R_InitData(void)
 
 **********************************/
 
-void InitMathTables(void)
+void initScreenSizeValues()
 {
-	Fixed j;
-	Word i;
-
 	// Get the unaffected by scale values first
 	ScreenWidth = ScreenWidths[ScreenSizeOption];
 	ScreenHeight = ScreenHeights[ScreenSizeOption];
@@ -120,6 +117,14 @@ void InitMathTables(void)
 	CenterY = (ScreenHeight/2);
 	ScreenXOffset = ((320-ScreenWidth)/2);
 	ScreenYOffset = ((160-ScreenHeight)/2);
+}
+
+void InitMathTables(void)
+{
+	Fixed j;
+	Word i;
+
+	initScreenSizeValues();
 
 	Stretch = STRETCH(ScreenWidth, ScreenHeight);
 	StretchWidth = Stretch*((int)ScreenWidth/2);

@@ -6,8 +6,10 @@
 
 static Vertex vertices[MAX_VERTICES_NUM];
 
-static int icos[256], isin[256];
-int shr[257]; // ugly way to get precalced fast right shift for division with power of two numbers
+int icos[256];
+int isin[256];
+
+static int shr[257]; // ugly way to get precalced fast right shift for division with power of two numbers
 static uint32 recZ[NUM_REC_Z];
 
 static int screenWidth = SCREEN_WIDTH;

@@ -56,7 +56,9 @@ enum
     GIMMICKS_OFF = 0,
     GIMMICKS_WIREFRAME = 1,
     GIMMICKS_CUBE = 2,
-    GIMMICKS_CYBER = 3
+    GIMMICKS_DISTORT = 3,
+    GIMMICKS_WARP = 4,
+    GIMMICKS_CYBER = 5
 };
 
 // Cheats revealed options
