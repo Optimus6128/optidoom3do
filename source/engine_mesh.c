@@ -116,15 +116,15 @@ void setMeshTranslucency(Mesh *ms, bool enable)
 
 Mesh* initMesh(int vrtxNum, int quadsNum)
 {
-	Mesh *ms = (Mesh*)AllocMem(sizeof(Mesh), MEMTYPE_ANY);
+	Mesh *ms = (Mesh*)AllocAPointer(sizeof(Mesh));
 
 	ms->vrtxNum = vrtxNum;
 	ms->quadsNum = quadsNum;
 
 	ms->indexNum = ms->quadsNum << 2;
-	ms->vrtx = (Vertex*)AllocMem(ms->vrtxNum * sizeof(Vertex), MEMTYPE_ANY);
-	ms->index = (int*)AllocMem(ms->indexNum * sizeof(int), MEMTYPE_ANY);
-	ms->quad = (QuadData*)AllocMem(ms->quadsNum * sizeof(QuadData), MEMTYPE_ANY);
+	ms->vrtx = (Vertex*)AllocAPointer(ms->vrtxNum * sizeof(Vertex));
+	ms->index = (int*)AllocAPointer(ms->indexNum * sizeof(int));
+	ms->quad = (QuadData*)AllocAPointer(ms->quadsNum * sizeof(QuadData));
 
 	return ms;
 }

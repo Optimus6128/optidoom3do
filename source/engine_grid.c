@@ -3,7 +3,7 @@
 #include "engine_grid.h"
 
 #include "Doom.h"
-
+#include "3dlib.h"
 
 static Vertex gridVertices[MAX_GRID_VERTICES_NUM];
 
@@ -44,8 +44,8 @@ static void updateGridCel(int posX, int posY, int width, int height, unsigned ch
 	unsigned char *offscreenVramPointer = (unsigned char*)(vram + screenStartOffset);
 
 	cel->ccb_SourcePtr = (CelData*)offscreenVramPointer;
-	cel->ccb_PRE0 = (cel->ccb_PRE0 & ~(((1<<10) - 1)<<6)) | (vcnt << 6);
-	cel->ccb_PRE1 = (cel->ccb_PRE1 & (65536 - 1024)) | (woffset << 16) | (width-1);
+	cel->ccb_PRE0 = PRE0_LINEAR | 6 | (vcnt << 6);									// PRE0_LINEAR is the bit for UNCODED really, 6 for 16bit
+	cel->ccb_PRE1 = PRE1_TLLSB_PDC0 | PRE1_LRFORM | (woffset << 16) | (width-1);	// MSB of blue remains, VRAM structured texture format
 	cel->ccb_Width = width;
 	cel->ccb_Height = height;
 }
@@ -75,12 +75,10 @@ static void initGridCelList(Mesh *ms)
 	int i;
 	for (i=0; i<ms->quadsNum; i++)
 	{
-		ms->quad[i].cel = (CCB*)AllocMem(sizeof(CCB), MEMTYPE_ANY);
+		ms->quad[i].cel = (CCB*)AllocAPointer(sizeof(CCB));
 
 		ms->quad[i].cel->ccb_Flags = CCB_NPABS | CCB_SPABS | CCB_PPABS | CCB_LDSIZE | CCB_LDPRS | CCB_LDPPMP | CCB_CCBPRE | CCB_YOXY | CCB_USEAV | CCB_NOBLK | CCB_ACE | CCB_ACW | CCB_ACCW | CCB_ACSC | CCB_ALSC | CCB_BGND;
-		ms->quad[i].cel->ccb_PRE0 = PRE0_LINEAR | 6;				// PRE0_LINEAR is the bit for UNCODED really, 6 for 16bit
-		ms->quad[i].cel->ccb_PRE1 = PRE1_TLLSB_PDC0 | PRE1_LRFORM;	// MSB of blue remains, VRAM structured texture format
-		ms->quad[i].cel->ccb_PIXC = 0x1F001F00;
+		ms->quad[i].cel->ccb_PIXC = PIXC_OPAQUE; //BLAZEMONGER_CEL
 
 		if (i!=0) LinkCel(ms->quad[i-1].cel, ms->quad[i].cel);
 	}
@@ -89,7 +87,7 @@ static void initGridCelList(Mesh *ms)
 
 static GridMesh *initGridMesh(int gridWidth, int gridHeight)
 {
-	GridMesh *gms = (GridMesh*)AllocMem(sizeof(GridMesh), MEMTYPE_ANY);
+	GridMesh *gms = (GridMesh*)AllocAPointer(sizeof(GridMesh));
 
 	int i, x, y;
 

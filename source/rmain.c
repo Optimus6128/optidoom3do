@@ -43,9 +43,8 @@ static void updateOffscreenCel(CCB *cel)
 	Byte *offscreenVramPointer = (Byte*)(getVideoPointer(offscreenPage) + screenStartOffset);
 
 	cel->ccb_SourcePtr = (CelData*)offscreenVramPointer;
-	cel->ccb_Flags |= CCB_BGND;
-	cel->ccb_PRE0 = (cel->ccb_PRE0 & ~(((1<<10) - 1)<<6)) | (vcnt << 6);
-	cel->ccb_PRE1 = (cel->ccb_PRE1 & (65536 - 1024)) | (woffset << 16) | (ScreenWidth-1) | PRE1_LRFORM;
+	cel->ccb_PRE0 = PRE0_LINEAR | 6 | (vcnt << 6);
+	cel->ccb_PRE1 = PRE1_TLLSB_PDC0 | PRE1_LRFORM | (woffset << 16) | (ScreenWidth-1);
 	cel->ccb_Width = ScreenWidth;
 	cel->ccb_Height = ScreenHeight;
 }
@@ -58,7 +57,6 @@ static void renderGimmick3D()
 	setMeshRotation(cubeMesh, t, t >> 1, t >> 2);
 
 	transformGeometry(cubeMesh);
-	//updateMeshCELs(cubeMesh);
 
 	for (i=0; i<cubeMesh->quadsNum; ++i) {
 		QuadData *qd = &cubeMesh->quad[i];
@@ -127,7 +125,9 @@ void R_Init(void)
 	clipangle = xtoviewangle[0];	/* Get the left clip angle from viewport */
 	doubleclipangle = clipangle*2;	/* Precalc angle * 2 */
 
-	offscreenCel = CreateCel(320, 200, 16, CREATECEL_UNCODED, getVideoPointer(offscreenPage));
+	offscreenCel = CreateCel(1, 1, 16, CREATECEL_UNCODED, getVideoPointer(offscreenPage));
+	offscreenCel->ccb_Flags |= CCB_BGND;
+
 	feedbackTex = initFeedbackTexture(0, 0, 320, 200, SCREENS);
 	cubeMesh = initGenMesh(256, feedbackTex, MESH_OPTION_CPU_CCW_TEST, MESH_CUBE, NULL);
 	setMeshPolygonOrder(cubeMesh, true, true);
