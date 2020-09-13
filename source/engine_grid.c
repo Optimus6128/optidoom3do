@@ -18,17 +18,28 @@ static void recalculateGridMeshVertices()
 
 	Mesh *ms = gridMesh->mesh;
 
-	dx = ScreenWidth / gridMesh->width;
-	dy = ScreenHeight / gridMesh->height;
+	int ScreenXOffsetFinal = ScreenXOffsetUnscaled;
+	int ScreenYOffsetFinal = ScreenYOffsetUnscaled;
+	int ScreenWidthFinal = ScreenWidthUnscaled;
+	int ScreenHeightFinal = ScreenHeightUnscaled;
+
+	if (opt_fitToScreen) {
+		ScreenXOffsetFinal = 0;
+		ScreenYOffsetFinal = 0;
+		ScreenWidthFinal = 320;
+		ScreenHeightFinal = 160;
+	}
+
+	dx = ScreenWidthFinal / gridMesh->width;
+	dy = ScreenHeightFinal / gridMesh->height;
 
 	i = 0;
 	yp = 0;
-	for (y=0; y<=gridMesh->height; y++)
-	{
+	for (y=0; y<=gridMesh->height; y++) {
 		xp = 0;
-		for (x=0; x<=gridMesh->width; x++)
-		{
-			ms->vrtx[i].x = ScreenXOffsetUnscaled + xp; ms->vrtx[i].y= ScreenYOffsetUnscaled + ScreenHeight - yp; ms->vrtx[i].z = 0;
+		for (x=0; x<=gridMesh->width; x++) {
+			ms->vrtx[i].x = ScreenXOffsetFinal + xp;
+			ms->vrtx[i].y= ScreenYOffsetFinal + ScreenHeightFinal - yp;
 			xp += dx;
 			i++;
 		}
@@ -48,26 +59,47 @@ static void updateGridCel(int posX, int posY, int width, int height, unsigned ch
 	cel->ccb_PRE1 = PRE1_TLLSB_PDC0 | PRE1_LRFORM | (woffset << 16) | (width-1);	// MSB of blue remains, VRAM structured texture format
 	cel->ccb_Width = width;
 	cel->ccb_Height = height;
+
+	if (opt_gimmicks == GIMMICKS_LSD)
+		cel->ccb_PIXC = BLAZEMONGER_CEL;
+	else
+		cel->ccb_PIXC = PIXC_OPAQUE;
 }
 
 
 void updateScreenGridCels()
 {
-	int i;
+	int i, x, y;
+	int xp, yp;
+	int vx, vy;
+
 	const int sizeX = ScreenWidth / gridMesh->width;
 	const int sizeY = ScreenHeight / gridMesh->height;
 	unsigned char *vram = getVideoPointer(offscreenPage);
 
 	Mesh *ms = gridMesh->mesh;
 
-	recalculateGridMeshVertices();
+	// Small fix(not perfect) for small screen sizes that also under halfY scale don't divide well by 8*8 grid
+	int evenSizeY = sizeY;
+	if (evenSizeY & 1) ++evenSizeY;
 
-	for (i=0; i<ms->quadsNum; ++i) {
-		QuadData *qd = &ms->quad[i];
-		Vertex *v = &ms->vrtx[ms->index[i<<2]];
+	i = 0;
+	yp = 0;
+	for (y=0; y<gridMesh->height; y++) {
+		xp = 0;
+		for (x=0; x<gridMesh->width; x++) {
+			QuadData *qd = &ms->quad[i++];
 
-		updateGridCel(v->x, v->y, sizeX, sizeY, vram, qd->cel);
+			vx = ScreenXOffset + xp;
+			vy= ScreenYOffset + ScreenHeight - sizeY - yp;
+			xp += sizeX;
+
+			updateGridCel(vx, vy, sizeX, evenSizeY, vram, qd->cel);
+		}
+		yp += sizeY;
 	}
+
+	recalculateGridMeshVertices();
 }
 
 static void initGridCelList(Mesh *ms)
@@ -128,32 +160,31 @@ static void warpGridVertices(int t)
 	const int yCount = gridMesh->height + 1;
 
 	const int gravity = isin[(t << 1) & 255] + 4096;	// range 0 to 8192
-	const int centerX = ScreenXOffsetUnscaled + ScreenWidth / 2;
-	const int centerY = ScreenYOffsetUnscaled + ScreenHeight / 2;
+	const int centerX = ScreenXOffsetUnscaled + ScreenWidthUnscaled / 2;
+	const int centerY = ScreenYOffsetUnscaled + ScreenHeightUnscaled / 2;
 
 	int x, y;
 	int i = 0;
 	for (y=0; y<yCount; ++y) {
 		for (x=0; x<xCount; ++x) {
-			if (x==0 || x==gridMesh->width || y==0 || y==gridMesh->height) {
-				gridVertices[i].x = ms->vrtx[i].x-1;
-				gridVertices[i].y = ms->vrtx[i].y-1;
-			} else {
-				const int dx = ms->vrtx[i].x - centerX;
-				const int dy = ms->vrtx[i].y - centerY;
+			int vx, vy;
+			const int dx = ms->vrtx[i].x - centerX;
+			const int dy = ms->vrtx[i].y - centerY;
 
-				/*int radius = dx*dx + dy*dy;
-				int invRadius;
-				if (radius==0) radius = 1;
-				invRadius = 32768 / radius;
-				gridVertices[i].x = ms->vrtx[i].x + (((dx * invRadius * gravity) >> 13) >> 5);
-				gridVertices[i].y = ms->vrtx[i].y + (((dy * invRadius * gravity) >> 13) >> 5);*/
+			/*int radius = dx*dx + dy*dy;
+			int invRadius;
+			if (radius==0) radius = 1;
+			invRadius = 32768 / radius;
+			vx = ms->vrtx[i].x + (((dx * invRadius * gravity) >> 13) >> 5);
+			vy = ms->vrtx[i].y + (((dy * invRadius * gravity) >> 13) >> 5);*/
 
 
-				int radius = (dx*dx + dy*dy) >> 4;
-				gridVertices[i].x = ms->vrtx[i].x + (((dx * radius * gravity) >> 13) >> 8);
-				gridVertices[i].y = ms->vrtx[i].y + (((dy * radius * gravity) >> 13) >> 8);
-			}
+			int radius = (dx*dx + dy*dy) >> 4;
+			vx = ms->vrtx[i].x + (((dx * radius * gravity) >> 13) >> 8);
+			vy = ms->vrtx[i].y + (((dy * radius * gravity) >> 13) >> 8);
+
+			gridVertices[i].x = vx;
+			gridVertices[i].y = vy;
 			++i;
 		}
 	}
@@ -196,12 +227,15 @@ static void prepareGridCELs()
 	int *indices = ms->index;
 	Point quad[4];
 
+	int smallOffset = 1;
+	if (opt_gimmicks == GIMMICKS_LSD) smallOffset = 0;
+
 	for (i=0; i<ms->indexNum; i+=4)
 	{
 		quad[0].pt_X = gridVertices[indices[i]].x; quad[0].pt_Y = gridVertices[indices[i]].y;
-		quad[1].pt_X = gridVertices[indices[i+1]].x+1; quad[1].pt_Y = gridVertices[indices[i+1]].y;
-		quad[2].pt_X = gridVertices[indices[i+2]].x+1; quad[2].pt_Y = gridVertices[indices[i+2]].y+1;
-		quad[3].pt_X = gridVertices[indices[i+3]].x; quad[3].pt_Y = gridVertices[indices[i+3]].y+1;
+		quad[1].pt_X = gridVertices[indices[i+1]].x+smallOffset; quad[1].pt_Y = gridVertices[indices[i+1]].y;
+		quad[2].pt_X = gridVertices[indices[i+2]].x+smallOffset; quad[2].pt_Y = gridVertices[indices[i+2]].y+smallOffset;
+		quad[3].pt_X = gridVertices[indices[i+3]].x; quad[3].pt_Y = gridVertices[indices[i+3]].y+smallOffset;
 
 		MapCel(ms->quad[j++].cel, quad);
 	}

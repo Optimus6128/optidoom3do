@@ -152,7 +152,7 @@ enum {
 #define SCREENSCALE_OPTIONS_NUM 4
 #define DEPTHSHADING_OPTIONS_NUM 3
 #define RENDERER_OPTIONS_NUM 2
-#define GIMMICK_OPTIONS_NUM 6
+#define GIMMICK_OPTIONS_NUM 7
 #define OFFON_OPTIONS_NUM 2
 #define AUTOMAP_OPTIONS_NUM 4
 #define DUMMYIDKFA_OPTIONS_NUM 2
@@ -169,7 +169,7 @@ static char *floorQualityOptions[FLOORQUALITY_OPTIONS_NUM] = { "LO", "MED", "HI"
 static char *screenScaleOptions[SCREENSCALE_OPTIONS_NUM] = { "1x1", "1x2", "2x1", "2x2" };
 static char *depthShadingOptions[DEPTHSHADING_OPTIONS_NUM] = { "DARK", "BRIGHT", "ON" };
 static char *rendererOptions[RENDERER_OPTIONS_NUM] = { "DOOM", "POLY" };
-static char *gimmickOptions[GIMMICK_OPTIONS_NUM] = { "OFF", "WIREFRAME", "CUBE", "DISTORT", "WARP", "CYBER" };
+static char *gimmickOptions[GIMMICK_OPTIONS_NUM] = { "OFF", "WIREFRAME", "CUBE", "DISTORT", "WARP", "LSD", "CYBER" };
 static char *automapOptions[AUTOMAP_OPTIONS_NUM] = { "OFF", "THINGS", "LINES", "ALL" };
 static char *dummyIDKFAoptions[DUMMYIDKFA_OPTIONS_NUM] = { " ", "!" };
 static char *thicklinesOptions[THICKLINES_OPTIONS_NUM] = { "NORMAL", "THICK" };
@@ -281,7 +281,7 @@ void setScreenScaleValuesFromOption()
 	screenScaleX = (opt_screenScale & 2) >> 1;
 	screenScaleY = opt_screenScale & 1;
 	useOffscreenBuffer = (screenScaleX | screenScaleY | opt_fitToScreen | (opt_gimmicks == GIMMICKS_CUBE));
-	useOffscreenGrid = (opt_gimmicks >= GIMMICKS_DISTORT && opt_gimmicks <= GIMMICKS_WARP);
+	useOffscreenGrid = (opt_gimmicks >= GIMMICKS_DISTORT && opt_gimmicks <= GIMMICKS_LSD);
 }
 
 void setPrimaryMenuOptions() // Set menu options only once at start up
@@ -509,7 +509,7 @@ static void handleSpecialActionsIfOptionChanged(player_t *player)
         case mi_gimmicks:
 			setScreenSizeOptionFromSlider();
 			setScreenScaleValuesFromOption();
-        	if (opt_gimmicks >= GIMMICKS_CUBE && opt_gimmicks <= GIMMICKS_WARP) {
+        	if (opt_gimmicks >= GIMMICKS_CUBE && opt_gimmicks <= GIMMICKS_LSD) {
 				initScreenSizeValues();
 				setupOffscreenCel();
         	}

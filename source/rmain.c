@@ -93,6 +93,7 @@ static void renderOffscreenBufferGrid()
 
 	switch(opt_gimmicks) {
 		case GIMMICKS_DISTORT:
+		case GIMMICKS_LSD:
 			updateGridFx(GRID_FX_DISTORT, t);
 		break;
 

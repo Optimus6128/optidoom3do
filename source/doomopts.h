@@ -58,7 +58,8 @@ enum
     GIMMICKS_CUBE = 2,
     GIMMICKS_DISTORT = 3,
     GIMMICKS_WARP = 4,
-    GIMMICKS_CYBER = 5
+    GIMMICKS_LSD = 5,
+    GIMMICKS_CYBER = 6
 };
 
 // Cheats revealed options

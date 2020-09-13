@@ -633,6 +633,8 @@ extern Word CenterX;		/* Center X coord in fixed point */
 extern Word CenterY;		/* Center Y coord in fixed point */
 extern Word ScreenWidth;	/* Width of the view screen */
 extern Word ScreenHeight;	/* Height of the view screen */
+extern Word ScreenWidthUnscaled;	/* True Width of the view screen (before screen scale)*/
+extern Word ScreenHeightUnscaled;	/* True Height of the view screen (before screen scale)*/
 extern Fixed Stretch;		/* Stretch factor */
 extern Fixed StretchWidth;	/* Stretch factor * ScreenWidth */
 extern Word ScreenXOffset;	/* True X coord for projected screen */

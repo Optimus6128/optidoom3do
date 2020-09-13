@@ -97,26 +97,26 @@ void R_InitData(void)
 void initScreenSizeValues()
 {
 	// Get the unaffected by scale values first
-	ScreenWidth = ScreenWidths[ScreenSizeOption];
-	ScreenHeight = ScreenHeights[ScreenSizeOption];
-	ScreenXOffsetUnscaled = ((320-ScreenWidth)/2);
-	ScreenYOffsetUnscaled = ((160-ScreenHeight)/2);
+	ScreenWidthUnscaled = ScreenWidths[ScreenSizeOption];
+	ScreenHeightUnscaled = ScreenHeights[ScreenSizeOption];
+	ScreenXOffsetUnscaled = ((320-ScreenWidthUnscaled)/2);
+	ScreenYOffsetUnscaled = ((160-ScreenHeightUnscaled)/2);
+
+	// Now the scaled based ones
+	ScreenWidth = ScreenWidthUnscaled >> screenScaleX;
+	ScreenHeight = ScreenHeightUnscaled >> screenScaleY;
+	CenterX = (ScreenWidth/2);
+	CenterY = (ScreenHeight/2);
+	ScreenXOffset = ((320-ScreenWidth)/2);
+	ScreenYOffset = ((160-ScreenHeight)/2);
 
 	if (opt_fitToScreen) {
 		GunXScale = 0x100000;
 		GunYScale = 0x10000;
 	} else {
-		GunXScale = (ScreenWidth*0x100000)/320;		/* Get the 3DO scale factor for the gun shape */
-		GunYScale = (ScreenHeight*0x10000)/160;		/* And the y scale */
+		GunXScale = (ScreenWidthUnscaled*0x100000)/320;		/* Get the 3DO scale factor for the gun shape */
+		GunYScale = (ScreenHeightUnscaled*0x10000)/160;		/* And the y scale */
 	}
-
-	// Now the scaled based ones
-	ScreenWidth >>= screenScaleX;
-	ScreenHeight >>= screenScaleY;
-	CenterX = (ScreenWidth/2);
-	CenterY = (ScreenHeight/2);
-	ScreenXOffset = ((320-ScreenWidth)/2);
-	ScreenYOffset = ((160-ScreenHeight)/2);
 }
 
 void InitMathTables(void)
