@@ -124,44 +124,62 @@ static GridMesh *initGridMesh(int gridWidth, int gridHeight)
 static void warpGridVertices(int t)
 {
 	Mesh *ms = gridMesh->mesh;
+	const int xCount = gridMesh->width + 1;
+	const int yCount = gridMesh->height + 1;
 
-	int i;
-	const int lvNum = ms->vrtxNum;
 	const int gravity = isin[(t << 1) & 255] + 4096;	// range 0 to 8192
 	const int centerX = ScreenXOffsetUnscaled + ScreenWidth / 2;
 	const int centerY = ScreenYOffsetUnscaled + ScreenHeight / 2;
 
-	for (i=0; i<lvNum; i++)
-	{
-		const int dx = ms->vrtx[i].x - centerX;
-		const int dy = ms->vrtx[i].y - centerY;
+	int x, y;
+	int i = 0;
+	for (y=0; y<yCount; ++y) {
+		for (x=0; x<xCount; ++x) {
+			if (x==0 || x==gridMesh->width || y==0 || y==gridMesh->height) {
+				gridVertices[i].x = ms->vrtx[i].x-1;
+				gridVertices[i].y = ms->vrtx[i].y-1;
+			} else {
+				const int dx = ms->vrtx[i].x - centerX;
+				const int dy = ms->vrtx[i].y - centerY;
+
+				/*int radius = dx*dx + dy*dy;
+				int invRadius;
+				if (radius==0) radius = 1;
+				invRadius = 32768 / radius;
+				gridVertices[i].x = ms->vrtx[i].x + (((dx * invRadius * gravity) >> 13) >> 5);
+				gridVertices[i].y = ms->vrtx[i].y + (((dy * invRadius * gravity) >> 13) >> 5);*/
 
 
-		/*int radius = dx*dx + dy*dy;
-		int invRadius;
-		if (radius==0) radius = 1;
-		invRadius = 32768 / radius;
-		gridVertices[i].x = ms->vrtx[i].x + (((dx * invRadius * gravity) >> 13) >> 5);
-		gridVertices[i].y = ms->vrtx[i].y + (((dy * invRadius * gravity) >> 13) >> 5);*/
-
-
-		int radius = (dx*dx + dy*dy) >> 4;
-		gridVertices[i].x = ms->vrtx[i].x + (((dx * radius * gravity) >> 13) >> 7);
-		gridVertices[i].y = ms->vrtx[i].y + (((dy * radius * gravity) >> 13) >> 7);
+				int radius = (dx*dx + dy*dy) >> 4;
+				gridVertices[i].x = ms->vrtx[i].x + (((dx * radius * gravity) >> 13) >> 8);
+				gridVertices[i].y = ms->vrtx[i].y + (((dy * radius * gravity) >> 13) >> 8);
+			}
+			++i;
+		}
 	}
 }
 
 static void distortGridVertices(int t)
 {
 	Mesh *ms = gridMesh->mesh;
+	const int xCount = gridMesh->width + 1;
+	const int yCount = gridMesh->height + 1;
 
-	int i;
-	const int lvNum = ms->vrtxNum;
-
-	for (i=0; i<lvNum; i++)
-	{
-		gridVertices[i].x = ms->vrtx[i].x + (isin[(i*t) & 255] >> 10);
-		gridVertices[i].y = ms->vrtx[i].y + (icos[(2*i*t) & 255] >> 10);
+	int x, y;
+	int i = 0;
+	for (y=0; y<yCount; ++y) {
+		const int lvy = ((2*i*y + 3*i*y*y) % 11) * 2 * t;
+		for (x=0; x<xCount; ++x) {
+			if (x==0 || x==gridMesh->width || y==0 || y==gridMesh->height) {
+				gridVertices[i].x = ms->vrtx[i].x-1;
+				gridVertices[i].y = ms->vrtx[i].y-1;
+			} else {
+				const int lvx = ((3*i*x + 5*i*x*x) & 15) * t;
+				gridVertices[i].x = ms->vrtx[i].x + (isin[lvy & 255] >> 10);
+				gridVertices[i].y = ms->vrtx[i].y + (icos[lvx & 255] >> 10);
+			}
+			++i;
+		}
 	}
 }
 
@@ -181,9 +199,9 @@ static void prepareGridCELs()
 	for (i=0; i<ms->indexNum; i+=4)
 	{
 		quad[0].pt_X = gridVertices[indices[i]].x; quad[0].pt_Y = gridVertices[indices[i]].y;
-		quad[1].pt_X = gridVertices[indices[i+1]].x; quad[1].pt_Y = gridVertices[indices[i+1]].y;
-		quad[2].pt_X = gridVertices[indices[i+2]].x; quad[2].pt_Y = gridVertices[indices[i+2]].y;
-		quad[3].pt_X = gridVertices[indices[i+3]].x; quad[3].pt_Y = gridVertices[indices[i+3]].y;
+		quad[1].pt_X = gridVertices[indices[i+1]].x+1; quad[1].pt_Y = gridVertices[indices[i+1]].y;
+		quad[2].pt_X = gridVertices[indices[i+2]].x+1; quad[2].pt_Y = gridVertices[indices[i+2]].y+1;
+		quad[3].pt_X = gridVertices[indices[i+3]].x; quad[3].pt_Y = gridVertices[indices[i+3]].y+1;
 
 		MapCel(ms->quad[j++].cel, quad);
 	}
