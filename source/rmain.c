@@ -47,6 +47,12 @@ static void updateOffscreenCel(CCB *cel)
 	cel->ccb_PRE1 = PRE1_TLLSB_PDC0 | PRE1_LRFORM | (woffset << 16) | (ScreenWidth-1);
 	cel->ccb_Width = ScreenWidth;
 	cel->ccb_Height = ScreenHeight;
+
+	if (opt_gimmicks == GIMMICKS_MOTION_BLUR) {
+		offscreenCel->ccb_PIXC = 0x1F811F81;
+	} else {
+		offscreenCel->ccb_PIXC = PIXC_OPAQUE;
+	}
 }
 
 static void renderGimmick3D()
@@ -93,7 +99,6 @@ static void renderOffscreenBufferGrid()
 
 	switch(opt_gimmicks) {
 		case GIMMICKS_DISTORT:
-		case GIMMICKS_LSD:
 			updateGridFx(GRID_FX_DISTORT, t);
 		break;
 

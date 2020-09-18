@@ -1,5 +1,15 @@
 // ========= Menu options externs ========
 
+// Stats options
+enum
+{
+	STATS_OFF,
+	STATS_FPS,
+	STATS_MEM,
+	STATS_ALL,
+	STATS_OPTIONS_NUM
+};
+
 // Wall quality options
 enum
 {
@@ -64,7 +74,7 @@ enum
     GIMMICKS_CUBE,
     GIMMICKS_DISTORT,
     GIMMICKS_WARP,
-    GIMMICKS_LSD,
+    GIMMICKS_MOTION_BLUR,
     GIMMICKS_CYBER,
     GIMMICKS_OPTIONS_NUM
 };
@@ -110,7 +120,7 @@ enum
 
 
 // In omain.c
-extern Word opt_fps;
+extern Word opt_stats;
 extern Word opt_wallQuality;
 extern Word opt_floorQuality;
 extern Word opt_depthShading;

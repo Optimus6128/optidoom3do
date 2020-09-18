@@ -15,7 +15,6 @@
 
 #define SHOW_LOGOS
 
-
 static void LowMemCode(Word Type);
 static void WipeDoom(LongWord *OldScreen,LongWord *NewScreen);
 
@@ -38,6 +37,7 @@ static int maxFlipScreens = SCREENS - 1;
 
 int frameTime;
 
+int memLowHits = 0;
 
 //#define DEBUG_OPT_HACK
 
@@ -493,34 +493,36 @@ void ReadPrefsFile(void)
 
 *******************/
 
-#define DBG_NUM_MAX 10
-static int dbgNum[DBG_NUM_MAX];
-static int dbgIndex = 0;
+#ifdef DEBUG_OPT_HACK
+	#define DBG_NUM_MAX 10
+	static int dbgNum[DBG_NUM_MAX];
+	static int dbgIndex = 0;
 
-void printDbg(int value)
-{
-    if (dbgIndex==DBG_NUM_MAX) return;
+	void printDbg(int value)
+	{
+		if (dbgIndex==DBG_NUM_MAX) return;
 
-    dbgNum[dbgIndex] = value;
-    ++dbgIndex;
-}
+		dbgNum[dbgIndex] = value;
+		++dbgIndex;
+	}
 
-static void renderDbg()
-{
-    int i, num, posY;
-    for (i=0; i<dbgIndex; ++i) {
-        posY = (i+2) << 4;
-        num = dbgNum[i];
-        if (num < 0) {
-            num = -num;
-            PrintBigFont(8, posY, (Byte*)"-");
-        }
-        PrintNumber(16, posY, num, 0);
-    }
-    FlushCCBs();
+	static void renderDbg()
+	{
+		int i, num, posY;
+		for (i=0; i<dbgIndex; ++i) {
+			posY = (i+2) << 4;
+			num = dbgNum[i];
+			if (num < 0) {
+				num = -num;
+				PrintBigFont(8, posY, (Byte*)"-");
+			}
+			PrintNumber(16, posY, num, 0);
+		}
+		FlushCCBs();
 
-    dbgIndex = 0;
-}
+		dbgIndex = 0;
+	}
+#endif
 
 /**********************************
 
@@ -559,17 +561,20 @@ static void updateWipeScreen()
 
 static void updateMyFpsAndDebugPrint()
 {
-    int fps = updateAndGetFPS();
+	if (opt_stats == 0) return;
 
-    if (opt_fps) {
-        #ifdef DEBUG_OPT_HACK
-            if (fps <= 2) opt_renderer = RENDERER_DOOM;
-        #endif
-        PrintNumber(8, 8, fps, 0);
-        FlushCCBs();
+    if (opt_stats & 1) {
+		PrintNumber(8, 8, updateAndGetFPS(), 0);
     }
+    if (opt_stats & 2) {
+		PrintNumber(0, 128, memLowHits, 0);
+		PrintNumber(0, 144, GetTotalFreeMem(), 0);
+    }
+	FlushCCBs();
 
+#ifdef DEBUG_OPT_HACK
     renderDbg();
+#endif
 }
 
 void updateScreenAndWait()
@@ -746,6 +751,7 @@ static void WipeDoom(LongWord *OldScreen,LongWord *NewScreen)
 static void LowMemCode(Word Stage)
 {
 	FlushCCBs();		/* Purge all CCB's */
+	++memLowHits;
 }
 
 /**********************************

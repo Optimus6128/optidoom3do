@@ -35,11 +35,6 @@ typedef struct Vertex
 	int x, y, z;
 }Vertex;
 
-typedef struct Point2D
-{
-    int x, y;
-}Point2D;
-
 typedef struct QuadData
 {
 	CCB *cel;

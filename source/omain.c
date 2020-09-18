@@ -70,7 +70,7 @@ static void *sliderShapes;
     Word opt_dbg8;
 #endif
 
-    Word opt_fps;
+    Word opt_stats;
     Word opt_wallQuality;
     Word opt_floorQuality;
     Word opt_screenScale;
@@ -118,7 +118,7 @@ enum {
     mi_dbg8,
 #endif
 
-	mi_fps,             // FPS display on/off
+	mi_stats,           // Stats display on/off
 	mi_screenSize,      // Screen size settings
 	mi_wallQuality,     // Wall quality (fullres(hi), halfres(med), untextured(lo))
 	mi_floorQuality,    // Floor/Ceiling quality (textured, flat)
@@ -168,12 +168,13 @@ enum {
 #define SKY_HEIGHTS_OPTIONS_NUM 4
 
 static char *offOnOptionsStr[OFFON_OPTIONS_NUM] = { "OFF", "ON" };
+static char *statsOptionsStr[STATS_OPTIONS_NUM] = { "OFF", "FPS", "MEM", "ALL" };
 static char *wallQualityOptionsStr[WALL_QUALITY_OPTIONS_NUM] = { "LO", "MED", "HI"};
 static char *floorQualityOptionsStr[FLOOR_QUALITY_OPTIONS_NUM] = { "LO", "MED", "HI" };
 static char *screenScaleOptionsStr[SCREEN_SCALE_OPTIONS_NUM] = { "1x1", "1x2", "2x1", "2x2" };
 static char *depthShadingOptionsStr[DEPTH_SHADING_OPTIONS_NUM] = { "DARK", "BRIGHT", "ON" };
 static char *rendererOptionsStr[RENDERER_OPTIONS_NUM] = { "DOOM", "POLY" };
-static char *gimmickOptionsStr[GIMMICKS_OPTIONS_NUM] = { "OFF", "WIREFRAME", "CUBE", "DISTORT", "WARP", "LSD", "CYBER" };
+static char *gimmickOptionsStr[GIMMICKS_OPTIONS_NUM] = { "OFF", "WIREFRAME", "CUBE", "DISTORT", "WARP", "BLUR", "CYBER" };
 static char *automapOptionsStr[AUTOMAP_OPTIONS_NUM] = { "OFF", "THINGS", "LINES", "ALL" };
 static char *dummyIDKFAoptionsStr[DUMMY_IDKFA_OPTIONS_NUM] = { " ", "!" };
 static char *thicklinesOptionsStr[THICK_LINES_OPTIONS_NUM] = { "NORMAL", "THICK" };
@@ -297,8 +298,8 @@ void setScreenScaleValuesFromOption()
 {
 	screenScaleX = (opt_screenScale & 2) >> 1;
 	screenScaleY = opt_screenScale & 1;
-	useOffscreenBuffer = (screenScaleX | screenScaleY | opt_fitToScreen | (opt_gimmicks == GIMMICKS_CUBE));
-	useOffscreenGrid = (opt_gimmicks >= GIMMICKS_DISTORT && opt_gimmicks <= GIMMICKS_LSD);
+	useOffscreenBuffer = (screenScaleX | screenScaleY | opt_fitToScreen | (opt_gimmicks == GIMMICKS_CUBE) | (opt_gimmicks == GIMMICKS_MOTION_BLUR));
+	useOffscreenGrid = (opt_gimmicks >= GIMMICKS_DISTORT && opt_gimmicks <= GIMMICKS_WARP);
 }
 
 #ifdef DEBUG_MENU_HACK
@@ -321,7 +322,7 @@ void setPrimaryMenuOptions() // Set menu options only once at start up
 	setScreenScaleValuesFromOption();
 	InitMathTables();	// This for an early init of default sky CCBs
 
-    opt_fps = false;
+    opt_stats = false;
     opt_wallQuality = WALL_QUALITY_HI;
     opt_floorQuality = FLOOR_QUALITY_HI;
     opt_screenScale = SCREEN_SCALE_1x1;
@@ -373,11 +374,11 @@ void initMenuOptions()
     setItemPageRange(mi_dbg5, mi_dbg8, page_debug2);
 #endif
 
-    setMenuItemWithOptionNames(mi_fps, 112, 36, "Fps", false, muiStyle_text, &opt_fps, OFFON_OPTIONS_NUM, offOnOptionsStr);
+    setMenuItemWithOptionNames(mi_stats, 112, 36, "Stats", false, muiStyle_text, &opt_stats, STATS_OPTIONS_NUM, statsOptionsStr);
     setMenuItem(mi_screenSize, 160, 58, "Screen size", true, muiStyle_slider, &opt_screenSizeIndex, SCREENSIZE_OPTIONS_NUM);
     setMenuItemWithOptionNames(mi_wallQuality, 112, 94, "Wall", false, muiStyle_text | muiStyle_slider, &opt_wallQuality, WALL_QUALITY_OPTIONS_NUM, wallQualityOptionsStr);
     setMenuItemWithOptionNames(mi_floorQuality, 96, 126, "Floor", false, muiStyle_text | muiStyle_slider, &opt_floorQuality, FLOOR_QUALITY_OPTIONS_NUM, floorQualityOptionsStr);
-	setItemPageRange(mi_fps, mi_floorQuality, page_performance);
+	setItemPageRange(mi_stats, mi_floorQuality, page_performance);
 
     setMenuItemWithOptionNames(mi_screenScale, 92, 40, "Scale", false, muiStyle_text, &opt_screenScale, SCREEN_SCALE_OPTIONS_NUM, screenScaleOptionsStr);
     setMenuItemWithOptionNames(mi_fitToScreen, 40, 60, "Fit to screen", false, muiStyle_text, &opt_fitToScreen, OFFON_OPTIONS_NUM, offOnOptionsStr);
@@ -545,10 +546,8 @@ static void handleSpecialActionsIfOptionChanged(player_t *player)
         case mi_gimmicks:
 			setScreenSizeOptionFromSlider();
 			setScreenScaleValuesFromOption();
-        	if (opt_gimmicks >= GIMMICKS_CUBE && opt_gimmicks <= GIMMICKS_LSD) {
-				initScreenSizeValues();
-				setupOffscreenCel();
-        	}
+			initScreenSizeValues();
+			setupOffscreenCel();
 		break;
 
         case mi_wallQuality:
