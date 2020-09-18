@@ -1,5 +1,50 @@
 // ========= Menu options externs ========
 
+// Wall quality options
+enum
+{
+    WALL_QUALITY_LO,
+    WALL_QUALITY_MED,
+    WALL_QUALITY_HI,
+    WALL_QUALITY_OPTIONS_NUM
+};
+
+// Floor quality options
+enum
+{
+    FLOOR_QUALITY_LO,
+    FLOOR_QUALITY_MED,
+    FLOOR_QUALITY_HI,
+    FLOOR_QUALITY_OPTIONS_NUM
+};
+
+// Screen scaling options
+enum
+{
+    SCREEN_SCALE_1x1,
+    SCREEN_SCALE_1x2,
+    SCREEN_SCALE_2x1,
+    SCREEN_SCALE_2x2,
+    SCREEN_SCALE_OPTIONS_NUM
+};
+
+// Depth shading options
+enum
+{
+    DEPTH_SHADING_DARK,
+    DEPTH_SHADING_BRIGHT,
+    DEPTH_SHADING_ON,
+    DEPTH_SHADING_OPTIONS_NUM
+};
+
+// Renderer options
+enum
+{
+    RENDERER_DOOM,
+    RENDERER_POLY,
+    RENDERER_OPTIONS_NUM
+};
+
 // New Sky Types
 enum {
     SKY_DEFAULT,
@@ -7,92 +52,59 @@ enum {
     SKY_GRADIENT_NIGHT,
     SKY_GRADIENT_DUSK,
     SKY_GRADIENT_DAWN,
-    SKY_PLAYSTATION
-};
-
-// Wall quality options
-enum
-{
-    WALL_QUALITY_LO = 0,
-    WALL_QUALITY_MED = 1,
-    WALL_QUALITY_HI = 2
-};
-
-// Floor quality options
-enum
-{
-    FLOOR_QUALITY_LO = 0,
-    FLOOR_QUALITY_MED = 1,
-    FLOOR_QUALITY_HI = 2
-};
-
-// Screen scaling options
-enum
-{
-    SCREEN_SCALE_1x1 = 0,
-    SCREEN_SCALE_1x2 = 1,
-    SCREEN_SCALE_2x1 = 2,
-    SCREEN_SCALE_2x2 = 3
-};
-
-// Depth shading options
-enum
-{
-    DEPTH_SHADING_DARK = 0,
-    DEPTH_SHADING_BRIGHT = 1,
-    DEPTH_SHADING_ON = 2
-};
-
-// Renderer options
-enum
-{
-    RENDERER_DOOM = 0,
-    RENDERER_POLY = 1
+    SKY_PLAYSTATION,
+    SKY_OPTIONS_NUM
 };
 
 // Extra render options
 enum
 {
-    GIMMICKS_OFF = 0,
-    GIMMICKS_WIREFRAME = 1,
-    GIMMICKS_CUBE = 2,
-    GIMMICKS_DISTORT = 3,
-    GIMMICKS_WARP = 4,
-    GIMMICKS_LSD = 5,
-    GIMMICKS_CYBER = 6
+    GIMMICKS_OFF,
+    GIMMICKS_WIREFRAME,
+    GIMMICKS_CUBE,
+    GIMMICKS_DISTORT,
+    GIMMICKS_WARP,
+    GIMMICKS_LSD,
+    GIMMICKS_CYBER,
+    GIMMICKS_OPTIONS_NUM
 };
 
 // Cheats revealed options
 enum
 {
-    CHEATS_OFF = 0,
-    CHEATS_HALF = 1,    // Only automap and noclip
-    CHEATS_FULL = 2     // IDDQD and IDKFA visible
+    CHEATS_OFF,
+    CHEATS_HALF,    // Only automap and noclip
+    CHEATS_FULL,    // IDDQD and IDKFA visible
+    CHEATS_REVEALED_OPTIONS_NUM
 };
 
 // Automap cheat options
 enum
 {
-    AUTOMAP_CHEAT_OFF = 0,
-    AUTOMAP_CHEAT_SHOWTHINGS = 1,
-    AUTOMAP_CHEAT_SHOWLINES = 2
+    AUTOMAP_CHEAT_OFF,
+    AUTOMAP_CHEAT_SHOWTHINGS,
+    AUTOMAP_CHEAT_SHOWLINES,
+    AUTOMAP_CHEAT_SHOWALL,
+    AUTOMAP_OPTIONS_NUM
 };
 
 // Player speed options
 enum
 {
-    PLAYER_SPEED_1X = 0,
-    PLAYER_SPEED_1_5X = 1,
-    PLAYER_SPEED_2X = 2
+    PLAYER_SPEED_1X,
+    PLAYER_SPEED_1_5X,
+    PLAYER_SPEED_2X,
+    PLAYER_SPEED_OPTIONS_NUM
 };
 
 // Enemy speed options
 enum
 {
-    ENEMY_SPEED_0X = 0,
-    ENEMY_SPEED_0_5X = 1,
-    ENEMY_SPEED_1X = 2,
-    ENEMY_SPEED_2X = 3
+    ENEMY_SPEED_0X,
+    ENEMY_SPEED_0_5X,
+    ENEMY_SPEED_1X,
+    ENEMY_SPEED_2X,
+    ENEMY_SPEED_OPTIONS_NUM
 };
 
 
@@ -121,3 +133,7 @@ extern Word opt_dbg1;
 extern Word opt_dbg2;
 extern Word opt_dbg3;
 extern Word opt_dbg4;
+extern Word opt_dbg5;
+extern Word opt_dbg6;
+extern Word opt_dbg7;
+extern Word opt_dbg8;

@@ -3,6 +3,16 @@
 
 //#define DEBUG_MENU_HACK
 
+#define DEBUG1_OPTIONS_NUM 2
+#define DEBUG2_OPTIONS_NUM 4
+#define DEBUG3_OPTIONS_NUM 8
+#define DEBUG4_OPTIONS_NUM 4
+#define DEBUG5_OPTIONS_NUM 4
+#define DEBUG6_OPTIONS_NUM 32
+#define DEBUG7_OPTIONS_NUM 2
+#define DEBUG8_OPTIONS_NUM 2
+
+
 #define OPTION_OFFSET_X     16      // Horizontal pixel offset of option name from end of label
 #define SLIDER_POSX         106     // X coord for slider bars
 #define SLIDER_WIDTH        88      // Slider width
@@ -49,10 +59,16 @@ static void *sliderShapes;
 
 // ======== Variables for all the option values ========
 
+#ifdef DEBUG_MENU_HACK
     Word opt_dbg1;
     Word opt_dbg2;
     Word opt_dbg3;
     Word opt_dbg4;
+    Word opt_dbg5;
+    Word opt_dbg6;
+    Word opt_dbg7;
+    Word opt_dbg8;
+#endif
 
     Word opt_fps;
     Word opt_wallQuality;
@@ -96,6 +112,10 @@ enum {
     mi_dbg2,
     mi_dbg3,
     mi_dbg4,
+    mi_dbg5,
+    mi_dbg6,
+    mi_dbg7,
+    mi_dbg8,
 #endif
 
 	mi_fps,             // FPS display on/off
@@ -128,7 +148,8 @@ enum {
     page_audio,
     page_controls,
 #ifdef DEBUG_MENU_HACK
-    page_debug,
+    page_debug1,
+    page_debug2,
 #endif
     page_performance,
     page_rendering,
@@ -140,48 +161,44 @@ enum {
 
 #define AUDIOSLIDERS_OPTIONS_NUM 16
 #define CONTROLS_OPTIONS_NUM 6
-#define CHEATSREVEALED_OPTIONS_NUM 3
 
-#define DEBUG1_OPTIONS_NUM 4
-#define DEBUG2_OPTIONS_NUM 2
-#define DEBUG3_OPTIONS_NUM 2
-#define DEBUG4_OPTIONS_NUM 3
-
-#define WALLQUALITY_OPTIONS_NUM 3
-#define FLOORQUALITY_OPTIONS_NUM 3
-#define SCREENSCALE_OPTIONS_NUM 4
-#define DEPTHSHADING_OPTIONS_NUM 3
-#define RENDERER_OPTIONS_NUM 2
-#define GIMMICK_OPTIONS_NUM 7
 #define OFFON_OPTIONS_NUM 2
-#define AUTOMAP_OPTIONS_NUM 4
-#define DUMMYIDKFA_OPTIONS_NUM 2
-#define THICKLINES_OPTIONS_NUM 2
-#define SKY_OPTIONS_NUM 6
+#define DUMMY_IDKFA_OPTIONS_NUM 2
+#define THICK_LINES_OPTIONS_NUM 2
 #define SKY_HEIGHTS_OPTIONS_NUM 4
-#define PLAYER_SPEED_OPTIONS_NUM 3
-#define ENEMY_SPEED_OPTIONS_NUM 4
 
+static char *offOnOptionsStr[OFFON_OPTIONS_NUM] = { "OFF", "ON" };
+static char *wallQualityOptionsStr[WALL_QUALITY_OPTIONS_NUM] = { "LO", "MED", "HI"};
+static char *floorQualityOptionsStr[FLOOR_QUALITY_OPTIONS_NUM] = { "LO", "MED", "HI" };
+static char *screenScaleOptionsStr[SCREEN_SCALE_OPTIONS_NUM] = { "1x1", "1x2", "2x1", "2x2" };
+static char *depthShadingOptionsStr[DEPTH_SHADING_OPTIONS_NUM] = { "DARK", "BRIGHT", "ON" };
+static char *rendererOptionsStr[RENDERER_OPTIONS_NUM] = { "DOOM", "POLY" };
+static char *gimmickOptionsStr[GIMMICKS_OPTIONS_NUM] = { "OFF", "WIREFRAME", "CUBE", "DISTORT", "WARP", "LSD", "CYBER" };
+static char *automapOptionsStr[AUTOMAP_OPTIONS_NUM] = { "OFF", "THINGS", "LINES", "ALL" };
+static char *dummyIDKFAoptionsStr[DUMMY_IDKFA_OPTIONS_NUM] = { " ", "!" };
+static char *thicklinesOptionsStr[THICK_LINES_OPTIONS_NUM] = { "NORMAL", "THICK" };
+static char *skyOptionsStr[SKY_OPTIONS_NUM] = { "DEFAULT", "DAY", "NIGHT", "DUSK", "DAWN", "PSX" };
+static char *playerSpeedOptionsStr[PLAYER_SPEED_OPTIONS_NUM] = { "1X", "1.5X", "2X" };
+static char *enemySpeedOptionsStr[ENEMY_SPEED_OPTIONS_NUM] = { "0X", "0.5X", "1X", "2X" };
 
-static char *offOnOptions[OFFON_OPTIONS_NUM] = { "OFF", "ON" };
-static char *wallQualityOptions[WALLQUALITY_OPTIONS_NUM] = { "LO", "MED", "HI"};
-static char *floorQualityOptions[FLOORQUALITY_OPTIONS_NUM] = { "LO", "MED", "HI" };
-static char *screenScaleOptions[SCREENSCALE_OPTIONS_NUM] = { "1x1", "1x2", "2x1", "2x2" };
-static char *depthShadingOptions[DEPTHSHADING_OPTIONS_NUM] = { "DARK", "BRIGHT", "ON" };
-static char *rendererOptions[RENDERER_OPTIONS_NUM] = { "DOOM", "POLY" };
-static char *gimmickOptions[GIMMICK_OPTIONS_NUM] = { "OFF", "WIREFRAME", "CUBE", "DISTORT", "WARP", "LSD", "CYBER" };
-static char *automapOptions[AUTOMAP_OPTIONS_NUM] = { "OFF", "THINGS", "LINES", "ALL" };
-static char *dummyIDKFAoptions[DUMMYIDKFA_OPTIONS_NUM] = { " ", "!" };
-static char *thicklinesOptions[THICKLINES_OPTIONS_NUM] = { "NORMAL", "THICK" };
-static char *skyOptions[SKY_OPTIONS_NUM] = { "DEFAULT", "DAY", "NIGHT", "DUSK", "DAWN", "PSX" };
-static char *playerSpeedOptions[PLAYER_SPEED_OPTIONS_NUM] = { "1X", "1.5X", "2X" };
-static char *enemySpeedOptions[ENEMY_SPEED_OPTIONS_NUM] = { "0X", "0.5X", "1X", "2X" };
+#ifdef DEBUG_MENU_HACK
+static char *dbg1OptionsStr[DEBUG1_OPTIONS_NUM] = { "TEX", "FB" };
+static char *dbg2OptionsStr[DEBUG2_OPTIONS_NUM] = { "CCB", "AMV", "TEX M+D", "TEX M" };
+static char *dbg3OptionsStr[DEBUG3_OPTIONS_NUM] = { "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8" };
+static char *dbg4OptionsStr[DEBUG4_OPTIONS_NUM] = { "/16", "/2", "/4", "/8" };
+static char *dbg5OptionsStr[DEBUG5_OPTIONS_NUM] = { "ZERO", "CCB", "FB", "TEX" };
+static char *dbg6OptionsStr[DEBUG6_OPTIONS_NUM];
+static char *dbg7OptionsStr[DEBUG7_OPTIONS_NUM] = { "/1", "/2" };
+static char *dbg8OptionsStr[DEBUG8_OPTIONS_NUM] = { "OFF", "ON" };
+#endif
+
 
 
 enum {
     muiStyle_special = 0,
     muiStyle_text = 1,
-    muiStyle_slider = 2
+    muiStyle_value = 2,
+    muiStyle_slider = 4
 };
 
 typedef struct {
@@ -203,7 +220,7 @@ static Word itemPage[NUM_MENUITEMS];
 
 static char *pageLabel[NUM_PAGES] = { "AUDIO", "CONTROLS",
 #ifdef DEBUG_MENU_HACK
-"DEBUG",
+"DEBUG 1", "DEBUG 2",
 #endif
 "PERFORMANCE", "RENDERING", "EFFECTS", "CHEATS", "EXTRA" };
 
@@ -284,6 +301,20 @@ void setScreenScaleValuesFromOption()
 	useOffscreenGrid = (opt_gimmicks >= GIMMICKS_DISTORT && opt_gimmicks <= GIMMICKS_LSD);
 }
 
+#ifdef DEBUG_MENU_HACK
+static void initDefaultDebugOptions()
+{
+    opt_dbg1 = 0;
+    opt_dbg2 = 0;
+    opt_dbg3 = 7;
+    opt_dbg4 = 3;
+    opt_dbg5 = 0;
+    opt_dbg6 = 0;
+    opt_dbg7 = 0;
+    //opt_dbg8 = 0;
+}
+#endif
+
 void setPrimaryMenuOptions() // Set menu options only once at start up
 {
 	setScreenSizeSliderFromOption();
@@ -311,10 +342,10 @@ void setPrimaryMenuOptions() // Set menu options only once at start up
     opt_extraBlood = false;
     opt_fly = false;
 
-    opt_dbg1 = 0;
-    opt_dbg2 = 0;
-    opt_dbg3 = 0;
-    opt_dbg4 = 0;
+#ifdef DEBUG_MENU_HACK
+	initDefaultDebugOptions();
+	opt_dbg8 = 0;
+#endif
 
     resetMenuOptions();
 }
@@ -330,45 +361,50 @@ void initMenuOptions()
     setItemPageRange(mi_controls, mi_controls, page_controls);
 
 #ifdef DEBUG_MENU_HACK
-    setMenuItem(mi_dbg1, 160, 40, 0, true, muiStyle_slider, &opt_dbg1, DEBUG1_OPTIONS_NUM);
-    setMenuItem(mi_dbg2, 160, 80, 0, true, muiStyle_slider, &opt_dbg2, DEBUG2_OPTIONS_NUM);
-    setMenuItem(mi_dbg3, 160, 120, 0, true, muiStyle_slider, &opt_dbg3, DEBUG3_OPTIONS_NUM);
-    setMenuItem(mi_dbg4, 160, 160, 0, true, muiStyle_slider, &opt_dbg4, DEBUG4_OPTIONS_NUM);
-    setItemPageRange(mi_dbg1, mi_dbg4, page_debug);
+    setMenuItemWithOptionNames(mi_dbg1, 160, 40, "1S", true, muiStyle_text | muiStyle_slider, &opt_dbg1, DEBUG1_OPTIONS_NUM, dbg1OptionsStr);
+    setMenuItemWithOptionNames(mi_dbg2, 160, 80, "MS", true, muiStyle_text | muiStyle_slider, &opt_dbg2, DEBUG2_OPTIONS_NUM, dbg2OptionsStr);
+    setMenuItemWithOptionNames(mi_dbg3, 160, 120, "MF", true, muiStyle_text | muiStyle_slider, &opt_dbg3, DEBUG3_OPTIONS_NUM, dbg3OptionsStr);
+    setMenuItemWithOptionNames(mi_dbg4, 160, 160, "DF", true, muiStyle_text | muiStyle_slider, &opt_dbg4, DEBUG4_OPTIONS_NUM, dbg4OptionsStr);
+    setItemPageRange(mi_dbg1, mi_dbg4, page_debug1);
+    setMenuItemWithOptionNames(mi_dbg5, 160, 40, "2S", true, muiStyle_text | muiStyle_slider, &opt_dbg5, DEBUG5_OPTIONS_NUM, dbg5OptionsStr);
+    setMenuItemWithOptionNames(mi_dbg6, 160, 80, "AV", true, muiStyle_text | muiStyle_value | muiStyle_slider, &opt_dbg6, DEBUG6_OPTIONS_NUM, dbg6OptionsStr);
+    setMenuItemWithOptionNames(mi_dbg7, 160, 120, "2D", true, muiStyle_text | muiStyle_slider, &opt_dbg7, DEBUG7_OPTIONS_NUM, dbg7OptionsStr);
+    setMenuItemWithOptionNames(mi_dbg8, 160, 160, "Quad", true, muiStyle_text | muiStyle_slider, &opt_dbg8, DEBUG8_OPTIONS_NUM, dbg8OptionsStr);
+    setItemPageRange(mi_dbg5, mi_dbg8, page_debug2);
 #endif
 
-    setMenuItemWithOptionNames(mi_fps, 112, 36, "Fps", false, muiStyle_text, &opt_fps, OFFON_OPTIONS_NUM, offOnOptions);
+    setMenuItemWithOptionNames(mi_fps, 112, 36, "Fps", false, muiStyle_text, &opt_fps, OFFON_OPTIONS_NUM, offOnOptionsStr);
     setMenuItem(mi_screenSize, 160, 58, "Screen size", true, muiStyle_slider, &opt_screenSizeIndex, SCREENSIZE_OPTIONS_NUM);
-    setMenuItemWithOptionNames(mi_wallQuality, 112, 94, "Wall", false, muiStyle_text | muiStyle_slider, &opt_wallQuality, WALLQUALITY_OPTIONS_NUM, wallQualityOptions);
-    setMenuItemWithOptionNames(mi_floorQuality, 96, 126, "Floor", false, muiStyle_text | muiStyle_slider, &opt_floorQuality, FLOORQUALITY_OPTIONS_NUM, floorQualityOptions);
+    setMenuItemWithOptionNames(mi_wallQuality, 112, 94, "Wall", false, muiStyle_text | muiStyle_slider, &opt_wallQuality, WALL_QUALITY_OPTIONS_NUM, wallQualityOptionsStr);
+    setMenuItemWithOptionNames(mi_floorQuality, 96, 126, "Floor", false, muiStyle_text | muiStyle_slider, &opt_floorQuality, FLOOR_QUALITY_OPTIONS_NUM, floorQualityOptionsStr);
 	setItemPageRange(mi_fps, mi_floorQuality, page_performance);
 
-    setMenuItemWithOptionNames(mi_screenScale, 92, 40, "Scale", false, muiStyle_text, &opt_screenScale, SCREENSCALE_OPTIONS_NUM, screenScaleOptions);
-    setMenuItemWithOptionNames(mi_fitToScreen, 40, 60, "Fit to screen", false, muiStyle_text, &opt_fitToScreen, OFFON_OPTIONS_NUM, offOnOptions);
-	setMenuItemWithOptionNames(mi_shading_depth, 40, 80, "Depth shade", false, muiStyle_text, &opt_depthShading, DEPTHSHADING_OPTIONS_NUM, depthShadingOptions);
-    setMenuItemWithOptionNames(mi_shading_items, 36, 100, "Things shade", false, muiStyle_text, &opt_thingsShading, OFFON_OPTIONS_NUM, offOnOptions);
-    setMenuItemWithOptionNames(mi_renderer, 48, 120, "Renderer", false, muiStyle_text, &opt_renderer, RENDERER_OPTIONS_NUM, rendererOptions);
+    setMenuItemWithOptionNames(mi_screenScale, 92, 40, "Scale", false, muiStyle_text, &opt_screenScale, SCREEN_SCALE_OPTIONS_NUM, screenScaleOptionsStr);
+    setMenuItemWithOptionNames(mi_fitToScreen, 40, 60, "Fit to screen", false, muiStyle_text, &opt_fitToScreen, OFFON_OPTIONS_NUM, offOnOptionsStr);
+	setMenuItemWithOptionNames(mi_shading_depth, 40, 80, "Depth shade", false, muiStyle_text, &opt_depthShading, DEPTH_SHADING_OPTIONS_NUM, depthShadingOptionsStr);
+    setMenuItemWithOptionNames(mi_shading_items, 36, 100, "Things shade", false, muiStyle_text, &opt_thingsShading, OFFON_OPTIONS_NUM, offOnOptionsStr);
+    setMenuItemWithOptionNames(mi_renderer, 48, 120, "Renderer", false, muiStyle_text, &opt_renderer, RENDERER_OPTIONS_NUM, rendererOptionsStr);
     setItemPageRange(mi_screenScale, mi_renderer, page_rendering);
 
-    setMenuItemWithOptionNames(mi_gimmicks, 48, 40, "Gimmicks", false, muiStyle_text, &opt_gimmicks, GIMMICK_OPTIONS_NUM, gimmickOptions);
-    setMenuItemWithOptionNames(mi_mapLines, 48, 60, "Map lines", false, muiStyle_text, &opt_thickLines, THICKLINES_OPTIONS_NUM, thicklinesOptions);
-    setMenuItemWithOptionNames(mi_waterFx, 80, 80, "Water fx", false, muiStyle_text, &opt_waterFx, OFFON_OPTIONS_NUM, offOnOptions);
+    setMenuItemWithOptionNames(mi_gimmicks, 48, 40, "Gimmicks", false, muiStyle_text, &opt_gimmicks, GIMMICKS_OPTIONS_NUM, gimmickOptionsStr);
+    setMenuItemWithOptionNames(mi_mapLines, 48, 60, "Map lines", false, muiStyle_text, &opt_thickLines, THICK_LINES_OPTIONS_NUM, thicklinesOptionsStr);
+    setMenuItemWithOptionNames(mi_waterFx, 80, 80, "Water fx", false, muiStyle_text, &opt_waterFx, OFFON_OPTIONS_NUM, offOnOptionsStr);
         setMenuItemVisibility(mi_waterFx, false);   // removing this in case I won't be able to fully implement it in this release
-    setMenuItemWithOptionNames(mi_sky, 96, 100, "Sky", false, muiStyle_text, &opt_sky, SKY_OPTIONS_NUM, skyOptions);
+    setMenuItemWithOptionNames(mi_sky, 96, 100, "Sky", false, muiStyle_text, &opt_sky, SKY_OPTIONS_NUM, skyOptionsStr);
     setMenuItem(mi_firesky_slider, 96, 120, 0, false, muiStyle_slider, &opt_fireSkyHeight, SKY_HEIGHTS_OPTIONS_NUM); setMenuItemVisibility(mi_firesky_slider, false);
     setItemPageRange(mi_gimmicks, mi_firesky_slider, page_effects);
 
-    setMenuItem(mi_enableCheats, 160, 40, "Enable cheats", true, muiStyle_slider, &opt_cheatsRevealed, CHEATSREVEALED_OPTIONS_NUM);
-    setMenuItemWithOptionNames(mi_cheatAutomap, 96, 80, "Automap", false, muiStyle_text, &opt_cheatAutomap, AUTOMAP_OPTIONS_NUM, automapOptions);     setMenuItemVisibility(mi_cheatAutomap, false);
-    setMenuItemWithOptionNames(mi_cheatNoclip, 96, 100, "Noclip", false, muiStyle_text, &opt_cheatNoclip, OFFON_OPTIONS_NUM, offOnOptions);      setMenuItemVisibility(mi_cheatNoclip, false);
-    setMenuItemWithOptionNames(mi_cheatIDDQD, 96, 122, "IDDQD", false, muiStyle_text, &opt_cheatIDDQD, OFFON_OPTIONS_NUM, offOnOptions);        setMenuItemVisibility(mi_cheatIDDQD, false);
-    setMenuItemWithOptionNames(mi_cheatIDKFA, 96, 144, "IDKFA", false, muiStyle_text, &opt_cheatIDKFAdummy, DUMMYIDKFA_OPTIONS_NUM, dummyIDKFAoptions);        setMenuItemVisibility(mi_cheatIDKFA, false);
+    setMenuItem(mi_enableCheats, 160, 40, "Enable cheats", true, muiStyle_slider, &opt_cheatsRevealed, CHEATS_REVEALED_OPTIONS_NUM);
+    setMenuItemWithOptionNames(mi_cheatAutomap, 96, 80, "Automap", false, muiStyle_text, &opt_cheatAutomap, AUTOMAP_OPTIONS_NUM, automapOptionsStr);     setMenuItemVisibility(mi_cheatAutomap, false);
+    setMenuItemWithOptionNames(mi_cheatNoclip, 96, 100, "Noclip", false, muiStyle_text, &opt_cheatNoclip, OFFON_OPTIONS_NUM, offOnOptionsStr);      setMenuItemVisibility(mi_cheatNoclip, false);
+    setMenuItemWithOptionNames(mi_cheatIDDQD, 96, 122, "IDDQD", false, muiStyle_text, &opt_cheatIDDQD, OFFON_OPTIONS_NUM, offOnOptionsStr);        setMenuItemVisibility(mi_cheatIDDQD, false);
+    setMenuItemWithOptionNames(mi_cheatIDKFA, 96, 144, "IDKFA", false, muiStyle_text, &opt_cheatIDKFAdummy, DUMMY_IDKFA_OPTIONS_NUM, dummyIDKFAoptionsStr);        setMenuItemVisibility(mi_cheatIDKFA, false);
     setItemPageRange(mi_enableCheats, mi_cheatIDKFA, page_cheats);
 
-    setMenuItemWithOptionNames(mi_playerSpeed, 60, 40, "Player speed", false, muiStyle_text, &opt_playerSpeed, PLAYER_SPEED_OPTIONS_NUM, playerSpeedOptions);
-    setMenuItemWithOptionNames(mi_enemySpeed, 60, 70, "Enemy speed", false, muiStyle_text, &opt_enemySpeed, ENEMY_SPEED_OPTIONS_NUM, enemySpeedOptions);
-    setMenuItemWithOptionNames(mi_extraBlood, 60, 100, "Extra blood", false, muiStyle_text, &opt_extraBlood, OFFON_OPTIONS_NUM, offOnOptions);
-    setMenuItemWithOptionNames(mi_flyMode, 60, 130, "Fly mode", false, muiStyle_text, &opt_fly, OFFON_OPTIONS_NUM, offOnOptions);
+    setMenuItemWithOptionNames(mi_playerSpeed, 60, 40, "Player speed", false, muiStyle_text, &opt_playerSpeed, PLAYER_SPEED_OPTIONS_NUM, playerSpeedOptionsStr);
+    setMenuItemWithOptionNames(mi_enemySpeed, 60, 70, "Enemy speed", false, muiStyle_text, &opt_enemySpeed, ENEMY_SPEED_OPTIONS_NUM, enemySpeedOptionsStr);
+    setMenuItemWithOptionNames(mi_extraBlood, 60, 100, "Extra blood", false, muiStyle_text, &opt_extraBlood, OFFON_OPTIONS_NUM, offOnOptionsStr);
+    setMenuItemWithOptionNames(mi_flyMode, 60, 130, "Fly mode", false, muiStyle_text, &opt_fly, OFFON_OPTIONS_NUM, offOnOptionsStr);
     setItemPageRange(mi_playerSpeed, mi_flyMode, page_extra);
 }
 
@@ -560,6 +596,12 @@ static void handleSpecialActionsIfOptionChanged(player_t *player)
             toggleFlyMode(player);
         break;
 
+#ifdef DEBUG_MENU_HACK
+        case mi_dbg8:
+        	initDefaultDebugOptions();
+		break;
+#endif
+
         default:
             // no special behaviour
         break;
@@ -702,11 +744,19 @@ static void drawMenuItemLabel(Word id)
 static void drawMenuItemOption(Word id)
 {
     MenuItem *mi = &menuItems[id];
+    const int optionIndex = *mi->optionValuePtr;
 
     if (mi->optionName == 0) return;
 
-    if (mi->optionsRange > 0)
-        PrintBigFont(getOptionLabelRealEndPosX(id) + OPTION_OFFSET_X, mi->posY, (Byte*)(mi->optionName[*mi->optionValuePtr]));
+    if (mi->optionsRange > 0 && optionIndex < mi->optionsRange) {
+		const Word px = getOptionLabelRealEndPosX(id) + OPTION_OFFSET_X;
+		const Word py = mi->posY;
+		if (mi->muiStyle & muiStyle_value) {
+			PrintNumber(px, py, optionIndex, 0);
+		} else if (mi->muiStyle & muiStyle_text) {
+			PrintBigFont(px, py, (Byte*)(mi->optionName[optionIndex]));
+		}
+    }
 }
 
 static void drawMenuItemSlider(Word id)
@@ -748,7 +798,7 @@ static void drawMenuItem(Word id)
     if (mi->muiStyle == muiStyle_special) {
         drawSpecialMenuOptions(id);
     } else {
-        if (style & muiStyle_text)
+        if ((style & muiStyle_text) | (style & muiStyle_value))
             drawMenuItemOption(id);
         if (style & muiStyle_slider)
             drawMenuItemSlider(id);

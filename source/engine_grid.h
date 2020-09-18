@@ -5,7 +5,7 @@
 #include "engine_mesh.h"
 #include "engine_main.h"
 
-#define MAX_GRID_VERTICES_NUM 256
+#define MAX_GRID_VERTICES_NUM 100
 
 enum {GRID_FX_DISTORT, GRID_FX_WARP};
 

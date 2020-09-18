@@ -237,7 +237,9 @@ static void prepareGridCELs()
 		quad[2].pt_X = gridVertices[indices[i+2]].x+smallOffset; quad[2].pt_Y = gridVertices[indices[i+2]].y+smallOffset;
 		quad[3].pt_X = gridVertices[indices[i+3]].x; quad[3].pt_Y = gridVertices[indices[i+3]].y+smallOffset;
 
-		MapCel(ms->quad[j++].cel, quad);
+		if (!((quad[0].pt_X == quad[1].pt_X && quad[0].pt_Y == quad[1].pt_Y) || (quad[0].pt_X == quad[3].pt_X && quad[0].pt_Y == quad[3].pt_Y)))
+			MapCel(ms->quad[j].cel, quad);
+		++j;
 	}
 }
 
