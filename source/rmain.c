@@ -90,7 +90,7 @@ void setupOffscreenCel()
 		offscreenCel->ccb_VDY = (1 + screenScaleY) << 16;
 	}
 
-	updateScreenGridCels();
+	if (enableGimmicks) updateScreenGridCels();
 }
 
 static void renderOffscreenBufferGrid()
@@ -138,7 +138,7 @@ void R_Init(void)
 	cubeMesh = initGenMesh(256, feedbackTex, MESH_OPTION_CPU_CCW_TEST, MESH_CUBE, NULL);
 	setMeshPolygonOrder(cubeMesh, true, true);
 
-	initGrid(8, 8);
+	if (enableGimmicks) initGrid(8, 8);
 }
 
 /**********************************

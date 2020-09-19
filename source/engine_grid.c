@@ -4,9 +4,9 @@
 #include "Doom.h"
 #include "3dlib.h"
 
-static Point2D gridVertices[MAX_GRID_VERTICES_NUM];
+static Point2D *gridVertices = NULL;
 
-static GridMesh *gridMesh;
+static GridMesh *gridMesh = NULL;
 
 
 static void recalculateGridMeshVertices()
@@ -189,7 +189,7 @@ static void distortGridVertices(int t)
 			} else {
 				const int lvx = ((3*i*x + 5*i*x*x) & 15) * t;
 				gridVertices[i].x = gridMesh->vrtx[i].x + (isin[lvy & 255] >> 10);
-				gridVertices[i].y = gridMesh->vrtx[i].y + (icos[lvx & 255] >> 10);
+				gridVertices[i].y = gridMesh->vrtx[i].y + (isin[(lvx + ISINES_90_DEG) & 255] >> 10);
 			}
 			++i;
 		}
@@ -248,5 +248,11 @@ void renderGrid()
 
 void initGrid(int gridWidth, int gridHeight)
 {
-	gridMesh = initGridMesh(gridWidth, gridHeight);
+	if (gridVertices==NULL) {
+		gridVertices = (Point2D*)AllocAPointer((gridWidth+1)*(gridHeight+1)*sizeof(Point2D));
+	}
+
+	if (gridMesh==NULL) {
+		gridMesh = initGridMesh(gridWidth, gridHeight);
+	}
 }

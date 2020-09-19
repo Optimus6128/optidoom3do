@@ -66,7 +66,8 @@ void initAllCCBelements()
     initCCBQuadWallTextured();
 
     initSpanDrawFunc();
-	initNewSkies();
+
+	if (enableNewSkies) initNewSkies();
 }
 
 void resetSpanPointer()

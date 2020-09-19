@@ -332,7 +332,7 @@ void Init()
 	setPrimaryMenuOptions();    // We had to do this here, because some of the initial option menus (floor quality) are needed for early rendering inits
 	optHack();                  // These too, just for repeatitive debugging tests
 	initAllCCBelements();
-	initEngine();
+	if (enableGimmicks) initEngine();
 }
 
 

@@ -122,7 +122,7 @@ enum {
 	mi_screenSize,      // Screen size settings
 	mi_wallQuality,     // Wall quality (fullres(hi), halfres(med), untextured(lo))
 	mi_floorQuality,    // Floor/Ceiling quality (textured, flat)
-	mi_screenScale,		// Pixel scaling of screen (1x1, 1x2, 2x1, 2x2)
+	mi_screenScale,		// Pixel scaling of screen (1x1, 2x1, 1x2, 2x2)
 	mi_fitToScreen,		// Switch to fit small window to fullscreen (On/Off)
 	mi_shading_depth,   // Depth shading option (on, off (dark/bright))
 	mi_shading_items,   // Shading enable option for items (weapons, enemies, things, etc)
@@ -171,10 +171,10 @@ static char *offOnOptionsStr[OFFON_OPTIONS_NUM] = { "OFF", "ON" };
 static char *statsOptionsStr[STATS_OPTIONS_NUM] = { "OFF", "FPS", "MEM", "ALL" };
 static char *wallQualityOptionsStr[WALL_QUALITY_OPTIONS_NUM] = { "LO", "MED", "HI"};
 static char *floorQualityOptionsStr[FLOOR_QUALITY_OPTIONS_NUM] = { "LO", "MED", "HI" };
-static char *screenScaleOptionsStr[SCREEN_SCALE_OPTIONS_NUM] = { "1x1", "1x2", "2x1", "2x2" };
+static char *screenScaleOptionsStr[SCREEN_SCALE_OPTIONS_NUM] = { "1x1", "2x1", "1x2", "2x2" };
 static char *depthShadingOptionsStr[DEPTH_SHADING_OPTIONS_NUM] = { "DARK", "BRIGHT", "ON" };
 static char *rendererOptionsStr[RENDERER_OPTIONS_NUM] = { "DOOM", "POLY" };
-static char *gimmickOptionsStr[GIMMICKS_OPTIONS_NUM] = { "OFF", "WIREFRAME", "CUBE", "DISTORT", "WARP", "BLUR", "CYBER" };
+static char *gimmickOptionsStr[GIMMICKS_OPTIONS_NUM] = { "OFF", "WIREFRAME", "CUBE", "DISTORT", "WARP", "BLUR" };
 static char *automapOptionsStr[AUTOMAP_OPTIONS_NUM] = { "OFF", "THINGS", "LINES", "ALL" };
 static char *dummyIDKFAoptionsStr[DUMMY_IDKFA_OPTIONS_NUM] = { " ", "!" };
 static char *thicklinesOptionsStr[THICK_LINES_OPTIONS_NUM] = { "NORMAL", "THICK" };
@@ -296,8 +296,8 @@ void setScreenSizeOptionFromSlider()
 
 void setScreenScaleValuesFromOption()
 {
-	screenScaleX = (opt_screenScale & 2) >> 1;
-	screenScaleY = opt_screenScale & 1;
+	screenScaleX = opt_screenScale & 1;
+	screenScaleY = (opt_screenScale & 2) >> 1;
 	useOffscreenBuffer = (screenScaleX | screenScaleY | opt_fitToScreen | (opt_gimmicks == GIMMICKS_CUBE) | (opt_gimmicks == GIMMICKS_MOTION_BLUR));
 	useOffscreenGrid = (opt_gimmicks >= GIMMICKS_DISTORT && opt_gimmicks <= GIMMICKS_WARP);
 }
@@ -387,11 +387,11 @@ void initMenuOptions()
     setMenuItemWithOptionNames(mi_renderer, 48, 120, "Renderer", false, muiStyle_text, &opt_renderer, RENDERER_OPTIONS_NUM, rendererOptionsStr);
     setItemPageRange(mi_screenScale, mi_renderer, page_rendering);
 
-    setMenuItemWithOptionNames(mi_gimmicks, 48, 40, "Gimmicks", false, muiStyle_text, &opt_gimmicks, GIMMICKS_OPTIONS_NUM, gimmickOptionsStr);
+    setMenuItemWithOptionNames(mi_gimmicks, 48, 40, "Gimmicks", false, muiStyle_text, &opt_gimmicks, GIMMICKS_OPTIONS_NUM, gimmickOptionsStr); setMenuItemVisibility(mi_gimmicks, enableGimmicks);
     setMenuItemWithOptionNames(mi_mapLines, 48, 60, "Map lines", false, muiStyle_text, &opt_thickLines, THICK_LINES_OPTIONS_NUM, thicklinesOptionsStr);
     setMenuItemWithOptionNames(mi_waterFx, 80, 80, "Water fx", false, muiStyle_text, &opt_waterFx, OFFON_OPTIONS_NUM, offOnOptionsStr);
         setMenuItemVisibility(mi_waterFx, false);   // removing this in case I won't be able to fully implement it in this release
-    setMenuItemWithOptionNames(mi_sky, 96, 100, "Sky", false, muiStyle_text, &opt_sky, SKY_OPTIONS_NUM, skyOptionsStr);
+    setMenuItemWithOptionNames(mi_sky, 96, 100, "Sky", false, muiStyle_text, &opt_sky, SKY_OPTIONS_NUM, skyOptionsStr); setMenuItemVisibility(mi_sky, enableNewSkies);
     setMenuItem(mi_firesky_slider, 96, 120, 0, false, muiStyle_slider, &opt_fireSkyHeight, SKY_HEIGHTS_OPTIONS_NUM); setMenuItemVisibility(mi_firesky_slider, false);
     setItemPageRange(mi_gimmicks, mi_firesky_slider, page_effects);
 

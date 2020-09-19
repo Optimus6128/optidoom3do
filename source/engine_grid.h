@@ -3,8 +3,6 @@
 
 #include "types.h"
 
-#define MAX_GRID_VERTICES_NUM 81
-
 enum {GRID_FX_DISTORT, GRID_FX_WARP};
 
 
