@@ -341,10 +341,10 @@ void SegLoop(viswall_t *segl)
     }
 
 // I can draw the sky right now!!
-    if (opt_gimmicks != GIMMICKS_WIREFRAME) {
+    if (optOther->gimmicks != GIMMICKS_WIREFRAME) {
         if (ActionBits & AC_ADDSKY) {
             skyOnView = true;
-            if (opt_sky==SKY_DEFAULT) {
+            if (optOther->sky==SKY_DEFAULT) {
                 SegLoopSky(segl, CenterY);
             }
         }

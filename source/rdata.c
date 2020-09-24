@@ -110,7 +110,7 @@ void initScreenSizeValues()
 	ScreenXOffset = ((320-ScreenWidth)/2);
 	ScreenYOffset = ((160-ScreenHeight)/2);
 
-	if (opt_fitToScreen) {
+	if (optGraphics->fitToScreen) {
 		GunXScale = 0x100000;
 		GunYScale = 0x10000;
 	} else {

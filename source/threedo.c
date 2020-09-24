@@ -13,7 +13,7 @@
 
 #include "engine_main.h"
 
-#define SHOW_LOGOS
+//#define SHOW_LOGOS
 
 static void LowMemCode(Word Type);
 static void WipeDoom(LongWord *OldScreen,LongWord *NewScreen);
@@ -45,8 +45,8 @@ int memLowHits = 0;
 static void optHack()
 {
     #ifdef DEBUG_OPT_HACK
-        opt_floorQuality = FLOOR_QUALITY_LO;
-        opt_depthShading = DEPTH_SHADING_BRIGHT;
+        optGraphics->floorQuality = FLOOR_QUALITY_LO;
+        optGraphics->depthShading = DEPTH_SHADING_BRIGHT;
         background_clear = true;
     #endif
 }
@@ -561,12 +561,12 @@ static void updateWipeScreen()
 
 static void updateMyFpsAndDebugPrint()
 {
-	if (opt_stats == 0) return;
+	if (optOther->stats == 0) return;
 
-    if (opt_stats & 1) {
+    if (optOther->stats & 1) {
 		PrintNumber(8, 8, updateAndGetFPS(), 0);
     }
-    if (opt_stats & 2) {
+    if (optOther->stats & 2) {
 		PrintNumber(0, 128, memLowHits, 0);
 		PrintNumber(0, 144, GetTotalFreeMem(), 0);
     }
@@ -577,20 +577,25 @@ static void updateMyFpsAndDebugPrint()
 #endif
 }
 
-void updateScreenAndWait()
+static void wait60hz()
 {
 	LongWord NewTick;
 
-	DisplayScreen(ScreenItems[WorkPage],0);		/* Display the hidden page */
-	if (++WorkPage>=maxFlipScreens) {		/* Next screen in line */
-		WorkPage = 0;
-	}
-	SetMyScreen(WorkPage);		/* Set the 3DO vars */
 	do {
 		NewTick = ReadTick();	/* Get the time mark */
 		LastTics = NewTick - LastTicCount;	/* Get the time elapsed */
 	} while (!LastTics);		/* Hmmm, too fast?!?!? */
 	LastTicCount = NewTick;				/* Save the time mark */
+}
+
+void updateScreenAndWait()
+{
+	DisplayScreen(ScreenItems[WorkPage],0);		/* Display the hidden page */
+	if (++WorkPage>=maxFlipScreens) {		/* Next screen in line */
+		WorkPage = 0;
+	}
+	SetMyScreen(WorkPage);		/* Set the 3DO vars */
+	wait60hz();
 
 	frameTime = getTicks();
 	++nframe;

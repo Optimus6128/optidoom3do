@@ -174,7 +174,7 @@ static void DrawWallSegmentTexturedQuadSubdivided(drawtex_t *tex, int run, Word 
         colnum >>= 1;           // Pixel to byte offset
         colnum &= ~3;			// Long word align the source
 
-        if (opt_depthShading == DEPTH_SHADING_ON) {
+        if (optGraphics->depthShading == DEPTH_SHADING_ON) {
             int textureLight = ((scaleLeft*lightcoef)>>16) - lightsub;
             if (textureLight < lightmin) textureLight = lightmin;
             if (textureLight > lightmax) textureLight = lightmax;
@@ -229,7 +229,7 @@ static void DrawWallSegmentTexturedQuad(drawtex_t *tex, viswall_t *segl)
 
     if (run <= 0 || run >= RECIPROCAL_MAX_NUM) return;
 
-    if (opt_depthShading == DEPTH_SHADING_ON) {
+    if (optGraphics->depthShading == DEPTH_SHADING_ON) {
         const int l = segl->seglightlevel;
         lightmin = lightmins[l];
         lightmax = l;
@@ -410,7 +410,7 @@ static void DrawSegAnyPL(viswall_t *segl, int *scaleData, bool isTop, bool shoul
     drawtex.height = tex->height;
     drawtex.data = (Byte *)*tex->data;
 
-    if (opt_wallQuality > WALL_QUALITY_LO) {
+    if (optGraphics->wallQuality > WALL_QUALITY_LO) {
         if (shouldPrepareWallParts) PrepareWallParts(segl, tex->width, scaleData);
         if (wallPartsCount > 0 && wallPartsCount < MAX_WALL_PARTS) DrawWallSegmentTexturedQuad(&drawtex, segl);
     } else {
@@ -432,7 +432,7 @@ void DrawSegUnshadedPL(viswall_t *segl, int *scaleData)
 	if (!(topTexOn || bottomTexOn)) return;
 
     ambientLight = segl->seglightlevel;
-    if (opt_depthShading == DEPTH_SHADING_DARK) ambientLight = lightmins[ambientLight];
+    if (optGraphics->depthShading == DEPTH_SHADING_DARK) ambientLight = lightmins[ambientLight];
     pixcLight = LightTable[ambientLight>>LIGHTSCALESHIFT];
 
 

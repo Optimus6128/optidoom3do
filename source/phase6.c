@@ -40,13 +40,13 @@ static bool SegCommands_Init()
 
 static void DrawBackground()
 {
-    if (background_clear | opt_cheatNoclip | (opt_gimmicks==GIMMICKS_WIREFRAME)) {
+    if (background_clear | optOther->cheatNoclip | (optOther->gimmicks==GIMMICKS_WIREFRAME)) {
         DrawARect(0,0, ScreenWidth, ScreenHeight, 0);   // To avoid HOM when noclipping outside
         FlushCCBs(); // Flush early to render noclip black quad early before everything, for the same reason as sky below
     }
 
-    if (skyOnView && (opt_sky!=SKY_DEFAULT) && (opt_gimmicks!=GIMMICKS_WIREFRAME)) {
-        drawNewSky(opt_sky);
+    if (skyOnView && (optOther->sky!=SKY_DEFAULT) && (optOther->gimmicks!=GIMMICKS_WIREFRAME)) {
+        drawNewSky(optOther->sky);
         FlushCCBs(); // Flush early to render the sky early before everything, as we hacked the wall renderer to draw earlier than the final flush.
     }
     skyOnView = false;
@@ -69,23 +69,23 @@ static void DrawWalls()
 {
     // Now I actually draw the walls back to front to allow for clipping because of slop
 
-    const bool lightShadingOn = (opt_depthShading == DEPTH_SHADING_ON);
+    const bool lightShadingOn = (optGraphics->depthShading == DEPTH_SHADING_ON);
     bool tooTightForPoly = false;
 
     LastSegPtr = viswalls;		// Stop at the first one
 
-    if (opt_renderer == RENDERER_DOOM) {
+    if (optGraphics->renderer == RENDERER_DOOM) {
         do {
             --WallSegPtr;			// Last go backwards!!
             scaleArrayData = scaleArrayPtr[--scaleArrayIndex];
 
-            if (opt_wallQuality == WALL_QUALITY_HI) {
+            if (optGraphics->wallQuality == WALL_QUALITY_HI) {
                 if (lightShadingOn) {
                     DrawSegFull(WallSegPtr, scaleArrayData);
                 } else {
                     DrawSegFullUnshaded(WallSegPtr, scaleArrayData);
                 }
-            } else if (opt_wallQuality == WALL_QUALITY_MED) {
+            } else if (optGraphics->wallQuality == WALL_QUALITY_MED) {
                 if (lightShadingOn) {
                     DrawSegHalf(WallSegPtr, scaleArrayData);
                 } else {
@@ -104,7 +104,7 @@ static void DrawWalls()
             --WallSegPtr;			// Last go backwards!!
             scaleArrayData = scaleArrayPtr[--scaleArrayIndex];
 
-            if (opt_wallQuality ==  WALL_QUALITY_LO) {  // flat
+            if (optGraphics->wallQuality ==  WALL_QUALITY_LO) {  // flat
                 DrawSegUnshadedPL(WallSegPtr, scaleArrayData); // so, always poly
             } else {
                 const int texLeft = (WallSegPtr->offset - IMFixMul( finetangent[(WallSegPtr->CenterAngle+xtoviewangle[WallSegPtr->LeftX])>>ANGLETOFINESHIFT], WallSegPtr->distance)) >> FRACBITS;
@@ -123,13 +123,13 @@ static void DrawWalls()
 
 
                 if (tooTightForPoly) {
-                    if (opt_wallQuality == WALL_QUALITY_HI) {
+                    if (optGraphics->wallQuality == WALL_QUALITY_HI) {
                         if (lightShadingOn) {
                             DrawSegFull(WallSegPtr, scaleArrayData);
                         } else {
                             DrawSegFullUnshaded(WallSegPtr, scaleArrayData);
                         }
-                    } else if (opt_wallQuality == WALL_QUALITY_MED) {
+                    } else if (optGraphics->wallQuality == WALL_QUALITY_MED) {
                         if (lightShadingOn) {
                             DrawSegHalf(WallSegPtr, scaleArrayData);
                         } else {
@@ -209,7 +209,7 @@ void SegCommands()
 
         StartSegLoop();
 
-        if (opt_gimmicks == GIMMICKS_WIREFRAME) {
+        if (optOther->gimmicks == GIMMICKS_WIREFRAME) {
             DrawWallsWireframe();
         } else {
             DrawWalls();

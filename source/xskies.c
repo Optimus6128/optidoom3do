@@ -170,7 +170,7 @@ static void drawFireSky()
 
 void updateFireSkyHeightPal()
 {
-    fireSkyCel->ccb_PLUTPtr = (PLUTChunk*)&fireSkyPal[SKY_COLORS_NUM * opt_fireSkyHeight];
+    fireSkyCel->ccb_PLUTPtr = (PLUTChunk*)&fireSkyPal[SKY_COLORS_NUM * optOther->fireSkyHeight];
 }
 
 void drawNewSky(int which)

@@ -226,16 +226,16 @@ Word P_Ticker(void)
 
 
 	P_PlayerThink(pl);	/* Process player in the game */
-	if (opt_playerSpeed==PLAYER_SPEED_2X || (opt_playerSpeed==PLAYER_SPEED_1_5X && speedTicker==0)) P_PlayerThink(pl);  // Do it again (2X speed) or once in two times (1.5X speed)
+	if (optOther->playerSpeed==PLAYER_SPEED_2X || (optOther->playerSpeed==PLAYER_SPEED_1_5X && speedTicker==0)) P_PlayerThink(pl);  // Do it again (2X speed) or once in two times (1.5X speed)
 
 	if (!(players.AutomapFlags & AF_OPTIONSACTIVE)) {
 
 		RunThinkers();		/* Handle logic for doors, walls etc... */
 
-		if (opt_enemySpeed > ENEMY_SPEED_0X) {
-            if (opt_enemySpeed >= ENEMY_SPEED_1X || (opt_enemySpeed == ENEMY_SPEED_0_5X && speedTicker==0)) // Do it at least once if >= 1x or once every two times if 0.5x speed
+		if (optOther->enemySpeed > ENEMY_SPEED_0X) {
+            if (optOther->enemySpeed >= ENEMY_SPEED_1X || (optOther->enemySpeed == ENEMY_SPEED_0_5X && speedTicker==0)) // Do it at least once if >= 1x or once every two times if 0.5x speed
                 P_RunMobjBase();
-            if (opt_enemySpeed == ENEMY_SPEED_2X)   // do it second time if 2x
+            if (optOther->enemySpeed == ENEMY_SPEED_2X)   // do it second time if 2x
                 P_RunMobjBase();
 		}
 	}

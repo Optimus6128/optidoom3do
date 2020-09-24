@@ -212,7 +212,7 @@ void DrawVisSprite(vissprite_t *vis)
 
 
 	spriteLight = 255;
-	if (opt_thingsShading) {
+	if (optGraphics->thingsShading) {
         spriteLight = vis->thing->subsector->sector->lightlevel;
 	}
 
@@ -364,7 +364,7 @@ static void DrawAWeapon(pspdef_t *psp,Word Shadow)
 	} else {
         int shade = 0x1F00;
 
-        if (opt_thingsShading) {
+        if (optGraphics->thingsShading) {
 
             if (StatePtr->SpriteFrame & FF_FULLBRIGHT) {
                 shade = 255;			/* Full bright */
@@ -380,7 +380,7 @@ static void DrawAWeapon(pspdef_t *psp,Word Shadow)
 	y = Input[1];
 	x = ((psp->WeaponX+x)*(int)GunXScale)>>20;
 	y = ((psp->WeaponY+SCREENGUNY+y)*(int)GunYScale)>>16;
-	if (!opt_fitToScreen) {
+	if (!optGraphics->fitToScreen) {
 		x+=ScreenXOffsetUnscaled;
 		y+=ScreenYOffsetUnscaled+2;			/* Add 2 pixels to cover up the hole in the bottom */
 	}
@@ -416,7 +416,7 @@ void DrawWeapons(void)
 		++psp;		/* Next... */
 	} while (++i<NUMPSPRITES);	/* All done? */
 
-	if (!opt_fitToScreen) {
+	if (!optGraphics->fitToScreen) {
 		i = ScreenSizeOption+rBACKGROUNDMASK;		/* Get the resource needed */
 		DrawMShape(0,0,LoadAResource(i));	/* Draw the border */
 		ReleaseAResource(i);				/* Release the resource */

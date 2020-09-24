@@ -31,7 +31,7 @@ angle_t doubleclipangle; /* Doubled leftmost clipping angle */
 
 int offscreenPage = SCREENS-1;
 
-static CCB *offscreenCel;
+static CCB *offscreenCel = NULL;
 static Mesh *cubeMesh;
 static Texture *feedbackTex;
 
@@ -48,7 +48,7 @@ static void updateOffscreenCel(CCB *cel)
 	cel->ccb_Width = ScreenWidth;
 	cel->ccb_Height = ScreenHeight;
 
-	if (opt_gimmicks == GIMMICKS_MOTION_BLUR) {
+	if (optOther->gimmicks == GIMMICKS_MOTION_BLUR) {
 		offscreenCel->ccb_PIXC = 0x1F811F81;
 	} else {
 		offscreenCel->ccb_PIXC = PIXC_OPAQUE;
@@ -76,9 +76,14 @@ static void renderGimmick3D()
 
 void setupOffscreenCel()
 {
+	if (!offscreenCel) {
+		offscreenCel = CreateCel(1, 1, 16, CREATECEL_UNCODED, getVideoPointer(offscreenPage));
+		offscreenCel->ccb_Flags |= CCB_BGND;
+	}
+
 	updateOffscreenCel(offscreenCel);
 
-	if (opt_fitToScreen) {
+	if (optGraphics->fitToScreen) {
 		offscreenCel->ccb_XPos = 0;
 		offscreenCel->ccb_YPos = 0;
 		offscreenCel->ccb_HDX = (320 << 20) / ScreenWidth;
@@ -97,7 +102,7 @@ static void renderOffscreenBufferGrid()
 {
 	const int t = getTicks() >> 6;
 
-	switch(opt_gimmicks) {
+	switch(optOther->gimmicks) {
 		case GIMMICKS_DISTORT:
 			updateGridFx(GRID_FX_DISTORT, t);
 		break;
@@ -130,9 +135,6 @@ void R_Init(void)
 	R_InitData();			/* Init the data (Via loading or calculations) */
 	clipangle = xtoviewangle[0];	/* Get the left clip angle from viewport */
 	doubleclipangle = clipangle*2;	/* Precalc angle * 2 */
-
-	offscreenCel = CreateCel(1, 1, 16, CREATECEL_UNCODED, getVideoPointer(offscreenPage));
-	offscreenCel->ccb_Flags |= CCB_BGND;
 
 	feedbackTex = initFeedbackTexture(0, 0, 320, 200, SCREENS);
 	cubeMesh = initGenMesh(256, feedbackTex, MESH_OPTION_CPU_CCW_TEST, MESH_CUBE, NULL);
@@ -201,7 +203,7 @@ void R_RenderPlayerView (void)
 			renderOffscreenBufferGrid();
 		} else {
 			renderOffscreenBuffer();
-			if (opt_gimmicks == GIMMICKS_CUBE) {
+			if (optOther->gimmicks == GIMMICKS_CUBE) {
 				renderGimmick3D();
 			}
 		}

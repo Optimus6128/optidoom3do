@@ -20,7 +20,7 @@ static void recalculateGridMeshVertices()
 	int ScreenWidthFinal = ScreenWidthUnscaled;
 	int ScreenHeightFinal = ScreenHeightUnscaled;
 
-	if (opt_fitToScreen) {
+	if (optGraphics->fitToScreen) {
 		ScreenXOffsetFinal = 0;
 		ScreenYOffsetFinal = 0;
 		ScreenWidthFinal = 320;
@@ -208,7 +208,7 @@ static void prepareGridCELs()
 	Point quad[4];
 
 	int smallOffset = 1;
-	if (opt_gimmicks == GIMMICKS_MOTION_BLUR) smallOffset = 0;
+	if (optOther->gimmicks == GIMMICKS_MOTION_BLUR) smallOffset = 0;
 
 	for (i=0; i<gridMesh->indexNum; i+=4)
 	{

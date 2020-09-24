@@ -40,7 +40,7 @@ void (*spanDrawFunc)(Word Count,LongWord xfrac,LongWord yfrac,Fixed ds_xstep,Fix
 
 void initSpanDrawFunc(void)
 {
-    if (opt_floorQuality==FLOOR_QUALITY_HI)
+    if (optGraphics->floorQuality==FLOOR_QUALITY_HI)
         spanDrawFunc = DrawASpan;
     else
         spanDrawFunc = DrawASpanLo;
@@ -186,7 +186,7 @@ static void MapPlaneOldWaterFX(Word y)
 	xstep = ((Fixed)distance*basexscale)>>4;
 	ystep = ((Fixed)distance*baseyscale)>>4;
 
-	if (opt_waterFx) {
+	if (optOther->waterFx) {
         xfrac += (SinF16(((yslope[y]*PlaneHeight) >> 4) + (nframe << 4)) * (basexscale << 4));
         yfrac += (SinF16(((yslope[y]*PlaneHeight) >> 4) + (nframe << 4)) * (baseyscale << 4));
 	}
@@ -199,7 +199,7 @@ static void MapPlaneOldWaterFX(Word y)
 		length = lightmax;
 	}
 	tx_texturelight = length;
-	if (opt_floorQuality > FLOOR_QUALITY_LO)
+	if (optGraphics->floorQuality > FLOOR_QUALITY_LO)
         DrawFloorColumn(y,x1,x2-x1,xfrac,yfrac,xstep,ystep);
     else
         DrawFlatFloorColumn(y,x1,x2-x1);
@@ -280,7 +280,7 @@ static void MapPlaneUnshaded(Word y1, Word y2)
 
     if (y1 > y2) return;
 
-    if (!opt_depthShading) light = lightmin;
+    if (!optGraphics->depthShading) light = lightmin;
         else light = lightmax;
 
     light = LightTable[light>>LIGHTSCALESHIFT];
@@ -356,9 +356,9 @@ static void MapPlaneFlat(Word y1, Word y2)
 
 static void MapPlaneAny(Word y1, Word y2)
 {
-    const bool lightQuality = (opt_depthShading > 1);
+    const bool lightQuality = (optGraphics->depthShading > 1);
 
-    if (opt_floorQuality > FLOOR_QUALITY_LO) {
+    if (optGraphics->floorQuality > FLOOR_QUALITY_LO) {
         if (lightQuality) {
             MapPlane(y1, y2);
         } else {
@@ -480,7 +480,7 @@ void DrawVisPlaneVertical(visplane_t *p)
 
 	Word light = p->PlaneLight;
 
-    if (!opt_depthShading) light = lightmins[light];
+    if (!optGraphics->depthShading) light = lightmins[light];
     light = LightTable[light>>LIGHTSCALESHIFT];
 
     PlaneSource = (Byte *)*p->PicHandle;
@@ -517,7 +517,7 @@ void DrawVisPlaneVertical(visplane_t *p)
 
 void DrawVisPlane(visplane_t *p)
 {
-    if (opt_floorQuality == FLOOR_QUALITY_LO && opt_depthShading != DEPTH_SHADING_ON) {
+    if (optGraphics->floorQuality == FLOOR_QUALITY_LO && optGraphics->depthShading != DEPTH_SHADING_ON) {
         DrawVisPlaneVertical(p);
     } else {
         DrawVisPlaneHorizontal(p);

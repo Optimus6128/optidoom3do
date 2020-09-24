@@ -1,5 +1,21 @@
 // ========= Menu options externs ========
 
+// Graphics presets
+enum
+{
+	PRESET_GFX_MIN,
+	PRESET_GFX_ATARI,
+	PRESET_GFX_AMIGA,
+	PRESET_GFX_SNES,
+	PRESET_GFX_GBA,
+	PRESET_GFX_JAGUAR,
+	PRESET_GFX_DEFAULT,
+	PRESET_GFX_FASTER,
+	PRESET_GFX_POLY,
+	PRESET_GFX_MAX,
+	PRESET_OPTIONS_NUM
+};
+
 // Stats options
 enum
 {
@@ -116,27 +132,47 @@ enum
     ENEMY_SPEED_OPTIONS_NUM
 };
 
+typedef struct GraphicsOptions
+{
+	Word screenSizeIndex;
+	Word wallQuality;
+	Word floorQuality;
+	Word screenScale;
+	Word fitToScreen;
+	Word depthShading;
+	Word thingsShading;
+	Word renderer;
+}GraphicsOptions;
 
+typedef struct OtherOptions
+{
+	Word stats;
+	Word gimmicks;
+	Word thickLines;
+	Word waterFx;
+	Word sky;
+	Word fireSkyHeight;
+	Word cheatsRevealed;
+    Word cheatAutomap;
+    Word cheatIDKFAdummy;
+	Word cheatNoclip;
+	Word cheatIDDQD;
+	Word playerSpeed;
+	Word enemySpeed;
+	Word extraBlood;
+	Word fly;
+}OtherOptions;
+
+typedef struct AllOptions
+{
+	GraphicsOptions graphics;
+	OtherOptions other;
+}AllOptions;
 
 // In omain.c
-extern Word opt_stats;
-extern Word opt_wallQuality;
-extern Word opt_floorQuality;
-extern Word opt_depthShading;
-extern Word opt_fitToScreen;
-extern Word opt_thingsShading;
-extern Word opt_renderer;
-extern Word opt_gimmicks;
-extern Word opt_thickLines;
-extern Word opt_waterfx;
-extern Word opt_sky;
-extern Word opt_fireSkyHeight;
-extern Word opt_cheatNoclip;
-extern Word opt_cheatIDDQD;
-extern Word opt_playerSpeed;
-extern Word opt_enemySpeed;
-extern Word opt_extraBlood;
-extern Word opt_fly;
+extern Word presets;
+extern GraphicsOptions *optGraphics;
+extern OtherOptions *optOther;
 
 extern Word opt_dbg1;
 extern Word opt_dbg2;

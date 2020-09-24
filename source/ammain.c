@@ -250,7 +250,7 @@ void toggleFlyMode(player_t *player)
 {
     if (!player) return;
 
-    if (opt_fly) {
+    if (optOther->fly) {
         player->mo->flags |= MF_NOGRAVITY;
     } else {
         player->mo->flags &= ~MF_NOGRAVITY;
@@ -263,9 +263,9 @@ void toggleNoclip(player_t *player)
 
     player->AutomapFlags ^= AF_NOCLIP;  // maybe redundant since AF_NOCLIP not used anywere, but keep it to be consistent
 
-    opt_cheatNoclip = (Word)(player->AutomapFlags & AF_NOCLIP);
-    if (opt_cheatNoclip) {
-        opt_cheatNoclip = 1; // hack
+    optOther->cheatNoclip = (Word)(player->AutomapFlags & AF_NOCLIP);
+    if (optOther->cheatNoclip) {
+        optOther->cheatNoclip = 1; // hack
         player->mo->flags |= MF_NOCLIP;
     } else {
         player->mo->flags &= ~MF_NOCLIP;
@@ -279,8 +279,8 @@ void toggleIDDQD(player_t *player)
     player->health = 100;
     player->mo->MObjHealth = 100;
     player->AutomapFlags ^= AF_GODMODE;	/* Toggle god mode */
-    opt_cheatIDDQD = (Word)(player->AutomapFlags & AF_GODMODE);
-    if (opt_cheatIDDQD > 0) opt_cheatIDDQD = 1;
+    optOther->cheatIDDQD = (Word)(player->AutomapFlags & AF_GODMODE);
+    if (optOther->cheatIDDQD > 0) optOther->cheatIDDQD = 1;
 }
 
 void applyIDKFA(player_t *player)

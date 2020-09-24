@@ -28,7 +28,7 @@ void initCCBarrayWall(void)
 	int i;
 
     int columnWidth = 1;
-    if (opt_wallQuality == WALL_QUALITY_MED)
+    if (optGraphics->wallQuality == WALL_QUALITY_MED)
         columnWidth = 2;
 
 	CCBPtr = CCBArrayWall;
@@ -302,7 +302,7 @@ static void DrawSegAny(viswall_t *segl, bool isTop, bool isFlat)
     if (isFlat) {
         DrawWallSegmentFlat(&drawtex, CenterY);
     } else {
-        if (opt_wallQuality == WALL_QUALITY_MED) {
+        if (optGraphics->wallQuality == WALL_QUALITY_MED) {
             DrawWallSegmentHalf(&drawtex, CenterY);
         } else {
             DrawWallSegmentFull(&drawtex, CenterY);
@@ -383,7 +383,7 @@ void DrawSegFullUnshaded(viswall_t *segl, int *scaleData)
 	if (!(ActionBits & (AC_TOPTEXTURE|AC_BOTTOMTEXTURE))) return;
 
     textureLight = segl->seglightlevel;
-    if (opt_depthShading == DEPTH_SHADING_DARK) textureLight = lightmins[textureLight];
+    if (optGraphics->depthShading == DEPTH_SHADING_DARK) textureLight = lightmins[textureLight];
 
     viscol = viscols;
     do {
@@ -476,7 +476,7 @@ void DrawSegFullFlatUnshaded(viswall_t *segl, int *scaleData)
 	if (!(ActionBits & (AC_TOPTEXTURE|AC_BOTTOMTEXTURE))) return;
 
     textureLight = segl->seglightlevel;
-    if (opt_depthShading == DEPTH_SHADING_DARK) textureLight = lightmins[textureLight];
+    if (optGraphics->depthShading == DEPTH_SHADING_DARK) textureLight = lightmins[textureLight];
 
     viscol = viscols;
     do {
@@ -572,7 +572,7 @@ void DrawSegHalfUnshaded(viswall_t *segl, int *scaleData)
 	if (!(ActionBits & (AC_TOPTEXTURE|AC_BOTTOMTEXTURE))) return;
 
     textureLight = segl->seglightlevel;
-    if (opt_depthShading == DEPTH_SHADING_DARK) textureLight = lightmins[textureLight];
+    if (optGraphics->depthShading == DEPTH_SHADING_DARK) textureLight = lightmins[textureLight];
 
     viscol = viscols;
     do {
