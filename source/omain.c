@@ -36,7 +36,7 @@ static GraphicsOptions graphicsPresets[PRESET_OPTIONS_NUM] = {
 	{5, WALL_QUALITY_HI, FLOOR_QUALITY_HI, SCREEN_SCALE_2x1, true, DEPTH_SHADING_BRIGHT, false, RENDERER_DOOM},	// JAGUAR
 	{3, WALL_QUALITY_HI, FLOOR_QUALITY_HI, SCREEN_SCALE_1x1, false, DEPTH_SHADING_ON, false, RENDERER_DOOM},	// DEFAULT
 	{4, WALL_QUALITY_HI, FLOOR_QUALITY_MED, SCREEN_SCALE_2x1, false, DEPTH_SHADING_DARK, false, RENDERER_DOOM},// FASTER
-	{4, WALL_QUALITY_HI, FLOOR_QUALITY_HI, SCREEN_SCALE_1x1, true, DEPTH_SHADING_ON, true, RENDERER_POLY},  	// POLY
+	{5, WALL_QUALITY_HI, FLOOR_QUALITY_HI, SCREEN_SCALE_2x2, false, DEPTH_SHADING_ON, true, RENDERER_DOOM},  	// CUSTOM
 	{5, WALL_QUALITY_HI, FLOOR_QUALITY_HI, SCREEN_SCALE_1x1, true, DEPTH_SHADING_ON, true, RENDERER_DOOM},		// MAX
 };
 
@@ -166,7 +166,7 @@ enum {
 #define THICK_LINES_OPTIONS_NUM 2
 #define SKY_HEIGHTS_OPTIONS_NUM 4
 
-static char *presetOptionsStr[PRESET_OPTIONS_NUM] = { "MIN", "ATARI", "AMIGA", "SNES", "GBA", "JAGUAR", "DEFAULT", "FASTER", "POLY", "MAX" };
+static char *presetOptionsStr[PRESET_OPTIONS_NUM] = { "MIN", "ATARI", "AMIGA", "SNES", "GBA", "JAGUAR", "DEFAULT", "FASTER", "CUSTOM", "MAX" };
 static char *offOnOptionsStr[OFFON_OPTIONS_NUM] = { "OFF", "ON" };
 static char *statsOptionsStr[STATS_OPTIONS_NUM] = { "OFF", "FPS", "MEM", "ALL" };
 static char *wallQualityOptionsStr[WALL_QUALITY_OPTIONS_NUM] = { "LO", "MED", "HI"};
@@ -618,6 +618,10 @@ static void handleSpecialActionsIfOptionChanged(player_t *player)
     if (!mi->changed) return;
 
     handleSpecialMenuItemActions(player, cursorPos);
+
+    if (presets == PRESET_GFX_CUSTOM) {
+		copyGraphicsOptions(&graphicsPresets[PRESET_GFX_CUSTOM], optGraphics);
+    }
 
     mi->changed = false;
 }
