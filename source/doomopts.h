@@ -159,6 +159,7 @@ typedef struct OtherOptions
 {
 	Word stats;
 	Word gimmicks;
+	Word border;
 	Word thickLines;
 	Word waterFx;
 	Word sky;

@@ -381,11 +381,28 @@ static void DrawAWeapon(pspdef_t *psp,Word Shadow)
 	x = ((psp->WeaponX+x)*(int)GunXScale)>>20;
 	y = ((psp->WeaponY+SCREENGUNY+y)*(int)GunYScale)>>16;
 	if (!optGraphics->fitToScreen) {
-		x+=ScreenXOffsetUnscaled;
-		y+=ScreenYOffsetUnscaled+2;			/* Add 2 pixels to cover up the hole in the bottom */
+		x+=ScreenXOffsetPhysical;
+		y+=ScreenYOffsetPhysical+2;			/* Add 2 pixels to cover up the hole in the bottom */
 	}
 	DrawMShape(x,y,&Input[2]);	/* Draw the weapon's shape */
 	ReleaseAResource(RezNum);
+}
+
+static void DrawScreenBorder()
+{
+	if (optOther->border) {
+		Word i = ScreenSizeOption+rBACKGROUNDMASK;		/* Get the resource needed */
+		DrawMShape(0,0,LoadAResource(i));	/* Draw the border */
+		ReleaseAResource(i);				/* Release the resource */
+	} else {
+		const int ScreenYEnd = ScreenYOffsetPhysical+ScreenHeightPhysical-1;
+		const int ScreenXEnd = ScreenXOffsetPhysical+ScreenWidthPhysical-1;
+
+		DrawARect(0,0, 320,ScreenYOffsetPhysical, 0);
+		DrawARect(0,ScreenYEnd+1, 320,159 - ScreenYEnd, 0);
+		DrawARect(0,ScreenYOffsetPhysical, ScreenXOffsetPhysical,ScreenHeightPhysical, 0);
+		DrawARect(ScreenXEnd+1,ScreenYOffsetPhysical, 319 - ScreenXEnd,ScreenHeightPhysical, 0);
+	}
 }
 
 /**********************************
@@ -417,8 +434,6 @@ void DrawWeapons(void)
 	} while (++i<NUMPSPRITES);	/* All done? */
 
 	if (!optGraphics->fitToScreen) {
-		i = ScreenSizeOption+rBACKGROUNDMASK;		/* Get the resource needed */
-		DrawMShape(0,0,LoadAResource(i));	/* Draw the border */
-		ReleaseAResource(i);				/* Release the resource */
+		DrawScreenBorder();
 	}
 }

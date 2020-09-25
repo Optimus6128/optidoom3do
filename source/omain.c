@@ -25,7 +25,7 @@ OtherOptions *optOther = &options.other;
 
 
 static AllOptions optionsDefault = {{FRAME_LIMIT_60, SCREENSIZE_OPTIONS_NUM - 3, WALL_QUALITY_HI, FLOOR_QUALITY_HI, SCREEN_SCALE_1x1, false, DEPTH_SHADING_ON, false, RENDERER_DOOM},
-									{STATS_OFF, GIMMICKS_OFF, false, false, SKY_DEFAULT, 2, CHEATS_OFF, AUTOMAP_CHEAT_OFF, false, false, false, PLAYER_SPEED_1X, ENEMY_SPEED_1X, false, false}};
+									{STATS_OFF, GIMMICKS_OFF, true, false, false, SKY_DEFAULT, 2, CHEATS_OFF, AUTOMAP_CHEAT_OFF, false, false, false, PLAYER_SPEED_1X, ENEMY_SPEED_1X, false, false}};
 
 static GraphicsOptions graphicsPresets[PRESET_OPTIONS_NUM] = {
 	{FRAME_LIMIT_60, 0, WALL_QUALITY_MED, FLOOR_QUALITY_MED, SCREEN_SCALE_2x2, true, DEPTH_SHADING_ON, true, RENDERER_DOOM},	// MIN
@@ -36,7 +36,7 @@ static GraphicsOptions graphicsPresets[PRESET_OPTIONS_NUM] = {
 	{FRAME_LIMIT_20, 5, WALL_QUALITY_HI, FLOOR_QUALITY_HI, SCREEN_SCALE_2x1, true, DEPTH_SHADING_BRIGHT, false, RENDERER_DOOM},	// JAGUAR
 	{FRAME_LIMIT_60, 3, WALL_QUALITY_HI, FLOOR_QUALITY_HI, SCREEN_SCALE_1x1, false, DEPTH_SHADING_ON, false, RENDERER_DOOM},	// DEFAULT
 	{FRAME_LIMIT_30, 4, WALL_QUALITY_HI, FLOOR_QUALITY_MED, SCREEN_SCALE_2x1, false, DEPTH_SHADING_DARK, false, RENDERER_DOOM},// FASTER
-	{FRAME_LIMIT_30, 5, WALL_QUALITY_HI, FLOOR_QUALITY_HI, SCREEN_SCALE_2x2, false, DEPTH_SHADING_ON, true, RENDERER_DOOM},  	// CUSTOM
+	{FRAME_LIMIT_60, 3, WALL_QUALITY_HI, FLOOR_QUALITY_HI, SCREEN_SCALE_1x1, false, DEPTH_SHADING_ON, false, RENDERER_DOOM},  	// CUSTOM
 	{FRAME_LIMIT_60, 5, WALL_QUALITY_HI, FLOOR_QUALITY_HI, SCREEN_SCALE_1x1, true, DEPTH_SHADING_ON, true, RENDERER_DOOM},		// MAX
 };
 
@@ -127,6 +127,7 @@ enum {
 	mi_shading_items,   // Shading enable option for items (weapons, enemies, things, etc)
 	mi_renderer,        // Selection of the new renderers (polygons instead of columns, etc)
 	mi_gimmicks,		// Extra gimmicky rendering things (pure wireframe, etc)
+	mi_border,			// Draw background border (on/off)
 	mi_mapLines,        // Map thick lines on/off
 	mi_waterFx,         // Water fx on/off
 	mi_sky,             // New skies
@@ -396,11 +397,12 @@ void initMenuOptions()
     setItemPageRange(mi_presets, mi_renderer, page_rendering);
 
     setMenuItemWithOptionNames(mi_gimmicks, 48, 40, "Gimmicks", false, muiStyle_text, &optOther->gimmicks, GIMMICKS_OPTIONS_NUM, gimmickOptionsStr); setMenuItemVisibility(mi_gimmicks, enableGimmicks);
-    setMenuItemWithOptionNames(mi_mapLines, 48, 60, "Map lines", false, muiStyle_text, &optOther->thickLines, THICK_LINES_OPTIONS_NUM, thicklinesOptionsStr);
-    setMenuItemWithOptionNames(mi_waterFx, 80, 80, "Water fx", false, muiStyle_text, &optOther->waterFx, OFFON_OPTIONS_NUM, offOnOptionsStr);
+    setMenuItemWithOptionNames(mi_border, 40, 60, "Draw border", false, muiStyle_text, &optOther->border, OFFON_OPTIONS_NUM,offOnOptionsStr);
+    setMenuItemWithOptionNames(mi_mapLines, 48, 80, "Map lines", false, muiStyle_text, &optOther->thickLines, THICK_LINES_OPTIONS_NUM, thicklinesOptionsStr);
+    setMenuItemWithOptionNames(mi_waterFx, 80, 100, "Water fx", false, muiStyle_text, &optOther->border, OFFON_OPTIONS_NUM, offOnOptionsStr);
         setMenuItemVisibility(mi_waterFx, false);   // removing this in case I won't be able to fully implement it in this release
-    setMenuItemWithOptionNames(mi_sky, 96, 100, "Sky", false, muiStyle_text, &optOther->sky, SKY_OPTIONS_NUM, skyOptionsStr); setMenuItemVisibility(mi_sky, enableNewSkies);
-    setMenuItem(mi_firesky_slider, 96, 120, 0, false, muiStyle_slider, &optOther->fireSkyHeight, SKY_HEIGHTS_OPTIONS_NUM); setMenuItemVisibility(mi_firesky_slider, false);
+    setMenuItemWithOptionNames(mi_sky, 96, 120, "Sky", false, muiStyle_text, &optOther->sky, SKY_OPTIONS_NUM, skyOptionsStr); setMenuItemVisibility(mi_sky, enableNewSkies);
+    setMenuItem(mi_firesky_slider, 96, 140, 0, false, muiStyle_slider, &optOther->fireSkyHeight, SKY_HEIGHTS_OPTIONS_NUM); setMenuItemVisibility(mi_firesky_slider, false);
     setItemPageRange(mi_gimmicks, mi_firesky_slider, page_effects);
 
     setMenuItem(mi_enableCheats, 160, 40, "Enable cheats", true, muiStyle_slider, &optOther->cheatsRevealed, CHEATS_REVEALED_OPTIONS_NUM);

@@ -86,11 +86,11 @@ void setupOffscreenCel()
 	if (optGraphics->fitToScreen) {
 		offscreenCel->ccb_XPos = 0;
 		offscreenCel->ccb_YPos = 0;
-		offscreenCel->ccb_HDX = (320 << 20) / ScreenWidth;
-		offscreenCel->ccb_VDY = (160 << 16) / ScreenHeight;
+		offscreenCel->ccb_HDX = ((320 << 20) + (1 << 19)) / ScreenWidth;
+		offscreenCel->ccb_VDY = ((160 << 16) + (1 << 15)) / ScreenHeight;
 	} else {
-		offscreenCel->ccb_XPos = ScreenXOffsetUnscaled << 16;
-		offscreenCel->ccb_YPos = ScreenYOffsetUnscaled << 16;
+		offscreenCel->ccb_XPos = ScreenXOffsetPhysical << 16;
+		offscreenCel->ccb_YPos = ScreenYOffsetPhysical << 16;
 		offscreenCel->ccb_HDX = (1 + screenScaleX) << 20;
 		offscreenCel->ccb_VDY = (1 + screenScaleY) << 16;
 	}

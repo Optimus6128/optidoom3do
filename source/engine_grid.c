@@ -15,10 +15,10 @@ static void recalculateGridMeshVertices()
 	int xp, yp;
 	int dx, dy;
 
-	int ScreenXOffsetFinal = ScreenXOffsetUnscaled;
-	int ScreenYOffsetFinal = ScreenYOffsetUnscaled;
-	int ScreenWidthFinal = ScreenWidthUnscaled;
-	int ScreenHeightFinal = ScreenHeightUnscaled;
+	int ScreenXOffsetFinal = ScreenXOffsetPhysical;
+	int ScreenYOffsetFinal = ScreenYOffsetPhysical;
+	int ScreenWidthFinal = ScreenWidthPhysical;
+	int ScreenHeightFinal = ScreenHeightPhysical;
 
 	if (optGraphics->fitToScreen) {
 		ScreenXOffsetFinal = 0;
@@ -143,8 +143,8 @@ static void warpGridVertices(int t)
 	const int yCount = gridMesh->height + 1;
 
 	const int gravity = isin[(t << 1) & 255] + 4096;	// range 0 to 8192
-	const int centerX = ScreenXOffsetUnscaled + ScreenWidthUnscaled / 2;
-	const int centerY = ScreenYOffsetUnscaled + ScreenHeightUnscaled / 2;
+	const int centerX = ScreenXOffsetPhysical + ScreenWidthPhysical / 2;
+	const int centerY = ScreenYOffsetPhysical + ScreenHeightPhysical / 2;
 
 	int x, y;
 	int i = 0;

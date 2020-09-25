@@ -2071,14 +2071,14 @@ Word CenterX;			/* Center X coord in fixed point */
 Word CenterY;			/* Center Y coord in fixed point */
 Word ScreenWidth;	/* Width of the view screen */
 Word ScreenHeight;	/* Height of the view screen */
-Word ScreenWidthUnscaled;	/* True Width of the view screen (before screen scale)*/
-Word ScreenHeightUnscaled;	/* True Height of the view screen (before screen scale)*/
+Word ScreenWidthPhysical;	/* True Width of the view screen (after screen scale, excluding fit to screen)*/
+Word ScreenHeightPhysical;	/* True Height of the view screen (after screen scale, excluding fit to screen)*/
 Fixed Stretch;		/* Stretch factor */
 Fixed StretchWidth;	/* Stretch factor * ScreenWidth */
 Word ScreenXOffset;	/* True X coord for projected screen */
 Word ScreenYOffset;	/* True Y coord for projected screen */
-Word ScreenXOffsetUnscaled;	/* True X coord for projected screen (before screen scale)*/
-Word ScreenYOffsetUnscaled;	/* True Y coord for projected screen (before screen scale)*/
+Word ScreenXOffsetPhysical;	/* True X coord for projected screen (after screen scale, excluding fit to screen)*/
+Word ScreenYOffsetPhysical;	/* True Y coord for projected screen (after screen scale, excluding fit to screen)*/
 LongWord GunXScale;	/* Scale factor for player's weapon for X */
 LongWord GunYScale;	/* Scale factor for player's weapon for Y */
 Fixed lightmins[256];	/* Minimum light factors */

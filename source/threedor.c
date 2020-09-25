@@ -317,6 +317,8 @@ void DrawARect(Word x1,Word y1,Word Width,Word Height,Word color)
 {
 	MyCCB* DestCCB;			/* Pointer to new CCB entry */
 
+	if (Width==0 || Height==0) return;
+
 	DestCCB = CurrentCCB;		/* Copy pointer to local */
 	if (DestCCB>=&CCBArray[CCBTotal]) {		/* Am I full already? */
 		FlushCCBs();				/* Draw all the CCBs/Lines */
