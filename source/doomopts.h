@@ -71,6 +71,17 @@ enum
     RENDERER_OPTIONS_NUM
 };
 
+// Frame limiter options
+enum
+{
+	FRAME_LIMIT_OFF,
+	FRAME_LIMIT_15,
+	FRAME_LIMIT_20,
+	FRAME_LIMIT_30,
+	FRAME_LIMIT_60,
+	FRAME_LIMIT_OPTIONS_NUM
+};
+
 // New Sky Types
 enum {
     SKY_DEFAULT,
@@ -89,7 +100,6 @@ enum
     GIMMICKS_WIREFRAME,
     GIMMICKS_CUBE,
     GIMMICKS_DISTORT,
-    GIMMICKS_WARP,
     GIMMICKS_MOTION_BLUR,
     GIMMICKS_OPTIONS_NUM
 };
@@ -134,6 +144,7 @@ enum
 
 typedef struct GraphicsOptions
 {
+	Word frameLimit;
 	Word screenSizeIndex;
 	Word wallQuality;
 	Word floorQuality;

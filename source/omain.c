@@ -24,20 +24,20 @@ GraphicsOptions *optGraphics = &options.graphics;
 OtherOptions *optOther = &options.other;
 
 
-static AllOptions optionsDefault = {{SCREENSIZE_OPTIONS_NUM - 3, WALL_QUALITY_HI, FLOOR_QUALITY_HI, SCREEN_SCALE_1x1, false, DEPTH_SHADING_ON, false, RENDERER_DOOM},
+static AllOptions optionsDefault = {{FRAME_LIMIT_60, SCREENSIZE_OPTIONS_NUM - 3, WALL_QUALITY_HI, FLOOR_QUALITY_HI, SCREEN_SCALE_1x1, false, DEPTH_SHADING_ON, false, RENDERER_DOOM},
 									{STATS_OFF, GIMMICKS_OFF, false, false, SKY_DEFAULT, 2, CHEATS_OFF, AUTOMAP_CHEAT_OFF, false, false, false, PLAYER_SPEED_1X, ENEMY_SPEED_1X, false, false}};
 
 static GraphicsOptions graphicsPresets[PRESET_OPTIONS_NUM] = {
-	{0, WALL_QUALITY_MED, FLOOR_QUALITY_MED, SCREEN_SCALE_2x2, true, DEPTH_SHADING_ON, true, RENDERER_DOOM},	// MIN
-	{0, WALL_QUALITY_LO, FLOOR_QUALITY_LO, SCREEN_SCALE_2x2, true, DEPTH_SHADING_BRIGHT, false, RENDERER_POLY},	// ATARI
-	{5, WALL_QUALITY_LO, FLOOR_QUALITY_LO, SCREEN_SCALE_1x1, true, DEPTH_SHADING_BRIGHT, false, RENDERER_POLY},	// AMIGA
-	{3, WALL_QUALITY_HI, FLOOR_QUALITY_LO, SCREEN_SCALE_2x1, true, DEPTH_SHADING_ON, true, RENDERER_DOOM},		// SNES
-	{3, WALL_QUALITY_HI, FLOOR_QUALITY_HI, SCREEN_SCALE_2x1, true, DEPTH_SHADING_BRIGHT, false, RENDERER_DOOM},	// GBA
-	{5, WALL_QUALITY_HI, FLOOR_QUALITY_HI, SCREEN_SCALE_2x1, true, DEPTH_SHADING_BRIGHT, false, RENDERER_DOOM},	// JAGUAR
-	{3, WALL_QUALITY_HI, FLOOR_QUALITY_HI, SCREEN_SCALE_1x1, false, DEPTH_SHADING_ON, false, RENDERER_DOOM},	// DEFAULT
-	{4, WALL_QUALITY_HI, FLOOR_QUALITY_MED, SCREEN_SCALE_2x1, false, DEPTH_SHADING_DARK, false, RENDERER_DOOM},// FASTER
-	{5, WALL_QUALITY_HI, FLOOR_QUALITY_HI, SCREEN_SCALE_2x2, false, DEPTH_SHADING_ON, true, RENDERER_DOOM},  	// CUSTOM
-	{5, WALL_QUALITY_HI, FLOOR_QUALITY_HI, SCREEN_SCALE_1x1, true, DEPTH_SHADING_ON, true, RENDERER_DOOM},		// MAX
+	{FRAME_LIMIT_60, 0, WALL_QUALITY_MED, FLOOR_QUALITY_MED, SCREEN_SCALE_2x2, true, DEPTH_SHADING_ON, true, RENDERER_DOOM},	// MIN
+	{FRAME_LIMIT_30, 0, WALL_QUALITY_LO, FLOOR_QUALITY_LO, SCREEN_SCALE_2x2, true, DEPTH_SHADING_BRIGHT, false, RENDERER_POLY},	// ATARI
+	{FRAME_LIMIT_30, 5, WALL_QUALITY_LO, FLOOR_QUALITY_LO, SCREEN_SCALE_1x1, true, DEPTH_SHADING_BRIGHT, false, RENDERER_POLY},	// AMIGA
+	{FRAME_LIMIT_30, 3, WALL_QUALITY_HI, FLOOR_QUALITY_LO, SCREEN_SCALE_2x1, true, DEPTH_SHADING_ON, true, RENDERER_DOOM},		// SNES
+	{FRAME_LIMIT_30, 3, WALL_QUALITY_HI, FLOOR_QUALITY_HI, SCREEN_SCALE_2x1, true, DEPTH_SHADING_BRIGHT, false, RENDERER_DOOM},	// GBA
+	{FRAME_LIMIT_20, 5, WALL_QUALITY_HI, FLOOR_QUALITY_HI, SCREEN_SCALE_2x1, true, DEPTH_SHADING_BRIGHT, false, RENDERER_DOOM},	// JAGUAR
+	{FRAME_LIMIT_60, 3, WALL_QUALITY_HI, FLOOR_QUALITY_HI, SCREEN_SCALE_1x1, false, DEPTH_SHADING_ON, false, RENDERER_DOOM},	// DEFAULT
+	{FRAME_LIMIT_30, 4, WALL_QUALITY_HI, FLOOR_QUALITY_MED, SCREEN_SCALE_2x1, false, DEPTH_SHADING_DARK, false, RENDERER_DOOM},// FASTER
+	{FRAME_LIMIT_30, 5, WALL_QUALITY_HI, FLOOR_QUALITY_HI, SCREEN_SCALE_2x2, false, DEPTH_SHADING_ON, true, RENDERER_DOOM},  	// CUSTOM
+	{FRAME_LIMIT_60, 5, WALL_QUALITY_HI, FLOOR_QUALITY_HI, SCREEN_SCALE_1x1, true, DEPTH_SHADING_ON, true, RENDERER_DOOM},		// MAX
 };
 
 static Word cursorFrame;		// Skull animation frame
@@ -80,7 +80,7 @@ static void *sliderShapes;
 
 // ======== Variables for all the option values ========
 
-Word presets = PRESET_GFX_DEFAULT;
+Word presets = PRESET_GFX_CUSTOM;
 
 #ifdef DEBUG_MENU_HACK
     Word opt_dbg1;
@@ -116,11 +116,11 @@ enum {
     mi_dbg7,
     mi_dbg8,
 #endif
-
-	mi_presets,			// Graphics presets selection
+	mi_frameLimit,		// Frame limit options
 	mi_screenSize,      // Screen size settings
 	mi_wallQuality,     // Wall quality (fullres(hi), halfres(med), untextured(lo))
 	mi_floorQuality,    // Floor/Ceiling quality (textured, flat)
+	mi_presets,			// Graphics presets selection
 	mi_screenScale,		// Pixel scaling of screen (1x1, 2x1, 1x2, 2x2)
 	mi_fitToScreen,		// Switch to fit small window to fullscreen (On/Off)
 	mi_shading_depth,   // Depth shading option (on, off (dark/bright))
@@ -166,6 +166,7 @@ enum {
 #define THICK_LINES_OPTIONS_NUM 2
 #define SKY_HEIGHTS_OPTIONS_NUM 4
 
+static char *frameLimitOptionsStr[FRAME_LIMIT_OPTIONS_NUM] = { "UNLIMITED", "15", "20", "30", "60" };
 static char *presetOptionsStr[PRESET_OPTIONS_NUM] = { "MIN", "ATARI", "AMIGA", "SNES", "GBA", "JAGUAR", "DEFAULT", "FASTER", "CUSTOM", "MAX" };
 static char *offOnOptionsStr[OFFON_OPTIONS_NUM] = { "OFF", "ON" };
 static char *statsOptionsStr[STATS_OPTIONS_NUM] = { "OFF", "FPS", "MEM", "ALL" };
@@ -174,7 +175,7 @@ static char *floorQualityOptionsStr[FLOOR_QUALITY_OPTIONS_NUM] = { "LO", "MED", 
 static char *screenScaleOptionsStr[SCREEN_SCALE_OPTIONS_NUM] = { "1x1", "2x1", "1x2", "2x2" };
 static char *depthShadingOptionsStr[DEPTH_SHADING_OPTIONS_NUM] = { "DARK", "BRIGHT", "ON" };
 static char *rendererOptionsStr[RENDERER_OPTIONS_NUM] = { "DOOM", "POLY" };
-static char *gimmickOptionsStr[GIMMICKS_OPTIONS_NUM] = { "OFF", "WIREFRAME", "CUBE", "DISTORT", "WARP", "BLUR" };
+static char *gimmickOptionsStr[GIMMICKS_OPTIONS_NUM] = { "OFF", "WIREFRAME", "CUBE", "DISTORT", "BLUR" };
 static char *automapOptionsStr[AUTOMAP_OPTIONS_NUM] = { "OFF", "THINGS", "LINES", "ALL" };
 static char *dummyIDKFAoptionsStr[DUMMY_IDKFA_OPTIONS_NUM] = { " ", "!" };
 static char *thicklinesOptionsStr[THICK_LINES_OPTIONS_NUM] = { "NORMAL", "THICK" };
@@ -299,7 +300,7 @@ void setScreenScaleValuesFromOption()
 	screenScaleX = optGraphics->screenScale & 1;
 	screenScaleY = (optGraphics->screenScale & 2) >> 1;
 	useOffscreenBuffer = (screenScaleX | screenScaleY | optGraphics->fitToScreen | (optOther->gimmicks == GIMMICKS_CUBE) | (optOther->gimmicks == GIMMICKS_MOTION_BLUR));
-	useOffscreenGrid = (optOther->gimmicks >= GIMMICKS_DISTORT && optOther->gimmicks <= GIMMICKS_WARP);
+	useOffscreenGrid = (optOther->gimmicks == GIMMICKS_DISTORT);
 }
 
 #ifdef DEBUG_MENU_HACK
@@ -347,8 +348,6 @@ static void initScreenChangeVariables(bool shouldInitMathTables)
 
 void setPrimaryMenuOptions() // Set menu options only once at start up
 {
-	setScreenSizeSliderFromOption();
-
 	copyAllOptions(&options, &optionsDefault);
 	initScreenChangeVariables(true);
 
@@ -356,8 +355,6 @@ void setPrimaryMenuOptions() // Set menu options only once at start up
 	initDefaultDebugOptions();
 	opt_dbg8 = 0;
 #endif
-
-    resetMenuOptions();
 }
 
 void initMenuOptions()
@@ -384,18 +381,19 @@ void initMenuOptions()
     setItemPageRange(mi_dbg5, mi_dbg8, page_debug2);
 #endif
 
-    setMenuItemWithOptionNames(mi_presets, 56, 36, "Presets", false, muiStyle_text, &presets, PRESET_OPTIONS_NUM, presetOptionsStr);
+    setMenuItemWithOptionNames(mi_frameLimit, 32, 36, "Frame max", false, muiStyle_text, &optGraphics->frameLimit, FRAME_LIMIT_OPTIONS_NUM, frameLimitOptionsStr);
     setMenuItem(mi_screenSize, 160, 58, "Screen size", true, muiStyle_slider, &optGraphics->screenSizeIndex, SCREENSIZE_OPTIONS_NUM);
     setMenuItemWithOptionNames(mi_wallQuality, 112, 94, "Wall", false, muiStyle_text | muiStyle_slider, &optGraphics->wallQuality, WALL_QUALITY_OPTIONS_NUM, wallQualityOptionsStr);
     setMenuItemWithOptionNames(mi_floorQuality, 96, 126, "Floor", false, muiStyle_text | muiStyle_slider, &optGraphics->floorQuality, FLOOR_QUALITY_OPTIONS_NUM, floorQualityOptionsStr);
-	setItemPageRange(mi_presets, mi_floorQuality, page_performance);
+	setItemPageRange(mi_frameLimit, mi_floorQuality, page_performance);
 
-    setMenuItemWithOptionNames(mi_screenScale, 92, 40, "Scale", false, muiStyle_text, &optGraphics->screenScale, SCREEN_SCALE_OPTIONS_NUM, screenScaleOptionsStr);
-    setMenuItemWithOptionNames(mi_fitToScreen, 40, 60, "Fit to screen", false, muiStyle_text, &optGraphics->fitToScreen, OFFON_OPTIONS_NUM, offOnOptionsStr);
-	setMenuItemWithOptionNames(mi_shading_depth, 40, 80, "Depth shade", false, muiStyle_text, &optGraphics->depthShading, DEPTH_SHADING_OPTIONS_NUM, depthShadingOptionsStr);
-    setMenuItemWithOptionNames(mi_shading_items, 36, 100, "Things shade", false, muiStyle_text, &optGraphics->thingsShading, OFFON_OPTIONS_NUM, offOnOptionsStr);
-    setMenuItemWithOptionNames(mi_renderer, 48, 120, "Renderer", false, muiStyle_text, &optGraphics->renderer, RENDERER_OPTIONS_NUM, rendererOptionsStr);
-    setItemPageRange(mi_screenScale, mi_renderer, page_rendering);
+    setMenuItemWithOptionNames(mi_presets, 56, 40, "Presets", false, muiStyle_text, &presets, PRESET_OPTIONS_NUM, presetOptionsStr);
+    setMenuItemWithOptionNames(mi_screenScale, 92, 60, "Scale", false, muiStyle_text, &optGraphics->screenScale, SCREEN_SCALE_OPTIONS_NUM, screenScaleOptionsStr);
+    setMenuItemWithOptionNames(mi_fitToScreen, 40, 80, "Fit to screen", false, muiStyle_text, &optGraphics->fitToScreen, OFFON_OPTIONS_NUM, offOnOptionsStr);
+	setMenuItemWithOptionNames(mi_shading_depth, 40, 100, "Depth shade", false, muiStyle_text, &optGraphics->depthShading, DEPTH_SHADING_OPTIONS_NUM, depthShadingOptionsStr);
+    setMenuItemWithOptionNames(mi_shading_items, 36, 120, "Things shade", false, muiStyle_text, &optGraphics->thingsShading, OFFON_OPTIONS_NUM, offOnOptionsStr);
+    setMenuItemWithOptionNames(mi_renderer, 48, 140, "Renderer", false, muiStyle_text, &optGraphics->renderer, RENDERER_OPTIONS_NUM, rendererOptionsStr);
+    setItemPageRange(mi_presets, mi_renderer, page_rendering);
 
     setMenuItemWithOptionNames(mi_gimmicks, 48, 40, "Gimmicks", false, muiStyle_text, &optOther->gimmicks, GIMMICKS_OPTIONS_NUM, gimmickOptionsStr); setMenuItemVisibility(mi_gimmicks, enableGimmicks);
     setMenuItemWithOptionNames(mi_mapLines, 48, 60, "Map lines", false, muiStyle_text, &optOther->thickLines, THICK_LINES_OPTIONS_NUM, thicklinesOptionsStr);

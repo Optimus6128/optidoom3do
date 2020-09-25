@@ -107,9 +107,9 @@ static void renderOffscreenBufferGrid()
 			updateGridFx(GRID_FX_DISTORT, t);
 		break;
 
-		case GIMMICKS_WARP:
+		/*case GIMMICKS_WARP:
 			updateGridFx(GRID_FX_WARP, t);
-		break;
+		break;*/
 
 		default:
 		break;

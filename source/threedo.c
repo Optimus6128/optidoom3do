@@ -13,12 +13,11 @@
 
 #include "engine_main.h"
 
-//#define SHOW_LOGOS
+#define SHOW_LOGOS
 
 static void LowMemCode(Word Type);
 static void WipeDoom(LongWord *OldScreen,LongWord *NewScreen);
 
-static LongWord LastTicCount;	/* Time mark for page flipping */
 LongWord LastTics;				/* Time elapsed since last page flip */
 Word WorkPage;					/* Which frame is not being displayed */
 
@@ -577,15 +576,25 @@ static void updateMyFpsAndDebugPrint()
 #endif
 }
 
-static void wait60hz()
+static void frameWait()
 {
-	LongWord NewTick;
+	static LongWord LastTicCount;	// Time mark for page flipping
+	static int lastMyTick = 0;
 
-	do {
-		NewTick = ReadTick();	/* Get the time mark */
-		LastTics = NewTick - LastTicCount;	/* Get the time elapsed */
-	} while (!LastTics);		/* Hmmm, too fast?!?!? */
-	LastTicCount = NewTick;				/* Save the time mark */
+	if (optGraphics->frameLimit > 0) {
+		const int count = FRAME_LIMIT_OPTIONS_NUM - optGraphics->frameLimit;
+
+		LongWord NewTick;
+		do {
+			NewTick = ReadTick();	/* Get the time mark */
+			LastTics = NewTick - LastTicCount;	/* Get the time elapsed */
+		} while (LastTics < count);		/* Hmmm, too fast?!?!? */
+		LastTicCount = NewTick;				/* Save the time mark */
+	} else {
+		LastTics = ((getTicks() - lastMyTick) * 60) / 1000;
+		if (LastTics==0) ++ LastTics;
+	}
+	lastMyTick = getTicks();
 }
 
 void updateScreenAndWait()
@@ -595,7 +604,8 @@ void updateScreenAndWait()
 		WorkPage = 0;
 	}
 	SetMyScreen(WorkPage);		/* Set the 3DO vars */
-	wait60hz();
+
+	frameWait();
 
 	frameTime = getTicks();
 	++nframe;
