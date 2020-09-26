@@ -37,7 +37,7 @@ void initCCBarrayWall(void)
 
 		// Set all the defaults
         CCBPtr->ccb_Flags = CCB_SPABS|CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|
-                            CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_PPABS|CCB_USEAV|CCB_ACSC|CCB_ALSC;	// ccb_flags
+                            CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_PPABS|CCB_ACSC|CCB_ALSC;	// ccb_flags
 
         if (i==0) CCBPtr->ccb_Flags |= CCB_LDPLUT;  // First CEL column will set the palette for the rest
 
@@ -80,7 +80,7 @@ void initCCBarrayWallFlat(void)
 		CCBPtr->ccb_NextPtr = (MyCCB *)(sizeof(MyCCB)-8);	// Create the next offset
 
 		// Set all the defaults
-        CCBPtr->ccb_Flags = CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_USEAV|CCB_ACSC|CCB_ALSC|CCB_SPABS|CCB_PPABS;
+        CCBPtr->ccb_Flags = CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_ACSC|CCB_ALSC|CCB_SPABS|CCB_PPABS;
 
         if (i==0) CCBPtr->ccb_Flags |= CCB_LDPLUT;  // First CEL column will set the palette for the rest
 

@@ -26,18 +26,23 @@ Byte *CelLine190;
 Byte SpanArray[MAXSCREENWIDTH*MAXSCREENHEIGHT];	/* Buffer for floor textures */
 Byte *SpanPtr = SpanArray;		/* Pointer to empty buffer */
 
-/* 1/16 - 8/16 */
-// 0x0000,0x0400,0x0800,0x0C00,0x1000,0x1400,0x1800,0x1C00,
-// 0x00D0,0x1300,0x08D0,0x1700,0x10D0,0x1B00,0x18D0,0x1F00,
 
+// New n/16 dark shades LightTable that doesn't require USEAV on the CEL
+// We scrap USEAV because we can the use the 5 AV bits in the future for fog instead (shade to white)
 
 Word LightTable[32] = {
-	0x0000,0x0400,0x0800,0x0C00,0x1000,0x1400,0x1800,0x1C00,
-	0x00D0,0x00D0,0x1300,0x1300,0x08D0,0x08D0,0x1700,0x1700,
-	0x10D0,0x10D0,0x1B00,0x1B00,0x18D0,0x18D0,0x1F00,0x1F00,
-	0x1F00,0x1F00,0x1F00,0x1F00,0x1F00,0x1F00,0x1F00,0x1F00
+ 0x0301,0x0701,0x0B01,0x0F01,0x1301,0x1701,0x1B01,0x1F01,
+ 0x03C1,0x03C1,0x07C1,0x07C1,0x0BC1,0x0BC1,0x0FC1,0x0FC1,
+ 0x13C1,0x13C1,0x17C1,0x17C1,0x1BC1,0x1BC1,0x1FC1,0x1FC1,
+ 0x1FC1,0x1FC1,0x1FC1,0x1FC1,0x1FC1,0x1FC1,0x1FC1,0x1FC1
 };
 
+/*Word LightTableFog[32] = {
+ 0x1F7E,0x1F7C,0x1F7A,0x1F78,0x1F76,0x1F74,0x1F72,0x1F70,
+ 0x1F6E,0x1F6C,0x1F6A,0x1F68,0x1F66,0x1F64,0x1F62,0x1F60,
+ 0x1F5E,0x1F5C,0x1F5A,0x1F58,0x1F56,0x1F54,0x1F52,0x1F50,
+ 0x1F4E,0x1F4C,0x1F4A,0x1F48,0x1F46,0x1F44,0x1F42,0x1F40
+};*/
 
 static void initCCBarray(void)
 {
@@ -360,6 +365,7 @@ void DrawARect(Word x1,Word y1,Word Width,Word Height,Word color)
 
 **********************************/
 
+// OptiDoom comments: I removed the DrawFloor and DrawWall functions and others from here, as I handle them in a different manner and I cleaned up these. However I keep the comments here because they are important.
 
 /**********************************
 
@@ -380,76 +386,6 @@ void DrawARect(Word x1,Word y1,Word Width,Word Height,Word color)
 	No light shading is used. The scale factor is a constant.
 
 **********************************/
-
-void DrawFloorColumn(Word ds_y,Word ds_x1,Word Count,LongWord xfrac,
-	LongWord yfrac,Fixed ds_xstep,Fixed ds_ystep)
-{
-	Byte *DestPtr;
-	MyCCB *DestCCB;
-
-	DestCCB = CurrentCCB;		/* Copy pointer to local */
-	if (DestCCB>=&CCBArray[CCBTotal]) {		/* Am I full already? */
-		FlushCCBs();				/* Draw all the CCBs/Lines */
-		DestCCB=CCBArray;
-	}
-	DestPtr = SpanPtr;
-	DrawASpan(Count,xfrac,yfrac,ds_xstep,ds_ystep,DestPtr);
-
-	DestCCB->ccb_Flags = CCB_SPABS|CCB_LDSIZE|CCB_LDPRS|
-	CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|
-	CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_PPABS|CCB_LDPLUT|CCB_USEAV;	/* ccb_flags */
-
-	DestCCB->ccb_PRE0 = 0x00000005;		/* Preamble (Coded 8 bit) */
-	DestCCB->ccb_PRE1 = 0x3E005000|(Count-1);		/* Second preamble */
-	DestCCB->ccb_SourcePtr = (CelData *)DestPtr;	/* Save the source ptr */
-	DestCCB->ccb_PLUTPtr = PlaneSource;		/* Get the palette ptr */
-	DestCCB->ccb_XPos = ds_x1<<16;		/* Set the x and y coord for start */
-	DestCCB->ccb_YPos = ds_y<<16;
-	DestCCB->ccb_HDX = 1<<20;		/* OK */
-	DestCCB->ccb_HDY = 0<<20;
-	DestCCB->ccb_VDX = 0<<16;
-	DestCCB->ccb_VDY = 1<<16;
-	DestCCB->ccb_PIXC = LightTable[tx_texturelight>>LIGHTSCALESHIFT];			/* PIXC control */
-
-	Count = (Count+3)&(~3);		/* Round to nearest longword */
-	DestPtr += Count;
-	SpanPtr = DestPtr;
-	++DestCCB;			/* Next CCB */
-	CurrentCCB = DestCCB;	/* Save the CCB pointer */
-}
-
-void DrawFlatFloorColumn(Word ds_y,Word ds_x1,Word length)
-{
-	MyCCB* DestCCB;			/* Pointer to new CCB entry */
-
-	DestCCB = CurrentCCB;		/* Copy pointer to local */
-	if (DestCCB>=&CCBArray[CCBTotal]) {		/* Am I full already? */
-		FlushCCBs();				/* Draw all the CCBs/Lines */
-		DestCCB=CCBArray;
-	}
-	DestCCB->ccb_Flags = CCB_LDSIZE|CCB_LDPRS|
-		CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|
-		CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_USEAV;	/* ccb_flags */
-
-//0x0000,0x0400,0x0800,0x0C00,0x1000,0x1400,0x1800,0x1C00,	/* 1/16 - 8/16 */
-	//0x00D0,0x00D0,0x1300,0x1300,0x08D0,0x08D0,0x1700,0x1700,
-	//0x10D0,0x10D0,0x1B00,0x1B00,0x18D0,0x18D0,0x1F00,0x1F00,
-
-	DestCCB->ccb_PIXC = LightTable[tx_texturelight>>LIGHTSCALESHIFT];		/* PIXC control */
-	DestCCB->ccb_PRE0 = 0x40000016;		/* Preamble */
-	DestCCB->ccb_PRE1 = 0x03FF1000;		/* Second preamble */
-	DestCCB->ccb_SourcePtr = (CelData *)0;	/* Save the source ptr */
-	DestCCB->ccb_PLUTPtr = (void*)(((Word*)PlaneSource)[0] << 16);		/* Set the color pixel */
-	DestCCB->ccb_XPos = ds_x1<<16;		/* Set the x and y coord for start */
-	DestCCB->ccb_YPos = ds_y<<16;
-	DestCCB->ccb_HDX = length<<20;		/* OK */
-	DestCCB->ccb_HDY = 0<<20;
-	DestCCB->ccb_VDX = 0<<16;
-	DestCCB->ccb_VDY = 1<<16;
-	++DestCCB;			/* Next CCB */
-
-	CurrentCCB = DestCCB;	/* Save the CCB pointer */
-}
 
 void clearSpanArray()
 {

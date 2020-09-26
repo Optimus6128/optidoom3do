@@ -56,7 +56,7 @@ void initCCBarrayFloor(void)
         CCBPtr->ccb_NextPtr = (MyCCB *)(sizeof(MyCCB)-8);	// Create the next offset
 
 		// Set all the defaults
-        CCBPtr->ccb_Flags = CCB_SPABS|CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_PPABS|CCB_USEAV;
+        CCBPtr->ccb_Flags = CCB_SPABS|CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_PPABS;
 
         CCBPtr->ccb_PRE0 = 0x00000005;		// Preamble (Coded 8 bit)
         CCBPtr->ccb_HDX = 1<<20;
@@ -78,7 +78,7 @@ void initCCBarrayFloorFlat(void)
 		CCBPtr->ccb_NextPtr = (MyCCB *)(sizeof(MyCCB)-8);	// Create the next offset
 
 		// Set all the defaults
-        CCBPtr->ccb_Flags = CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_USEAV;
+        CCBPtr->ccb_Flags = CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK;
 
         CCBPtr->ccb_PRE0 = 0x40000016;
         CCBPtr->ccb_PRE1 = 0x03FF1000;
@@ -101,7 +101,7 @@ void initCCBarrayFloorFlatVertical(void)
 		CCBPtr->ccb_NextPtr = (MyCCB *)(sizeof(MyCCB)-8);	// Create the next offset
 
 		// Set all the defaults
-        CCBPtr->ccb_Flags = CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_USEAV;
+        CCBPtr->ccb_Flags = CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK;
 
         CCBPtr->ccb_PRE0 = 0x40000016;
         CCBPtr->ccb_PRE1 = 0x03FF1000;
@@ -156,56 +156,6 @@ void drawCCBarrayFloorFlatVertical(MyCCB *columnCCBend)
     DrawCels(VideoItem,(CCB*)columnCCBstart);           // Draw all the cels of a single floor in one shot
     columnCCBend->ccb_Flags ^= CCB_LAST;                // remember to flip off that CCB_LAST flag, since we don't reinit the flags for all columns every time
 }
-
-
-/*
-static void MapPlaneOldWaterFX(Word y)
-{
-	angle_t	angle;
-	Word distance;
-	Fixed length;
-	Fixed xfrac,yfrac,xstep,ystep;
-	Word x1, x2;
-
-    // planeheight is 10.6
-    // yslope is 6.10, distscale is 1.15
-    // distance is 12.4
-    // length is 11.5
-
-	x1 = spandata[y].x1;
-	x2 = spandata[y].x2;
-	distance = (yslope[y]*PlaneHeight)>>12;	// Get the offset for the plane height
-	length = (distscale[x1]*distance)>>14;
-	angle = (xtoviewangle[x1]+viewangle)>>ANGLETOFINESHIFT;
-
-    // xfrac, yfrac, xstep, ystep
-
-	xfrac = (((finecosine[angle]>>1)*length)>>4)+viewx;
-	yfrac = planey - (((finesine[angle]>>1)*length)>>4);
-
-	xstep = ((Fixed)distance*basexscale)>>4;
-	ystep = ((Fixed)distance*baseyscale)>>4;
-
-	if (optOther->waterFx) {
-        xfrac += (SinF16(((yslope[y]*PlaneHeight) >> 4) + (nframe << 4)) * (basexscale << 4));
-        yfrac += (SinF16(((yslope[y]*PlaneHeight) >> 4) + (nframe << 4)) * (baseyscale << 4));
-	}
-
-	length = lightcoef / (Fixed)distance - lightsub;
-	if (length < lightmin) {
-		length = lightmin;
-	}
-	if (length > lightmax) {
-		length = lightmax;
-	}
-	tx_texturelight = length;
-	if (optGraphics->floorQuality > FLOOR_QUALITY_LO)
-        DrawFloorColumn(y,x1,x2-x1,xfrac,yfrac,xstep,ystep);
-    else
-        DrawFlatFloorColumn(y,x1,x2-x1);
-}
-*/
-
 
 static void MapPlane(Word y1, Word y2)
 {
