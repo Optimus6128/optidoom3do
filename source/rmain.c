@@ -29,7 +29,7 @@ angle_t clipangle;		/* Leftmost clipping angle */
 angle_t doubleclipangle; /* Doubled leftmost clipping angle */
 
 
-int offscreenPage = SCREENS-1;
+int offscreenPage;
 
 static CCB *offscreenCel = NULL;
 static Mesh *cubeMesh;
@@ -190,6 +190,7 @@ void R_RenderPlayerView (void)
 
 	FlushCCBs();
 	if (useOffscreenBuffer || useOffscreenGrid) {
+		setupOffscreenCel();
 		SetMyScreen(offscreenPage);	// Offscreen buffer is the last
 	}
 

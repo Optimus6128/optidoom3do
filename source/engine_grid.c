@@ -207,15 +207,12 @@ static void prepareGridCELs()
 	int *indices = gridMesh->index;
 	Point quad[4];
 
-	int smallOffset = 1;
-	if (optOther->gimmicks == GIMMICKS_MOTION_BLUR) smallOffset = 0;
-
 	for (i=0; i<gridMesh->indexNum; i+=4)
 	{
 		quad[0].pt_X = gridVertices[indices[i]].x; quad[0].pt_Y = gridVertices[indices[i]].y;
-		quad[1].pt_X = gridVertices[indices[i+1]].x+smallOffset; quad[1].pt_Y = gridVertices[indices[i+1]].y;
-		quad[2].pt_X = gridVertices[indices[i+2]].x+smallOffset; quad[2].pt_Y = gridVertices[indices[i+2]].y+smallOffset;
-		quad[3].pt_X = gridVertices[indices[i+3]].x; quad[3].pt_Y = gridVertices[indices[i+3]].y+smallOffset;
+		quad[1].pt_X = gridVertices[indices[i+1]].x+1; quad[1].pt_Y = gridVertices[indices[i+1]].y;
+		quad[2].pt_X = gridVertices[indices[i+2]].x+1; quad[2].pt_Y = gridVertices[indices[i+2]].y+1;
+		quad[3].pt_X = gridVertices[indices[i+3]].x; quad[3].pt_Y = gridVertices[indices[i+3]].y+1;
 
 		if (!((quad[0].pt_X == quad[1].pt_X && quad[0].pt_Y == quad[1].pt_Y) || (quad[0].pt_X == quad[3].pt_X && quad[0].pt_Y == quad[3].pt_Y)))
 			MapCel(&gridMesh->cel[j], quad);

@@ -32,7 +32,7 @@ static Item VRAMIOReq;				/* I/O Request for screen copy */
 Item AllSamples[NUMSFX];			/* Items to sound samples */
 Word AllRates[NUMSFX];
 
-static int maxFlipScreens = SCREENS - 1;
+static int maxFlipScreens = SCREENS;
 
 int frameTime;
 
@@ -564,6 +564,7 @@ static void updateMyFpsAndDebugPrint()
 
     if (optOther->stats & 1) {
 		PrintNumber(8, 8, updateAndGetFPS(), 0);
+		++nframe;
     }
     if (optOther->stats & 2) {
 		PrintNumber(0, 128, memLowHits, 0);
@@ -605,10 +606,14 @@ void updateScreenAndWait()
 	}
 	SetMyScreen(WorkPage);		/* Set the 3DO vars */
 
+	offscreenPage = WorkPage + 1;
+	if (offscreenPage>=maxFlipScreens) {
+		offscreenPage = 0;
+	}
+
 	frameWait();
 
 	frameTime = getTicks();
-	++nframe;
 }
 
 void UpdateAndPageFlip(void)
