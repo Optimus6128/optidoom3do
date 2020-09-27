@@ -199,12 +199,17 @@ void InitMathTables(void)
 
 	i = 0;
 	do {
+		// These two magic numbers might be relevant to screen height or aspect ratio
+		// At the moment scaling them like this fixes the issue with different lighting when the y scaler changes
+		// It's almost good with little variations, although I don't know about these numbers yet, so it's a temporary solution
+		const int coeff1 = 800 >> screenScaleY;
+		const int coeff2 = 0x140000 >> screenScaleY;
 		Fixed Range;
 		j = i/3;
 		lightmins[i] = j;	/* Save the light minimum factors */
 		Range = i-j;
-		lightsubs[i] = ((Fixed)ScreenWidth*Range)/(800-(Fixed)ScreenWidth);
-		lightcoefs[i] = (Range<<16)/(800-(Fixed)ScreenWidth);
-		planelightcoef[i] = Range*(0x140000/(800-(Fixed)ScreenWidth));
+		lightsubs[i] = ((Fixed)ScreenWidth*Range)/(coeff1-(Fixed)ScreenWidth);
+		lightcoefs[i] = (Range<<16)/(coeff1-(Fixed)ScreenWidth);
+		planelightcoef[i] = Range*(coeff2/(coeff1-(Fixed)ScreenWidth));
 	} while (++i<256);
 }

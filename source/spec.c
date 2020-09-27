@@ -298,6 +298,9 @@ void P_CrossSpecialLine(line_t *line,mobj_t *thing)
 
 	/* Triggers that other things can activate */
 
+	// If player has activated noclip, no line action should be trigger by passing over
+	if (thing->player && optOther->cheatNoclip) return;
+
 	if (!thing->player) {	/* Not a player? */
 		switch(line->special) {
 		default:	/* None of the above? */

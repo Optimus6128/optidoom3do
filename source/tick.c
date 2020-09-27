@@ -225,10 +225,10 @@ Word P_Ticker(void)
 	O_Control(pl);		/* Handle option controls */
 
 
-	P_PlayerThink(pl);	/* Process player in the game */
-	if (optOther->playerSpeed==PLAYER_SPEED_2X || (optOther->playerSpeed==PLAYER_SPEED_1_5X && speedTicker==0)) P_PlayerThink(pl);  // Do it again (2X speed) or once in two times (1.5X speed)
-
 	if (!(players.AutomapFlags & AF_OPTIONSACTIVE)) {
+
+		P_PlayerThink(pl);	/* Process player in the game */
+		if (optOther->playerSpeed==PLAYER_SPEED_2X || (optOther->playerSpeed==PLAYER_SPEED_1_5X && speedTicker==0)) P_PlayerThink(pl);  // Do it again (2X speed) or once in two times (1.5X speed)
 
 		RunThinkers();		/* Handle logic for doors, walls etc... */
 
