@@ -13,7 +13,7 @@
 
 #include "engine_main.h"
 
-#define SHOW_LOGOS
+//#define SHOW_LOGOS
 
 static void LowMemCode(Word Type);
 static void WipeDoom(LongWord *OldScreen,LongWord *NewScreen);
@@ -29,12 +29,14 @@ static long ScreenByteCount;		/* How many bytes for each screen */
 static Item ScreenGroupItem = 0;	/* Main screen referance */
 static Byte *ScreenMaps[SCREENS];	/* Pointer to the bitmap screens */
 static Item VRAMIOReq;				/* I/O Request for screen copy */
+static Item vsyncItem;
 Item AllSamples[NUMSFX];			/* Items to sound samples */
 Word AllRates[NUMSFX];
 
 static int maxFlipScreens = SCREENS;
 
 int frameTime;
+int displayFreq;
 
 int memLowHits = 0;
 
@@ -302,7 +304,10 @@ static void initSystem()
 
 	MainTask = KernelBase->kb_CurrentTask->t.n_Item;	/* My task Item */
 	VRAMIOReq = GetVRAMIOReq();
+	vsyncItem = GetVBLIOReq();
 	SetMyScreen(0);				/* Init the video display */
+
+	QueryGraphics(QUERYGRAF_TAG_FIELDFREQ, &displayFreq);
 }
 
 
@@ -562,13 +567,17 @@ static void updateMyFpsAndDebugPrint()
 {
 	if (optOther->stats == 0) return;
 
-    if (optOther->stats & 1) {
+    if (optOther->stats >= STATS_FPS) {
 		PrintNumber(8, 8, updateAndGetFPS(), 0);
 		++nframe;
     }
-    if (optOther->stats & 2) {
+    if (optOther->stats >= STATS_MEM) {
 		PrintNumber(0, 128, memLowHits, 0);
 		PrintNumber(0, 144, GetTotalFreeMem(), 0);
+    }
+    if (optOther->stats >= STATS_ALL) {
+		PrintNumber(0, 96, visplanesCount, 0);
+		PrintNumber(0, 112, visplanesCountMax, 0);
     }
 	FlushCCBs();
 
@@ -577,34 +586,76 @@ static void updateMyFpsAndDebugPrint()
 #endif
 }
 
+static void VBLhackHalf(int ticDiff)
+{
+	int vblTicUnder = 16;
+	if (displayFreq == 50) vblTicUnder = 20;
+
+	if (ticDiff < vblTicUnder) {
+		WaitVBL(vsyncItem, 2);
+	} else {
+		WaitVBL(vsyncItem, 1);
+	}
+}
+
+LongWord getVBLtic()
+{
+	static LongWord vblTic;
+
+	QueryGraphics(QUERYGRAF_TAG_FIELDCOUNT, &vblTic);
+	return vblTic;
+}
+
 static void frameWait()
 {
-	static LongWord LastTicCount;	// Time mark for page flipping
+	static LongWord LastTicCount = 0;	// Time mark for page flipping
+	static LongWord NewTick;
 	static int lastMyTick = 0;
 
-	if (optGraphics->frameLimit > 0) {
-		const int count = FRAME_LIMIT_OPTIONS_NUM - optGraphics->frameLimit;
-
-		LongWord NewTick;
+	if (optGraphics->frameLimit >= FRAME_LIMIT_1VBL && optGraphics->frameLimit <= FRAME_LIMIT_4VBL) {
+		const int count = optGraphics->frameLimit;
 		do {
-			NewTick = ReadTick();	/* Get the time mark */
+			NewTick = getVBLtic();	/* Get the time mark */
 			LastTics = NewTick - LastTicCount;	/* Get the time elapsed */
 		} while (LastTics < count);		/* Hmmm, too fast?!?!? */
-		LastTicCount = NewTick;				/* Save the time mark */
 	} else {
-		LastTics = ((getTicks() - lastMyTick) * 60) / 1000;
-		if (LastTics==0) ++ LastTics;
+		if (optGraphics->frameLimit == FRAME_LIMIT_VSYNC) {
+			VBLhackHalf(getTicks() - lastMyTick);
+		}
+		NewTick = getVBLtic();
+		LastTics = NewTick - LastTicCount;
 	}
 	lastMyTick = getTicks();
+	if (LastTics < 1) LastTics = 1;
+	LastTicCount = NewTick;
 }
+
+/*void updateScreenAndWait()
+{
+	DisplayScreen(ScreenItems[WorkPage],0);		// Display the hidden page
+
+	if (++WorkPage>=maxFlipScreens) {		// Next screen in line
+		WorkPage = 0;
+	}
+	offscreenPage = WorkPage;
+
+	if (++WorkPage>=maxFlipScreens) {		// Next screen in line
+		WorkPage = 0;
+	}
+	SetMyScreen(WorkPage);		// Set the 3DO vars
+
+	frameWait();
+
+	frameTime = getTicks();
+}*/
 
 void updateScreenAndWait()
 {
-	DisplayScreen(ScreenItems[WorkPage],0);		/* Display the hidden page */
-	if (++WorkPage>=maxFlipScreens) {		/* Next screen in line */
+	DisplayScreen(ScreenItems[WorkPage],0);		// Display the hidden page
+	if (++WorkPage>=maxFlipScreens) {		// Next screen in line
 		WorkPage = 0;
 	}
-	SetMyScreen(WorkPage);		/* Set the 3DO vars */
+	SetMyScreen(WorkPage);		// Set the 3DO vars
 
 	offscreenPage = WorkPage + 1;
 	if (offscreenPage>=maxFlipScreens) {

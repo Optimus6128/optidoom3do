@@ -61,12 +61,16 @@ void initCCBarraySky(void)
 
 **********************************/
 
+int visplanesCountMax = 0;
+
 static visplane_t *FindPlane(visplane_t *check, viswall_t *segl, int start)
 {
 	Fixed height = segl->floorheight;
 	void **PicHandle = segl->FloorPic;
 	int stop = segl->RightX;
 	Word Light = segl->seglightlevel;
+
+	if (visplanesCount > maxVisplanes-2) return 0;
 
 	++check;		/* Automatically skip to the next plane */
 	if (check<lastvisplane) {
@@ -86,17 +90,18 @@ static visplane_t *FindPlane(visplane_t *check, viswall_t *segl, int start)
 		} while (++check<lastvisplane);
 	}
 
-
 /* make a new plane */
 
 	check = lastvisplane;
 	++lastvisplane;
+	++visplanesCount;
 	check->height = height;		/* Init all the vars in the visplane */
 	check->PicHandle = PicHandle;
 	check->minx = start;
 	check->maxx = stop;
 	check->PlaneLight = Light;		/* Set the light level */
 
+	if (visplanesCount > visplanesCountMax) visplanesCountMax = visplanesCount;
 
 /* Quickly fill in the visplane table */
     {
@@ -152,6 +157,7 @@ static void SegLoopFloor(viswall_t *segl, Word screenCenterY)
         if (top <= bottom) {		// Valid span?
             if (FloorPlane->open[x] != OPENMARK) {	// Not already covered?
                 FloorPlane = FindPlane(FloorPlane, segl, x);
+                if (FloorPlane == 0) return;
             }
             if (top) {
                 --top;
@@ -193,6 +199,7 @@ static void SegLoopCeiling(viswall_t *segl, Word screenCenterY)
         if (top <= bottom) {
             if (CeilingPlane->open[x] != OPENMARK) {		// Already in use?
                 CeilingPlane = FindPlane(CeilingPlane, segl, x);
+                if (CeilingPlane == 0) return;
             }
             if (top) {
                 --top;
@@ -319,7 +326,6 @@ void SegLoop(viswall_t *segl)
         _scalefrac += _scalestep;		// Step to the next scale
 	} while (++x<=segl->RightX);
 	scaleArrayData = scaleData;
-
 
 // Shall I add the floor?
     if (ActionBits & AC_ADDFLOOR) {

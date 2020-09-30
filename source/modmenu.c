@@ -1,5 +1,6 @@
 #include "doom.h"
 #include "bench.h"
+#include "stdio.h"
 
 #include <Init3do.h>
 
@@ -86,6 +87,11 @@ bool loadPsxSamples = false;
 bool enableNewSkies = false;
 bool enableGimmicks = false;
 
+#define NUM_VISPLANE_SELECTIONS 5
+int maxVisplanesNum[NUM_VISPLANE_SELECTIONS] = { 32, 40, 48, 56, 64 };
+int maxVisplanesSelectionIndex = 2;
+
+
 static void initFonts()
 {
     int i = 0;
@@ -167,13 +173,20 @@ static void drawText(int xtp, int ytp, char *text)
     drawZoomedText(xtp, ytp, text, 256);
 }
 
+static void drawNumber(int xtp, int ytp, int number)
+{
+	static char numStr[8];
+	sprintf(numStr, "%d\0", number);
+	drawText(xtp, ytp, numStr);
+}
+
 void startModMenu()
 {
     bool exit = false;
 
     int cursorIndexY = 0;
 
-    const int cursorIndexMax = 3;
+    const int cursorIndexMax = 4;
     const int cursorPosX = 64;
     int cursorPosY;
 
@@ -183,6 +196,7 @@ void startModMenu()
     char *offOnLabel[2] = { "OFF", "ON" };
     char *soundFxModLabel[2] = { "ORIGINAL", "PSX" };
 
+    maxVisplanes = maxVisplanesNum[maxVisplanesSelectionIndex];
 
     initFonts();
 
@@ -211,6 +225,17 @@ void startModMenu()
 
 				case 2:
 					loadPsxSamples = !loadPsxSamples;
+					break;
+
+				case 3:
+					if (buttons & PadLeft) {
+						--maxVisplanesSelectionIndex;
+						if (maxVisplanesSelectionIndex < 0) maxVisplanesSelectionIndex = 0;
+					} else if (buttons & PadRight) {
+						++maxVisplanesSelectionIndex;
+						if (maxVisplanesSelectionIndex > NUM_VISPLANE_SELECTIONS-1) maxVisplanesSelectionIndex = NUM_VISPLANE_SELECTIONS-1;
+					}
+					maxVisplanes = maxVisplanesNum[maxVisplanesSelectionIndex];
 					break;
 
 				default:
@@ -248,6 +273,12 @@ void startModMenu()
         drawText(menuXstart, currentMenuY, "SOUND FX:");
         setFontColor(15,23,31);
         drawText(menuXstart + 80, currentMenuY, soundFxModLabel[(int)loadPsxSamples]);
+        currentMenuY+=16;
+
+        setFontColor(7,15,31);
+        drawText(menuXstart, currentMenuY, "MAX VISPLANES:");
+        setFontColor(15,23,31);
+        drawNumber(menuXstart + 120, currentMenuY, maxVisplanes);
         currentMenuY+=16;
 
 

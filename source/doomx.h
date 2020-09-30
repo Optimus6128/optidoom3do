@@ -100,9 +100,11 @@ void setupOffscreenCel(void);
 
 // In threedo.c
 extern int frameTime;
+extern int displayFreq;
 extern Word WorkPage;
 void SetMyScreen(Word Page);
 Byte *getVideoPointer(Word Page);
+LongWord getVBLtic(void);
 void printDbg(int value);
 void updateScreenAndWait(void);
 void DisableHardwareClippingWithoutFlush(void);

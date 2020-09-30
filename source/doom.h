@@ -25,7 +25,6 @@
 #define	MAXHEALTH 100			/* Normal health at start of game */
 #define SKULLSPEED (40*FRACUNIT)	/* Speed of the skull to attack */
 #define	MAXVISSPRITES 128			/* Maximum number of visible sprites */
-#define	MAXVISPLANES 64	/* Maximum number of visible floor and ceiling textures */
 #define	MAXWALLCMDS 128	/* Maximum number of visible walls */
 #define MAXOPENINGS MAXSCREENWIDTH*64	/* Space for sil tables */
 #define MAXSCREENHEIGHT 160		/* Maximum height allowed */
@@ -707,10 +706,13 @@ extern void L_SkullBash(mobj_t *mo,mobj_t *skullthing);
 
 extern viswall_t viswalls[MAXWALLCMDS];			/* Visible wall array */
 extern viswall_t *lastwallcmd;					/* Pointer to free wall entry */
-extern visplane_t visplanes[MAXVISPLANES];		/* Visible floor array */
+extern visplane_t *visplanes;		/* Visible floor array */
+extern int maxVisplanes;			/* Maximum number of visible floor and ceiling textures */
 extern visplane_t *lastvisplane;				/* Pointer to free floor entry */
 extern vissprite_t	vissprites[MAXVISSPRITES];	/* Visible sprite array */
 extern vissprite_t *vissprite_p;		/* Pointer to free sprite entry */
+extern int visplanesCount;
+extern int visplanesCountMax;
 extern Byte openings[MAXOPENINGS];
 extern Byte *lastopening;
 extern Fixed viewx,viewy,viewz;		/* Camera x,y,z */
@@ -1053,6 +1055,7 @@ extern void WallPrep(Word LeftX,Word RightX,seg_t *LineSeg,angle_t LineAngle);
 /* In Phase6.c */
 
 extern void SegCommands(void);
+extern void SegCommandsSprites(void);
 
 /* In Phase7.c */
 

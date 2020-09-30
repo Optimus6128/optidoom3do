@@ -199,11 +199,18 @@ static void DrawSprites()
 	}
 }
 
+void SegCommandsSprites()
+{
+	DisableHardwareClipping();		// Sprites require full screen management
+
+	DrawSprites();		// Draw all the sprites (ZSorted and clipped)
+}
+
 void SegCommands()
 {
     if (!SegCommands_Init()) return;
 
-    EnableHardwareClipping();		// Turn on all hardware clipping to remove slop
+		EnableHardwareClipping();		// Turn on all hardware clipping to remove slop
 
         DrawBackground();
 
@@ -215,8 +222,4 @@ void SegCommands()
             DrawWalls();
             DrawPlanes();
         }
-
-	DisableHardwareClipping();		// Sprites require full screen management
-
-        DrawSprites();		// Draw all the sprites (ZSorted and clipped)
 }

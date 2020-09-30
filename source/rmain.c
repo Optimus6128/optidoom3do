@@ -14,10 +14,12 @@
 
 viswall_t viswalls[MAXWALLCMDS];		/* Visible wall array */
 viswall_t *lastwallcmd;					/* Pointer to free wall entry */
-visplane_t visplanes[MAXVISPLANES];		/* Visible floor array */
+visplane_t *visplanes;		/* Visible floor array */
 visplane_t *lastvisplane;				/* Pointer to free floor entry */
 vissprite_t	vissprites[MAXVISSPRITES];	/* Visible sprite array */
 vissprite_t *vissprite_p;				/* Pointer to free sprite entry */
+int visplanesCount;						// visplanes added so far
+int maxVisplanes = 0;					// max visplanes num (controlled from modmenu)
 Byte openings[MAXOPENINGS];
 Byte *lastopening;
 Fixed viewx,viewy,viewz;	/* Camera x,y,z */
@@ -132,6 +134,8 @@ static void renderOffscreenBuffer()
 
 void R_Init(void)
 {
+	visplanes = AllocAPointer(maxVisplanes * sizeof(visplane_t));
+
 	R_InitData();			/* Init the data (Via loading or calculations) */
 	clipangle = xtoviewangle[0];	/* Get the left clip angle from viewport */
 	doubleclipangle = clipangle*2;	/* Precalc angle * 2 */
@@ -175,6 +179,8 @@ void R_Setup(void)
 	lastwallcmd = viswalls;			/* No walls added yet */
 	vissprite_p = vissprites;		/* No sprites added yet */
 	lastopening = openings;			/* No openings found */
+
+	visplanesCount = 1;
 }
 
 /**********************************
@@ -192,12 +198,22 @@ void R_RenderPlayerView (void)
 	if (useOffscreenBuffer || useOffscreenGrid) {
 		setupOffscreenCel();
 		SetMyScreen(offscreenPage);	// Offscreen buffer is the last
+
+		if (optGraphics->frameLimit == FRAME_LIMIT_1VBL || (players.AutomapFlags & AF_OPTIONSACTIVE)) {
+			const LongWord vblTic = getVBLtic();
+			while (getVBLtic() == vblTic) {};	// to avoid flickering
+		}
 	}
 
 	SegCommands();	/* Draw all everything Z Sorted */
-	DrawColors();	/* Draw color overlay if needed */
-
 	FlushCCBs();
+
+	SegCommandsSprites(); // Draw sprites separately
+	FlushCCBs();
+
+	DrawColors();	/* Draw color overlay if needed */
+	FlushCCBs();
+
     if (useOffscreenBuffer || useOffscreenGrid) {
 		SetMyScreen(WorkPage);	// Must restore visible screenpage if previously set to offscreen
 		if (useOffscreenGrid) {

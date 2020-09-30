@@ -18,6 +18,14 @@ int getTicks(void)
     return GetMSecTime(timerIOreq);
 }
 
+uTime getUTime(void)
+{
+	static uTime t;
+
+	GetUSecTime(timerIOreq, &t.seconds, &t.useconds);
+	return t;
+}
+
 int updateAndGetFPS(void)
 {
     static int fps = 0;
