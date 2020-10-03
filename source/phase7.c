@@ -267,7 +267,7 @@ static void MapPlaneUnshaded(Word y1, Word y2)
     drawCCBarrayFloor(y2-y1, PlaneSource);
 }
 
-static void MapPlaneFlat(Word y1, Word y2)
+static void MapPlaneFlat(Word y1, Word y2, Word color)
 {
 	Word distance;
 	int light;
@@ -275,7 +275,7 @@ static void MapPlaneFlat(Word y1, Word y2)
     int y;
 
     MyCCB *CCBPtr;
-    Byte *plutPtr = (Byte*)(((Word*)PlaneSource)[0] << 16);
+    void *colorValueAsPtr = (void*)color;
 
     if (y1 > y2) return;
 
@@ -294,7 +294,7 @@ static void MapPlaneFlat(Word y1, Word y2)
         }
 
 
-        CCBPtr->ccb_PLUTPtr = plutPtr;
+        CCBPtr->ccb_PLUTPtr = colorValueAsPtr;
         CCBPtr->ccb_PIXC = LightTable[light>>LIGHTSCALESHIFT];
         CCBPtr->ccb_XPos = x1<<16;
         CCBPtr->ccb_YPos = y<<16;
@@ -304,7 +304,7 @@ static void MapPlaneFlat(Word y1, Word y2)
     drawCCBarrayFloorFlat(y2-y1);
 }
 
-static void MapPlaneAny(Word y1, Word y2)
+static void MapPlaneAny(Word y1, Word y2, Word color)
 {
     const bool lightQuality = (optGraphics->depthShading > 1);
 
@@ -315,7 +315,7 @@ static void MapPlaneAny(Word y1, Word y2)
             MapPlaneUnshaded(y1, y2);
         }
     } else {
-        MapPlaneFlat(y1, y2);
+        MapPlaneFlat(y1, y2, color);
     }
 }
 
@@ -336,7 +336,9 @@ void DrawVisPlaneHorizontal(visplane_t *p)
 	Word markY;
 	register Word *open;
 
+	const Word color = p->color;
 	PlaneSource = (Byte *)*p->PicHandle;	/* Get the base shape index */
+
 	x = p->height;
 	if ((int)x<0) {
 		x = -x;
@@ -378,7 +380,7 @@ void DrawVisPlaneHorizontal(visplane_t *p)
 				do {
                     spandata[PrevTopY].x2 = x;
 				} while (++PrevTopY<Count);
-                MapPlaneAny(markY, Count-1);
+                MapPlaneAny(markY, Count-1, color);
 			}
 			if (NewTopY < PrevTopY && NewTopY<=NewBottomY) {
 				register Word Count;
@@ -401,7 +403,7 @@ void DrawVisPlaneHorizontal(visplane_t *p)
 				do {
                     spandata[PrevBottomY].x2 = x;
 				} while ((int)--PrevBottomY>Count);
-                MapPlaneAny(Count+1, markY);
+                MapPlaneAny(Count+1, markY, color);
 			}
 			if (NewBottomY > PrevBottomY && NewBottomY>=NewTopY) {
 				register int Count;
@@ -426,15 +428,14 @@ void DrawVisPlaneVertical(visplane_t *p)
 	Word *open = p->open;
 
 	MyCCB *CCBPtr;
-	Byte *plutPtr;
+	void *colorValueAsPtr;
 
 	Word light = p->PlaneLight;
 
     if (!optGraphics->depthShading) light = lightmins[light];
     light = LightTable[light>>LIGHTSCALESHIFT];
 
-    PlaneSource = (Byte *)*p->PicHandle;
-    plutPtr = (Byte*)(((Word*)PlaneSource)[0] << 16);
+    colorValueAsPtr = (void*)p->color;
 
 
 	x = p->minx;
@@ -452,7 +453,7 @@ void DrawVisPlaneVertical(visplane_t *p)
 		length = bottomY - topY + 1;
 		if (length < 1) continue;
 
-        CCBPtr->ccb_PLUTPtr = plutPtr;
+        CCBPtr->ccb_PLUTPtr = colorValueAsPtr;
         CCBPtr->ccb_PIXC = light;
         CCBPtr->ccb_XPos = x<<16;
         CCBPtr->ccb_YPos = topY<<16;

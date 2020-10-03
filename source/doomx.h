@@ -36,6 +36,7 @@ typedef struct {
 	int topheight;		/* Top texture height in global pixels */
 	int bottomheight;	/* Bottom texture height in global pixels */
 	Word texturemid;	/* Anchor point for texture */
+	Word color;			/* color for flat untextured shading */
 } drawtex_t;
 
 typedef struct {
@@ -158,3 +159,6 @@ extern bool loadPsxSamples;
 extern bool enableNewSkies;
 extern bool enableGimmicks;
 void startModMenu(void);
+
+// In setup.c
+extern uint16 flatTextureColors[MAX_UNIQUE_TEXTURES];

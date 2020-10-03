@@ -37,6 +37,39 @@ int screenScaleY = 0;
 
 **********************************/
 
+static Filemaptexture_t* loadAndExtendFilemaptextureResource()
+{
+	int i, count;
+	old_texture_t *oldTex;
+	texture_t *newTex;
+
+	Filemaptexture_t *newMaptex;
+	Filemaptexture_t *oldMaptex = (Filemaptexture_t*)LoadAResource(rTEXTURE1);	// resources are stored with the old_texture_t structure
+
+	NumTextures = oldMaptex->Count;
+    FirstTexture = oldMaptex->First;
+    NumFlats = oldMaptex->FlatCount;
+    FirstFlat = oldMaptex->FirstFlat;
+
+    count = NumTextures + NumFlats;
+    newMaptex = (Filemaptexture_t*)AllocAPointer(16 + count * sizeof(texture_t));
+    memcpy(newMaptex, oldMaptex, 16);
+
+	oldTex = (old_texture_t*)oldMaptex->Array;
+	newTex = (texture_t*)newMaptex->Array;
+    for (i=0; i<count; ++i) {
+		newTex->width = oldTex->width;
+		newTex->height = oldTex->height;
+		newTex->data = oldTex->data;
+		newTex->color = 0;
+		++oldTex;
+		++newTex;
+    }
+
+    KillAResource(rTEXTURE1);
+	return newMaptex;
+}
+
 void R_InitData(void)
 {
 	Word i;
@@ -47,11 +80,9 @@ void R_InitData(void)
 
 /* Load the map texture definitions from Textures1 */
 
-	maptex = (Filemaptexture_t *)LoadAResource(rTEXTURE1);	/* Load it in */
-	NumTextures = maptex->Count;		/* How many are there? */
-    FirstTexture = maptex->First;		/* First resource number for loading */
-    NumFlats = maptex->FlatCount;
-    FirstFlat = maptex->FirstFlat;
+	maptex = loadAndExtendFilemaptextureResource();
+
+
 	TextureInfo = &maptex->Array[0];		/* Index to the first entry */
 
 /* Translation table for global animation */

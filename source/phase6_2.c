@@ -266,7 +266,7 @@ static void DrawWallSegmentFlat(drawtex_t *tex, Word screenCenterY)
     }while (++xPos <= tex->xEnd);
 
     // Call for the final render of the linked list of all the column cels of the single wall segment
-    CCBArrayWallFlat[0].ccb_PLUTPtr = tex->data;    // plut pointer only for first element
+    CCBArrayWallFlat[0].ccb_PLUTPtr = &tex->color;
     drawCCBarray(--CCBPtr, CCBArrayWallFlat);
 }
 
@@ -297,6 +297,7 @@ static void DrawSegAny(viswall_t *segl, bool isTop, bool isFlat)
     }
     drawtex.width = tex->width;
     drawtex.height = tex->height;
+    drawtex.color = tex->color;
     drawtex.data = (Byte *)*tex->data;
 
     if (isFlat) {

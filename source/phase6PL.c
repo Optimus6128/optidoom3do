@@ -123,7 +123,7 @@ static void DrawWallSegmentFlatPL(drawtex_t *tex)
     CCBQuadWallFlat.ccb_HDDY = -lengthDiff << (20 - flatTexWidthShr - flatTexHeightShr);
 
 
-    CCBQuadWallFlat.ccb_PLUTPtr = tex->data;
+    CCBQuadWallFlat.ccb_PLUTPtr = &tex->color;
     CCBQuadWallFlat.ccb_PIXC = pixcLight;
 
     DrawCels(VideoItem,(CCB*)&CCBQuadWallFlat);
@@ -408,6 +408,7 @@ static void DrawSegAnyPL(viswall_t *segl, int *scaleData, bool isTop, bool shoul
     }
     drawtex.width = tex->width;
     drawtex.height = tex->height;
+    drawtex.color = tex->color;
     drawtex.data = (Byte *)*tex->data;
 
     if (optGraphics->wallQuality > WALL_QUALITY_LO) {

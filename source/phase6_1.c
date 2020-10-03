@@ -63,7 +63,7 @@ void initCCBarraySky(void)
 
 int visplanesCountMax = 0;
 
-static visplane_t *FindPlane(visplane_t *check, viswall_t *segl, int start)
+static visplane_t *FindPlane(visplane_t *check, viswall_t *segl, int start, Word color)
 {
 	Fixed height = segl->floorheight;
 	void **PicHandle = segl->FloorPic;
@@ -97,6 +97,7 @@ static visplane_t *FindPlane(visplane_t *check, viswall_t *segl, int start)
 	++visplanesCount;
 	check->height = height;		/* Init all the vars in the visplane */
 	check->PicHandle = PicHandle;
+	check->color = color;
 	check->minx = start;
 	check->maxx = stop;
 	check->PlaneLight = Light;		/* Set the light level */
@@ -138,6 +139,7 @@ static void SegLoopFloor(viswall_t *segl, Word screenCenterY)
 	visplane_t *FloorPlane;
 	int top, bottom;
 	int ceilingclipy, floorclipy;
+	const Word color = segl->floorAndCeilingColor & 0xFFFF0000;
 
 	segloop_t *segdata = segloops;
 
@@ -156,7 +158,7 @@ static void SegLoopFloor(viswall_t *segl, Word screenCenterY)
         bottom = floorclipy-1;		// Draw to the bottom of the screen
         if (top <= bottom) {		// Valid span?
             if (FloorPlane->open[x] != OPENMARK) {	// Not already covered?
-                FloorPlane = FindPlane(FloorPlane, segl, x);
+                FloorPlane = FindPlane(FloorPlane, segl, x, color);
                 if (FloorPlane == 0) return;
             }
             if (top) {
@@ -176,6 +178,7 @@ static void SegLoopCeiling(viswall_t *segl, Word screenCenterY)
 	visplane_t *CeilingPlane;
 	int top, bottom;
 	int ceilingclipy, floorclipy;
+	const Word color = segl->floorAndCeilingColor << 16;
 
 	segloop_t *segdata = segloops;
 
@@ -198,7 +201,7 @@ static void SegLoopCeiling(viswall_t *segl, Word screenCenterY)
         }
         if (top <= bottom) {
             if (CeilingPlane->open[x] != OPENMARK) {		// Already in use?
-                CeilingPlane = FindPlane(CeilingPlane, segl, x);
+                CeilingPlane = FindPlane(CeilingPlane, segl, x, color);
                 if (CeilingPlane == 0) return;
             }
             if (top) {

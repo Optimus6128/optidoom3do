@@ -53,6 +53,8 @@ Byte *RejectMatrix;			/* For fast sight rejection */
 mapthing_t deathmatchstarts[10],*deathmatch_p;	/* Deathmatch starts */
 mapthing_t playerstarts;	/* Starting position for players */
 
+uint16 flatTextureColors[MAX_UNIQUE_TEXTURES];
+
 /**********************************
 
 	Load the sector data, this is loaded in first since it
@@ -544,11 +546,78 @@ static void LoadingPlaque(void)
 
 **********************************/
 
+static void calculateWallTextureAverageColor(texture_t *tex)
+{
+	Byte *rawData = (Byte *)*tex->data;
+	uint16 *texPal = (uint16*)&rawData[0];
+	Byte *texBitmap = &rawData[32];
+	int col;
+
+	int i;
+	const unsigned int numPixels = tex->width * tex->height;
+	const unsigned int size = numPixels >> 1;	// 4bit
+
+	unsigned int sumR = 0;
+	unsigned int sumG = 0;
+	unsigned int sumB = 0;
+
+	for (i=0; i<size; ++i) {
+        const Byte p = texBitmap[i];
+        const Byte p0 = p >> 4;
+        const Byte p1 = p & 15;
+        const uint16 c0 = texPal[p0];
+        const uint16 c1 = texPal[p1];
+
+        sumR += ((c0 >> 10) & 31) + ((c1 >> 10) & 31);
+        sumG += ((c0 >> 5) & 31) + ((c1 >> 5) & 31);
+        sumB += (c0 & 31) + (c1 & 31);
+	}
+	if (numPixels > 0) {
+		sumR /= numPixels;
+		sumG /= numPixels;
+		sumB /= numPixels;
+	}
+
+	col = ((sumR << 10) | (sumG << 5) | sumB) & 32767;
+	tex->color = (col << 16) | col;
+}
+
+static void calculateFlatTextureAverageColor(void **tex, int index)
+{
+	Byte *rawData = (Byte *)*tex;
+	uint16 *texPal = (uint16*)&rawData[0];
+	Byte *texBitmap = &rawData[64];
+
+	int i;
+	const unsigned int numPixels = 64 * 64; // flats are always 64*64
+	const unsigned int size = numPixels;	// 8bit
+
+	unsigned int sumR = 0;
+	unsigned int sumG = 0;
+	unsigned int sumB = 0;
+
+	for (i=0; i<size; ++i) {
+        const Byte p = texBitmap[i];
+        const uint16 c = texPal[p];
+
+        sumR += ((c >> 10) & 31);
+        sumG += ((c >> 5) & 31);
+        sumB += (c & 31);
+	}
+	if (numPixels > 0) {
+		sumR /= numPixels;
+		sumG /= numPixels;
+		sumB /= numPixels;
+	}
+
+	flatTextureColors[index] = (uint16)(((sumR << 10) | (sumG << 5) | sumB) & 32767);
+}
+
 static void PreloadWalls(void)
 {
 	Word i;				/* Index */
 	texture_t *TexPtr;
-	Boolean TextureLoadFlags[100];		/* Which textures should I load? */
+	Boolean TextureLoadFlags[MAX_UNIQUE_TEXTURES];		/* Which textures should I load? */
 
     memset(TextureLoadFlags,0,sizeof(TextureLoadFlags));		/* Set to zilch */
 
@@ -594,6 +663,7 @@ static void PreloadWalls(void)
 	do {
 		if (TextureLoadFlags[i]) {	/* Load it in? */
 			TexPtr->data = LoadAResourceHandle(i+FirstTexture);	/* Get it */
+			calculateWallTextureAverageColor(TexPtr);
 		}
 		++TexPtr;
 	} while (++i<NumTextures);
@@ -636,6 +706,7 @@ static void PreloadWalls(void)
 	do {
 		if (TextureLoadFlags[i]) {	/* Load it in? */
 			FlatInfo[i] = LoadAResourceHandle(i+FirstFlat);	/* Get it */
+			calculateFlatTextureAverageColor(FlatInfo[i], i);
 		}
 	} while (++i<NumFlats);
 	memcpy(FlatTranslation,FlatInfo,sizeof(Byte *)*NumFlats);

@@ -13,7 +13,7 @@
 
 #include "engine_main.h"
 
-//#define SHOW_LOGOS
+#define SHOW_LOGOS
 
 static void LowMemCode(Word Type);
 static void WipeDoom(LongWord *OldScreen,LongWord *NewScreen);
@@ -576,6 +576,8 @@ static void updateMyFpsAndDebugPrint()
 		PrintNumber(0, 144, GetTotalFreeMem(), 0);
     }
     if (optOther->stats >= STATS_ALL) {
+		--visplanesCount; if (visplanesCount < 0) visplanesCount = 0;
+		--visplanesCountMax; if (visplanesCountMax < 0) visplanesCountMax = 0;
 		PrintNumber(0, 96, visplanesCount, 0);
 		PrintNumber(0, 112, visplanesCountMax, 0);
     }

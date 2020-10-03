@@ -160,10 +160,12 @@ void WallPrep(Word LeftX,Word RightX,seg_t *LineSeg,angle_t LeftAngle)
 	/* Set the floor and ceiling shape handles */
 	
 	CurWallPtr->FloorPic = FlatTranslation[FrontSecPtr->FloorPic];	/* Store the floor shape */
+	CurWallPtr->floorAndCeilingColor = (flatTextureColors[FrontSecPtr->FloorPic] << 16);
 	if (f_ceilingpic == -1) {
 		CurWallPtr->CeilingPic = 0;		/* Set a null handle */
 	} else {
 		CurWallPtr->CeilingPic = FlatTranslation[f_ceilingpic];	/* Normal image */
+		CurWallPtr->floorAndCeilingColor |= flatTextureColors[f_ceilingpic];
 	}
 
 	BackSecPtr = LineSeg->backsector;	/* Get the back sector */

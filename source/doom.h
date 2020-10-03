@@ -29,6 +29,7 @@
 #define MAXOPENINGS MAXSCREENWIDTH*64	/* Space for sil tables */
 #define MAXSCREENHEIGHT 160		/* Maximum height allowed */
 #define MAXSCREENWIDTH 280		/* Maximum width allowed */
+#define MAX_UNIQUE_TEXTURES 100 /* Temporary safe number to store things for all indexed textures */
 #define SCREENS 3				/* Number of screen buffers */
 #define	SLOPERANGE 2048			/* Number of entries in tantoangle table */
 #define	SLOPEBITS 11			/* Power of 2 for SLOPERANGE (2<<11) */
@@ -312,6 +313,7 @@ typedef struct {		/* Describe a floor texture */
 	Word open[MAXSCREENWIDTH+1];	/* top<<8 | bottom */
 	Fixed height;		/* Height of the floor */
 	void **PicHandle;	/* Texture handle */
+	Word color;
 	Word PlaneLight;	/* Light override */
 	int minx,maxx;		/* Minimum x, max x */
 } visplane_t;
@@ -518,6 +520,13 @@ typedef struct {		/* Describe all wall textures */
 	Word width;			/* Width of the texture in pixels */
 	Word height;		/* Height of the texture in pixels */
 	void **data;		/* Handle to cached data to draw from */
+} old_texture_t;
+
+typedef struct {		/* Describe all wall textures */
+	Word width;			/* Width of the texture in pixels */
+	Word height;		/* Height of the texture in pixels */
+	Word color;
+	void **data;		/* Handle to cached data to draw from */
 } texture_t;
 
 #define	AC_ADDFLOOR	1
@@ -536,6 +545,7 @@ typedef struct {		/* Describe a wall segment to be drawn */
 	Word RightX; 		/* Rightmost inclusive x coordinates */
 	void **FloorPic;	/* Picture handle to floor shape */
 	void **CeilingPic;	/* Picture handle to ceiling shape */
+	Word floorAndCeilingColor;	// joint 16bit color values for floor and ceiling (floor high 16bit, wall low)
 	Word WallActions;	/* Actions to perform for draw */
 
 	int	t_topheight;	/* Describe the top texture */
