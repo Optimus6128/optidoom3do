@@ -9,7 +9,7 @@
 #define FONT_HEIGHT 8
 #define FONT_SIZE (FONT_WIDTH * FONT_HEIGHT)
 
-#define MAX_STRING_LENGTH 64
+#define MAX_STRING_LENGTH 20
 #define NUM_FONTS 59
 
 
@@ -78,14 +78,14 @@ static unsigned char bitfonts[] = {0,0,0,0,0,0,0,0,
 
 static CCB *textCel[MAX_STRING_LENGTH];
 
-static uchar fontsBmp[NUM_FONTS * FONT_SIZE];
-static uint16 fontsPal[32];
-static uchar fontsMap[256];
-
+static uchar *fontsBmp;
+static uchar *fontsMap;
+static uint16 fontsPal[2];
 
 bool loadPsxSamples = false;
 bool enableNewSkies = false;
 bool enableGimmicks = false;
+bool skipLogos = true;
 
 #define NUM_VISPLANE_SELECTIONS 5
 int maxVisplanesNum[NUM_VISPLANE_SELECTIONS] = { 32, 40, 48, 56, 64 };
@@ -97,15 +97,14 @@ static void initFonts()
     int i = 0;
     int n, x, y;
 
-    for (n=0; n<32; ++n) {
-        fontsPal[n] = MakeRGB15(n, n, n);
-    }
+	fontsBmp = (uchar*)AllocMem(NUM_FONTS * FONT_SIZE, MEMTYPE_TRACKSIZE);
+	fontsMap = (uchar*)AllocMem(256, MEMTYPE_TRACKSIZE);
 
 	for (n=0; n<59; n++) {
 		for (y=0; y<8; y++) {
 			int c = bitfonts[i++];
 			for (x=0; x<8; x++) {
-				fontsBmp[(n << 6) + x + (y<<3)] = ((c >>  (7 - x)) & 1) * 31;
+				fontsBmp[(n << 6) + x + (y<<3)] = (c >>  (7 - x)) & 1;
 			}
 		}
 	}
@@ -123,6 +122,7 @@ static void initFonts()
         fontsMap[i] = c;
 	}
 
+	fontsPal[0] = 0;
     for (i=0; i<MAX_STRING_LENGTH; ++i) {
         textCel[i] = CreateCel(FONT_WIDTH, FONT_HEIGHT, 8, CREATECEL_CODED, fontsBmp);
         textCel[i]->ccb_PLUTPtr = (PLUTChunk*)fontsPal;
@@ -140,7 +140,7 @@ static void initFonts()
 
 static void setFontColor(int r, int g, int b)
 {
-    fontsPal[31] = MakeRGB15(r,g,b);
+    fontsPal[1] = MakeRGB15(r,g,b);
 }
 
 static void drawZoomedText(int xtp, int ytp, char *text, int zoom)
@@ -180,13 +180,25 @@ static void drawNumber(int xtp, int ytp, int number)
 	drawText(xtp, ytp, numStr);
 }
 
+static void fadeOutScanlineEffect()
+{
+	int y, j;
+	for (j=0; j<SCREENS; ++j) {
+		for (y=0; y<200; y+=4) {
+			DrawARect(0, y, 320, 2, 0); FlushCCBs();
+			DrawARect(0, 198 - y, 320, 2, 0); FlushCCBs();
+			updateScreenAndWait();
+		}
+	}
+}
+
 void startModMenu()
 {
     bool exit = false;
 
     int cursorIndexY = 0;
 
-    const int cursorIndexMax = 4;
+    const int cursorIndexMax = 5;
     const int cursorPosX = 64;
     int cursorPosY;
 
@@ -199,6 +211,8 @@ void startModMenu()
     maxVisplanes = maxVisplanesNum[maxVisplanesSelectionIndex];
 
     initFonts();
+
+	optGraphics->frameLimit = FRAME_LIMIT_VSYNC;
 
     do {
         int t;
@@ -238,6 +252,10 @@ void startModMenu()
 					maxVisplanes = maxVisplanesNum[maxVisplanesSelectionIndex];
 					break;
 
+				case 4:
+					skipLogos = !skipLogos;
+					break;
+
 				default:
 					break;
 			}
@@ -249,7 +267,7 @@ void startModMenu()
         if (buttons & PadStart) exit = true;
 
 
-        DrawARect(0, 0, 320, 240, 0x000F); FlushCCBs();
+        DrawARect(0, 0, 320, 200, 0x000F); FlushCCBs();
 
         for (t=0; t<2; ++t) {
             setFontColor(15<<t,15<<t,15<<t);
@@ -281,6 +299,11 @@ void startModMenu()
         drawNumber(menuXstart + 120, currentMenuY, maxVisplanes);
         currentMenuY+=16;
 
+        setFontColor(7,15,31);
+        drawText(menuXstart, currentMenuY, "SKIP LOGOS:");
+        setFontColor(15,23,31);
+        drawText(menuXstart + 88, currentMenuY, offOnLabel[(int)skipLogos]);
+        currentMenuY+=16;
 
         setFontColor(31,15,0);
         drawText(menuXstart + 32, currentMenuY, "start!");
@@ -297,4 +320,9 @@ void startModMenu()
         while(getTicks() - t < 125) {};
 
     } while(!exit);
+
+	FreeMem(fontsBmp, -1);
+	FreeMem(fontsMap, -1);
+
+	fadeOutScanlineEffect();
 }

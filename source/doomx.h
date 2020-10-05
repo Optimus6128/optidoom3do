@@ -158,6 +158,7 @@ void setScreenSizeSliderFromOption(void);
 extern bool loadPsxSamples;
 extern bool enableNewSkies;
 extern bool enableGimmicks;
+extern bool skipLogos;
 void startModMenu(void);
 
 // In setup.c

@@ -315,9 +315,11 @@ void Init()
 {
     initSystem();
 
-    showLogos();
+    startModMenu();
 
-    startModMenu();   // And for the below reason, this has to be my own cracktro using my own mini fonts, etc..
+	if (!skipLogos) showLogos();
+
+
     loadSoundFx();  // For some reason, this cannot be loaded later or sound effects will be missing (issues with memory allocation?)
 
 
@@ -629,25 +631,6 @@ static void frameWait()
 	if (LastTics < 1) LastTics = 1;
 	LastTicCount = NewTick;
 }
-
-/*void updateScreenAndWait()
-{
-	DisplayScreen(ScreenItems[WorkPage],0);		// Display the hidden page
-
-	if (++WorkPage>=maxFlipScreens) {		// Next screen in line
-		WorkPage = 0;
-	}
-	offscreenPage = WorkPage;
-
-	if (++WorkPage>=maxFlipScreens) {		// Next screen in line
-		WorkPage = 0;
-	}
-	SetMyScreen(WorkPage);		// Set the 3DO vars
-
-	frameWait();
-
-	frameTime = getTicks();
-}*/
 
 void updateScreenAndWait()
 {
