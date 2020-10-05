@@ -13,7 +13,6 @@
 
 #include "engine_main.h"
 
-#define SHOW_LOGOS
 
 static void LowMemCode(Word Type);
 static void WipeDoom(LongWord *OldScreen,LongWord *NewScreen);
@@ -58,7 +57,6 @@ static void optHack()
 
 **********************************/
 
-#ifdef SHOW_LOGOS
 static void RunAProgram(char *ProgramName)
 {
 	Item LogoItem;
@@ -68,7 +66,6 @@ static void RunAProgram(char *ProgramName)
 	} while (LookupItem(LogoItem));		/* Wait until the program quits */
 	DeleteItem(LogoItem);				/* Dispose of the 3DO logo code */
 }
-#endif
 
 /**********************************
 
@@ -197,7 +194,6 @@ static char FileName[32];
 
 static void showLogos()
 {
-#ifdef SHOW_LOGOS       // 0 to disable all these logo fades (for faster testing)
     Show3DOLogo();				// Show the 3DO Logo
     RunAProgram("IdLogo IDLogo.cel");
     #if 0			// Set to 1 for Japanese version
@@ -208,7 +204,6 @@ static void showLogos()
         RunAProgram("PlayMovie Logic.cine");
         RunAProgram("PlayMovie AdiLogo.cine");
     #endif
-#endif
 }
 
 static void loadSoundFx()
