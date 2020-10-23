@@ -111,10 +111,10 @@ void R_InitData(void)
 
 **********************************/
 
-	IDivTable[0] = -1;
+	IDivTable[0] = -1 >> 9;
 	i = 1;
 	do {
-		IDivTable[i] = IMFixDiv(512<<FRACBITS,i<<FRACBITS);		/* 512.0 / i */
+		IDivTable[i] = IMFixDiv(512<<FRACBITS,i<<FRACBITS) >> 9;		/* 512.0 / i */
 	} while (++i<(sizeof(IDivTable)/sizeof(Word)));
 	InitMathTables();
 }
