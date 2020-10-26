@@ -1,5 +1,6 @@
 #include "Doom.h"
 #include "stdio.h"
+#include "bench.h"
 
 #include <Portfolio.h>
 #include <event.h>
@@ -21,9 +22,9 @@ uint8 *fireSkyBmp;
 #define SKY_HEIGHT_PALS 4
 uint16 *fireSkyPal;
 
-#define RANDTAB_SIZE 1024   // must be power of two
+#define RANDTAB_OFFSET 256 // power of two
+#define RANDTAB_SIZE (FIRESKY_WIDTH * FIRESKY_HEIGHT + RANDTAB_OFFSET)
 static uint8 *randTab;
-static uint8 nextRandIndex = 0;
 
 
 int getSkyScale()
@@ -42,8 +43,8 @@ void setSkyColors(int r0,int g0,int b0, int r1,int g1,int b1, int r2,int g2,int 
 
 void initNewSkies()
 {
-    int i, x, y;
-    int lowSkyCol = 8;
+    int i;
+    const int lowSkyCol = 8;
 
     gradientSkyBmp = (uint16*)AllocAPointer(2 * GRADIENT_SKIES_NUM * GRADIENT_SKY_HEIGHT);
     fireSkyBmp = (uint8*)AllocAPointer(FIRESKY_WIDTH * FIRESKY_HEIGHT);
@@ -104,13 +105,6 @@ void initNewSkies()
 
     updateFireSkyHeightPal();
 
-    i = 0;
-    for (y=0; y<FIRESKY_HEIGHT; ++y) {
-        for (x=0; x<FIRESKY_WIDTH; ++x) {
-            fireSkyBmp[i++] = (x+y) & 31;
-        }
-    }
-
     // Clean up fire sky buffer and fill fire base with max
     memset(fireSkyBmp, 0, (FIRESKY_HEIGHT-1) * FIRESKY_WIDTH);
     memset(&fireSkyBmp[(FIRESKY_HEIGHT-1) * FIRESKY_WIDTH], 31, FIRESKY_WIDTH);
@@ -122,21 +116,21 @@ void initNewSkies()
 
 static void updateFireCelBmp()
 {
-    int x, y, randX;
-    uint8 c, *src;
+	int x, y;
+	uint8 c, *src;
+	uint8 *rtab = &randTab[getTicks() & (RANDTAB_OFFSET-1)];
 
 	for (x = 0; x < FIRESKY_WIDTH; ++x) {
 		src = &fireSkyBmp[2*FIRESKY_WIDTH + x];
 		for (y = 2; y < FIRESKY_HEIGHT; ++y) {
-            c = *src;
-            src -= FIRESKY_WIDTH;
-            if (c == 0) {
-                *src = 0;
-            } else {
-                randX = randTab[nextRandIndex];
-                *(src + randX - 1) = c - (randX & 1);
-                nextRandIndex = (nextRandIndex + 1) & (RANDTAB_SIZE - 1);
-            }
+			c = *src;
+			src -= FIRESKY_WIDTH;
+			if (c == 0) {
+				*src = 0;
+			} else {
+				int randX = *rtab++;
+				*(src + randX - 1) = c - (randX & 1);
+			}
 			src += 2*FIRESKY_WIDTH;
 		}
 	}
