@@ -23,7 +23,7 @@ static MyCCB *CurrentCCB = &CCBArray[0];	/* Pointer to empty CCB */
 
 Byte *CelLine190;
 
-Byte SpanArray[MAXSCREENWIDTH*MAXSCREENHEIGHT];	/* Buffer for floor textures */
+Byte SpanArray[MAXSCREENWIDTH*MAXSCREENHEIGHT];	/* Buffer for plane textures */
 Byte *SpanPtr = SpanArray;		/* Pointer to empty buffer */
 
 
@@ -64,20 +64,16 @@ void initAllCCBelements()
     initCCBarrayWall();
     initCCBarrayWallFlat();
     initCCBarraySky();
-    initCCBarrayFloor();
-    initCCBarrayFloorFlat();
-    initCCBarrayFloorFlatVertical();
+    initPlaneCELs();
     initCCBQuadWallFlat();
     initCCBQuadWallTextured();
-
-    initSpanDrawFunc();
 
 	if (enableNewSkies) initNewSkies();
 }
 
 void resetSpanPointer()
 {
-	SpanPtr = SpanArray;		/* Reset the floor texture pointer */
+	SpanPtr = SpanArray;		/* Reset the plane texture pointer */
 }
 
 void FlushCCBs(void)

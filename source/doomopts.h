@@ -35,13 +35,13 @@ enum
     WALL_QUALITY_OPTIONS_NUM
 };
 
-// Floor quality options
+// Plane quality options
 enum
 {
-    FLOOR_QUALITY_LO,
-    FLOOR_QUALITY_MED,
-    FLOOR_QUALITY_HI,
-    FLOOR_QUALITY_OPTIONS_NUM
+    PLANE_QUALITY_LO,
+    PLANE_QUALITY_MED,
+    PLANE_QUALITY_HI,
+    PLANE_QUALITY_OPTIONS_NUM
 };
 
 // Screen scaling options
@@ -148,7 +148,7 @@ typedef struct GraphicsOptions
 	Word frameLimit;
 	Word screenSizeIndex;
 	Word wallQuality;
-	Word floorQuality;
+	Word planeQuality;
 	Word screenScale;
 	Word fitToScreen;
 	Word depthShading;

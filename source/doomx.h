@@ -81,10 +81,7 @@ void initCCBQuadWallTextured(void);
 
 
 // In phase7.c
-void initCCBarrayFloor(void);
-void initCCBarrayFloorFlat(void);
-void initCCBarrayFloorFlatVertical(void);
-void initSpanDrawFunc(void);
+void initPlaneCELs(void);
 
 
 // In phase8.c

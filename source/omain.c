@@ -24,20 +24,20 @@ GraphicsOptions *optGraphics = &options.graphics;
 OtherOptions *optOther = &options.other;
 
 
-static AllOptions optionsDefault = {{FRAME_LIMIT_1VBL, SCREENSIZE_OPTIONS_NUM - 3, WALL_QUALITY_HI, FLOOR_QUALITY_HI, SCREEN_SCALE_1x1, false, DEPTH_SHADING_ON, false, RENDERER_DOOM},
+static AllOptions optionsDefault = {{FRAME_LIMIT_1VBL, SCREENSIZE_OPTIONS_NUM - 3, WALL_QUALITY_HI, PLANE_QUALITY_HI, SCREEN_SCALE_1x1, false, DEPTH_SHADING_ON, false, RENDERER_DOOM},
 									{STATS_OFF, GIMMICKS_OFF, true, false, false, SKY_DEFAULT, 2, CHEATS_OFF, AUTOMAP_CHEAT_OFF, false, false, false, PLAYER_SPEED_1X, ENEMY_SPEED_1X, false, false}};
 
 static GraphicsOptions graphicsPresets[PRESET_OPTIONS_NUM] = {
-	{FRAME_LIMIT_1VBL, 0, WALL_QUALITY_MED, FLOOR_QUALITY_MED, SCREEN_SCALE_2x2, true, DEPTH_SHADING_ON, true, RENDERER_DOOM},	// MIN
-	{FRAME_LIMIT_2VBL, 0, WALL_QUALITY_LO, FLOOR_QUALITY_LO, SCREEN_SCALE_2x2, true, DEPTH_SHADING_BRIGHT, false, RENDERER_POLY},	// ATARI
-	{FRAME_LIMIT_2VBL, 5, WALL_QUALITY_LO, FLOOR_QUALITY_LO, SCREEN_SCALE_1x1, true, DEPTH_SHADING_BRIGHT, false, RENDERER_POLY},	// AMIGA
-	{FRAME_LIMIT_2VBL, 3, WALL_QUALITY_HI, FLOOR_QUALITY_LO, SCREEN_SCALE_2x1, true, DEPTH_SHADING_ON, true, RENDERER_DOOM},		// SNES
-	{FRAME_LIMIT_2VBL, 3, WALL_QUALITY_HI, FLOOR_QUALITY_HI, SCREEN_SCALE_2x1, true, DEPTH_SHADING_BRIGHT, false, RENDERER_DOOM},	// GBA
-	{FRAME_LIMIT_3VBL, 5, WALL_QUALITY_HI, FLOOR_QUALITY_HI, SCREEN_SCALE_2x1, true, DEPTH_SHADING_BRIGHT, false, RENDERER_DOOM},	// JAGUAR
-	{FRAME_LIMIT_1VBL, 3, WALL_QUALITY_HI, FLOOR_QUALITY_HI, SCREEN_SCALE_1x1, false, DEPTH_SHADING_ON, false, RENDERER_DOOM},	// DEFAULT
-	{FRAME_LIMIT_2VBL, 4, WALL_QUALITY_HI, FLOOR_QUALITY_MED, SCREEN_SCALE_2x1, false, DEPTH_SHADING_DARK, false, RENDERER_DOOM},// FASTER
-	{FRAME_LIMIT_2VBL, 3, WALL_QUALITY_HI, FLOOR_QUALITY_HI, SCREEN_SCALE_1x1, false, DEPTH_SHADING_ON, false, RENDERER_DOOM},  	// CUSTOM
-	{FRAME_LIMIT_1VBL, 5, WALL_QUALITY_HI, FLOOR_QUALITY_HI, SCREEN_SCALE_1x1, true, DEPTH_SHADING_ON, true, RENDERER_DOOM},		// MAX
+	{FRAME_LIMIT_1VBL, 0, WALL_QUALITY_MED, PLANE_QUALITY_MED, SCREEN_SCALE_2x2, true, DEPTH_SHADING_ON, true, RENDERER_DOOM},	// MIN
+	{FRAME_LIMIT_2VBL, 0, WALL_QUALITY_LO, PLANE_QUALITY_LO, SCREEN_SCALE_2x2, true, DEPTH_SHADING_BRIGHT, false, RENDERER_POLY},	// ATARI
+	{FRAME_LIMIT_2VBL, 5, WALL_QUALITY_LO, PLANE_QUALITY_LO, SCREEN_SCALE_1x1, true, DEPTH_SHADING_BRIGHT, false, RENDERER_POLY},	// AMIGA
+	{FRAME_LIMIT_2VBL, 3, WALL_QUALITY_HI, PLANE_QUALITY_LO, SCREEN_SCALE_2x1, true, DEPTH_SHADING_ON, true, RENDERER_DOOM},		// SNES
+	{FRAME_LIMIT_2VBL, 3, WALL_QUALITY_HI, PLANE_QUALITY_HI, SCREEN_SCALE_2x1, true, DEPTH_SHADING_BRIGHT, false, RENDERER_DOOM},	// GBA
+	{FRAME_LIMIT_3VBL, 5, WALL_QUALITY_HI, PLANE_QUALITY_HI, SCREEN_SCALE_2x1, true, DEPTH_SHADING_BRIGHT, false, RENDERER_DOOM},	// JAGUAR
+	{FRAME_LIMIT_1VBL, 3, WALL_QUALITY_HI, PLANE_QUALITY_HI, SCREEN_SCALE_1x1, false, DEPTH_SHADING_ON, false, RENDERER_DOOM},	// DEFAULT
+	{FRAME_LIMIT_2VBL, 4, WALL_QUALITY_HI, PLANE_QUALITY_MED, SCREEN_SCALE_2x1, false, DEPTH_SHADING_DARK, false, RENDERER_DOOM},// FASTER
+	{FRAME_LIMIT_2VBL, 3, WALL_QUALITY_HI, PLANE_QUALITY_HI, SCREEN_SCALE_1x1, false, DEPTH_SHADING_ON, false, RENDERER_DOOM},  	// CUSTOM
+	{FRAME_LIMIT_1VBL, 5, WALL_QUALITY_HI, PLANE_QUALITY_HI, SCREEN_SCALE_1x1, true, DEPTH_SHADING_ON, true, RENDERER_DOOM},		// MAX
 };
 
 static Word cursorFrame;		// Skull animation frame
@@ -102,9 +102,9 @@ Word presets = PRESET_GFX_CUSTOM;
 
 enum {
 	mi_soundVolume,     // Sfx Volume
-	mi_musicVolume,     // Music volume
-	mi_controls,        // Control settings
-	mi_stats,           // Stats display on/off
+		mi_musicVolume,     // Music volume
+		mi_controls,        // Control settings
+		mi_stats,           // Stats display on/off
 
 #ifdef DEBUG_MENU_HACK
     mi_dbg1,
@@ -119,7 +119,7 @@ enum {
 	mi_frameLimit,		// Frame limit options
 	mi_screenSize,      // Screen size settings
 	mi_wallQuality,     // Wall quality (fullres(hi), halfres(med), untextured(lo))
-	mi_floorQuality,    // Floor/Ceiling quality (textured, flat)
+	mi_planeQuality,    // Plane quality (textured, flat)
 	mi_presets,			// Graphics presets selection
 	mi_screenScale,		// Pixel scaling of screen (1x1, 2x1, 1x2, 2x2)
 	mi_fitToScreen,		// Switch to fit small window to fullscreen (On/Off)
@@ -172,7 +172,7 @@ static char *presetOptionsStr[PRESET_OPTIONS_NUM] = { "MIN", "ATARI", "AMIGA", "
 static char *offOnOptionsStr[OFFON_OPTIONS_NUM] = { "OFF", "ON" };
 static char *statsOptionsStr[STATS_OPTIONS_NUM] = { "OFF", "FPS", "MEM", "ALL" };
 static char *wallQualityOptionsStr[WALL_QUALITY_OPTIONS_NUM] = { "LO", "MED", "HI"};
-static char *floorQualityOptionsStr[FLOOR_QUALITY_OPTIONS_NUM] = { "LO", "MED", "HI" };
+static char *planeQualityOptionsStr[PLANE_QUALITY_OPTIONS_NUM] = { "LO", "MED", "HI" };
 static char *screenScaleOptionsStr[SCREEN_SCALE_OPTIONS_NUM] = { "1x1", "2x1", "1x2", "2x2" };
 static char *depthShadingOptionsStr[DEPTH_SHADING_OPTIONS_NUM] = { "DARK", "BRIGHT", "ON" };
 static char *rendererOptionsStr[RENDERER_OPTIONS_NUM] = { "DOOM", "POLY" };
@@ -385,8 +385,8 @@ void initMenuOptions()
     setMenuItemWithOptionNames(mi_frameLimit, 32, 36, "Frame max", false, muiStyle_text, &optGraphics->frameLimit, FRAME_LIMIT_OPTIONS_NUM, frameLimitOptionsStr);
     setMenuItem(mi_screenSize, 160, 58, "Screen size", true, muiStyle_slider, &optGraphics->screenSizeIndex, SCREENSIZE_OPTIONS_NUM);
     setMenuItemWithOptionNames(mi_wallQuality, 112, 94, "Wall", false, muiStyle_text | muiStyle_slider, &optGraphics->wallQuality, WALL_QUALITY_OPTIONS_NUM, wallQualityOptionsStr);
-    setMenuItemWithOptionNames(mi_floorQuality, 96, 126, "Floor", false, muiStyle_text | muiStyle_slider, &optGraphics->floorQuality, FLOOR_QUALITY_OPTIONS_NUM, floorQualityOptionsStr);
-	setItemPageRange(mi_frameLimit, mi_floorQuality, page_performance);
+    setMenuItemWithOptionNames(mi_planeQuality, 96, 126, "Plane", false, muiStyle_text | muiStyle_slider, &optGraphics->planeQuality, PLANE_QUALITY_OPTIONS_NUM, planeQualityOptionsStr);
+	setItemPageRange(mi_frameLimit, mi_planeQuality, page_performance);
 
     setMenuItemWithOptionNames(mi_presets, 56, 40, "Presets", false, muiStyle_text, &presets, PRESET_OPTIONS_NUM, presetOptionsStr);
     setMenuItemWithOptionNames(mi_screenScale, 92, 60, "Scale", false, muiStyle_text, &optGraphics->screenScale, SCREEN_SCALE_OPTIONS_NUM, screenScaleOptionsStr);
@@ -540,7 +540,7 @@ static void handleSpecialMenuItemActions(player_t *player, Word menuItemIndex)
         case mi_presets:
         	copyGraphicsOptions(optGraphics, &graphicsPresets[presets]);
         	initCCBarrayWall();
-        	initSpanDrawFunc();
+        	initPlaneCELs();
         	initScreenChangeVariables(true);
 		break;
 
@@ -558,8 +558,9 @@ static void handleSpecialMenuItemActions(player_t *player, Word menuItemIndex)
             initCCBarrayWall();
         break;
 
-        case mi_floorQuality:
-            initSpanDrawFunc();
+		case mi_shading_depth:
+        case mi_planeQuality:
+            initPlaneCELs();
         break;
 
         case mi_sky:

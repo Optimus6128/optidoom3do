@@ -9,21 +9,19 @@ typedef struct {
     Word x2;
 } visspan_t;
 
-Byte *PlaneSource;			/* Pointer to image of floor/ceiling texture */
-Fixed planey;		/* latched viewx / viewy for floor drawing */
+Byte *PlaneSource;			/* Pointer to image of plane texture */
+Fixed planey;		/* latched viewx / viewy for plane drawing */
 Fixed basexscale,baseyscale;
 Word PlaneDistance;
 static Word PlaneHeight;
 
 static visspan_t spandata[MAXSCREENHEIGHT];
 
-static MyCCB CCBArrayFloor[MAXSCREENHEIGHT];
-static MyCCB CCBArrayFloorFlat[MAXSCREENHEIGHT];
-static MyCCB CCBArrayFloorFlatVertical[MAXSCREENWIDTH];
+static MyCCB CCBArrayPlane[MAXSCREENWIDTH];	// used to be MAXSCREENHEIGHT, but this common array is interchangebly used now for horizontal spans and vertical columns
 
 /***************************
 
-	Floor quality settings
+	Plane quality settings
 
 ****************************/
 
@@ -38,20 +36,20 @@ void (*spanDrawFunc)(Word Count,LongWord xfrac,LongWord yfrac,Fixed ds_xstep,Fix
 
 **********************************/
 
-void initSpanDrawFunc(void)
+static void initSpanDrawFunc(void)
 {
-    if (optGraphics->floorQuality==FLOOR_QUALITY_HI)
+    if (optGraphics->planeQuality==PLANE_QUALITY_HI)
         spanDrawFunc = DrawASpan;
     else
         spanDrawFunc = DrawASpanLo;
 }
 
-void initCCBarrayFloor(void)
+static void initCCBarrayPlane(void)
 {
 	MyCCB *CCBPtr;
 	int i;
 
-	CCBPtr = &CCBArrayFloor[0];
+	CCBPtr = &CCBArrayPlane[0];
 	for (i=0; i<MAXSCREENHEIGHT; ++i) {
         CCBPtr->ccb_NextPtr = (MyCCB *)(sizeof(MyCCB)-8);	// Create the next offset
 
@@ -68,12 +66,12 @@ void initCCBarrayFloor(void)
 	}
 }
 
-void initCCBarrayFloorFlat(void)
+static void initCCBarrayPlaneFlat(void)
 {
 	MyCCB *CCBPtr;
 	int i;
 
-	CCBPtr = &CCBArrayFloorFlat[0];
+	CCBPtr = &CCBArrayPlane[0];
 	for (i=0; i<MAXSCREENHEIGHT; ++i) {
 		CCBPtr->ccb_NextPtr = (MyCCB *)(sizeof(MyCCB)-8);	// Create the next offset
 
@@ -91,12 +89,12 @@ void initCCBarrayFloorFlat(void)
 	}
 }
 
-void initCCBarrayFloorFlatVertical(void)
+static void initCCBarrayPlaneFlatVertical(void)
 {
 	MyCCB *CCBPtr;
 	int i;
 
-	CCBPtr = &CCBArrayFloorFlatVertical[0];
+	CCBPtr = &CCBArrayPlane[0];
 	for (i=0; i<MAXSCREENWIDTH; ++i) {
 		CCBPtr->ccb_NextPtr = (MyCCB *)(sizeof(MyCCB)-8);	// Create the next offset
 
@@ -116,44 +114,64 @@ void initCCBarrayFloorFlatVertical(void)
 	}
 }
 
-void drawCCBarrayFloor(Word xEnd, Byte *source)
+void initPlaneCELs()
+{
+	switch (optGraphics->planeQuality)
+	{
+		case PLANE_QUALITY_LO:
+			if (optGraphics->depthShading == DEPTH_SHADING_ON) {
+				initCCBarrayPlaneFlat();
+			} else {
+				initCCBarrayPlaneFlatVertical();
+			}
+		break;
+		
+		case PLANE_QUALITY_MED:
+		case PLANE_QUALITY_HI:
+			initCCBarrayPlane();
+		break;
+	}
+	initSpanDrawFunc();
+}
+
+void drawCCBarrayPlane(Word xEnd, Byte *source)
 {
     MyCCB *spanCCBstart, *spanCCBend;
 
-    spanCCBstart = &CCBArrayFloor[0];           // First span CEL of the floor segment
-	spanCCBend = &CCBArrayFloor[xEnd];          // Last span CEL of the floor segment
+    spanCCBstart = &CCBArrayPlane[0];           // First span CEL of the plane segment
+	spanCCBend = &CCBArrayPlane[xEnd];          // Last span CEL of the plane segment
 
     spanCCBstart->ccb_Flags |= CCB_LDPLUT;      // Enable CCB_LDPLUT only for the first span
     spanCCBstart->ccb_PLUTPtr = source;         // Don't forget to set up the palette pointer, only for the first span
 
 	spanCCBend->ccb_Flags |= CCB_LAST;          // Mark last colume CEL as the last one in the linked list
-    DrawCels(VideoItem,(CCB*)spanCCBstart);     // Draw all the cels of a single floor in one shot
+    DrawCels(VideoItem,(CCB*)spanCCBstart);     // Draw all the cels of a single plane in one shot
 
     spanCCBstart->ccb_Flags ^= CCB_LDPLUT;      // Turn off CCB_LDPLUT on the first span after render, the next wall segment might need it off
     spanCCBend->ccb_Flags ^= CCB_LAST;          // remember to flip off that CCB_LAST flag, since we don't reinit the flags for all spans every time
 }
 
-void drawCCBarrayFloorFlat(Word xEnd)
+void drawCCBarrayPlaneFlat(Word xEnd)
 {
     MyCCB *spanCCBstart, *spanCCBend;
 
-    spanCCBstart = &CCBArrayFloorFlat[0];       // First span CEL of the floor segment
-	spanCCBend = &CCBArrayFloorFlat[xEnd];      // Last span CEL of the floor segment
+    spanCCBstart = &CCBArrayPlane[0];       	// First span CEL of the plane segment
+	spanCCBend = &CCBArrayPlane[xEnd];      	// Last span CEL of the plane segment
 
 	spanCCBend->ccb_Flags |= CCB_LAST;          // Mark last colume CEL as the last one in the linked list
-    DrawCels(VideoItem,(CCB*)spanCCBstart);     // Draw all the cels of a single floor in one shot
+    DrawCels(VideoItem,(CCB*)spanCCBstart);     // Draw all the cels of a single plane in one shot
 
     spanCCBend->ccb_Flags ^= CCB_LAST;          // remember to flip off that CCB_LAST flag, since we don't reinit the flags for all spans every time
 }
 
-void drawCCBarrayFloorFlatVertical(MyCCB *columnCCBend)
+void drawCCBarrayPlaneFlatVertical(MyCCB *columnCCBend)
 {
     MyCCB *columnCCBstart;
 
-	columnCCBstart = &CCBArrayFloorFlatVertical[0];     // First column CEL of the floor segment
+	columnCCBstart = &CCBArrayPlane[0];     			// First column CEL of the plane segment
 
 	columnCCBend->ccb_Flags |= CCB_LAST;                // Mark last colume CEL as the last one in the linked list
-    DrawCels(VideoItem,(CCB*)columnCCBstart);           // Draw all the cels of a single floor in one shot
+    DrawCels(VideoItem,(CCB*)columnCCBstart);           // Draw all the cels of a single plane in one shot
     columnCCBend->ccb_Flags ^= CCB_LAST;                // remember to flip off that CCB_LAST flag, since we don't reinit the flags for all columns every time
 }
 
@@ -175,7 +193,7 @@ static void MapPlane(Word y1, Word y2)
 
 
     DestPtr = SpanPtr;
-    CCBPtr = &CCBArrayFloor[0];
+    CCBPtr = &CCBArrayPlane[0];
     for (y=y1; y<=y2; ++y) {
         x1 = spandata[y].x1;
         Count = spandata[y].x2 - x1;
@@ -211,7 +229,7 @@ static void MapPlane(Word y1, Word y2)
         DestPtr += Count;
         SpanPtr = DestPtr;
     }
-    drawCCBarrayFloor(y2-y1, PlaneSource);
+    drawCCBarrayPlane(y2-y1, PlaneSource);
 }
 
 static void MapPlaneUnshaded(Word y1, Word y2)
@@ -236,7 +254,7 @@ static void MapPlaneUnshaded(Word y1, Word y2)
     light = LightTable[light>>LIGHTSCALESHIFT];
 
     DestPtr = SpanPtr;
-    CCBPtr = &CCBArrayFloor[0];
+    CCBPtr = &CCBArrayPlane[0];
     for (y=y1; y<=y2; ++y) {
         x1 = spandata[y].x1;
         Count = spandata[y].x2 - x1;
@@ -264,7 +282,7 @@ static void MapPlaneUnshaded(Word y1, Word y2)
         DestPtr += Count;
         SpanPtr = DestPtr;
     }
-    drawCCBarrayFloor(y2-y1, PlaneSource);
+    drawCCBarrayPlane(y2-y1, PlaneSource);
 }
 
 static void MapPlaneFlat(Word y1, Word y2, Word color)
@@ -279,7 +297,7 @@ static void MapPlaneFlat(Word y1, Word y2, Word color)
 
     if (y1 > y2) return;
 
-    CCBPtr = &CCBArrayFloorFlat[0];
+    CCBPtr = &CCBArrayPlane[0];
     for (y=y1; y<=y2; ++y) {
         x1 = spandata[y].x1;
         x2 = spandata[y].x2;
@@ -301,14 +319,14 @@ static void MapPlaneFlat(Word y1, Word y2, Word color)
         CCBPtr->ccb_HDX = (x2-x1)<<20;
         CCBPtr++;
     }
-    drawCCBarrayFloorFlat(y2-y1);
+    drawCCBarrayPlaneFlat(y2-y1);
 }
 
 static void MapPlaneAny(Word y1, Word y2, Word color)
 {
     const bool lightQuality = (optGraphics->depthShading > 1);
 
-    if (optGraphics->floorQuality > FLOOR_QUALITY_LO) {
+    if (optGraphics->planeQuality > PLANE_QUALITY_LO) {
         if (lightQuality) {
             MapPlane(y1, y2);
         } else {
@@ -443,7 +461,7 @@ void DrawVisPlaneVertical(visplane_t *p)
 
     if (xEnd < x) return;
 
-	CCBPtr = CCBArrayFloorFlatVertical;
+	CCBPtr = CCBArrayPlane;
 	do {
 		const Word op = open[x];
 		int length;
@@ -462,13 +480,13 @@ void DrawVisPlaneVertical(visplane_t *p)
         ++CCBPtr;
 	} while (++x<=xEnd);
 
-	if (CCBPtr != CCBArrayFloorFlatVertical)
-        drawCCBarrayFloorFlatVertical(--CCBPtr);
+	if (CCBPtr != CCBArrayPlane)
+        drawCCBarrayPlaneFlatVertical(--CCBPtr);
 }
 
 void DrawVisPlane(visplane_t *p)
 {
-    if (optGraphics->floorQuality == FLOOR_QUALITY_LO && optGraphics->depthShading != DEPTH_SHADING_ON) {
+    if (optGraphics->planeQuality == PLANE_QUALITY_LO && optGraphics->depthShading != DEPTH_SHADING_ON) {
         DrawVisPlaneVertical(p);
     } else {
         DrawVisPlaneHorizontal(p);
