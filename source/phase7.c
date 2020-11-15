@@ -3,6 +3,7 @@
 #include <operamath.h>
 
 #define OPENMARK ((MAXSCREENHEIGHT-1)<<8)
+#define CCB_ARRAY_PLANE_MAX MAXSCREENWIDTH
 
 typedef struct {
     Word x1;
@@ -17,7 +18,8 @@ static Word PlaneHeight;
 
 static visspan_t spandata[MAXSCREENHEIGHT];
 
-static MyCCB CCBArrayPlane[MAXSCREENWIDTH];	// used to be MAXSCREENHEIGHT, but this common array is interchangebly used now for horizontal spans and vertical columns
+static MyCCB CCBArrayPlane[CCB_ARRAY_PLANE_MAX];
+static int CCBArrayPlaneCurrent = 0;
 
 /***************************
 
@@ -50,11 +52,11 @@ static void initCCBarrayPlane(void)
 	int i;
 
 	CCBPtr = &CCBArrayPlane[0];
-	for (i=0; i<MAXSCREENHEIGHT; ++i) {
+	for (i=0; i<CCB_ARRAY_PLANE_MAX; ++i) {
         CCBPtr->ccb_NextPtr = (MyCCB *)(sizeof(MyCCB)-8);	// Create the next offset
 
 		// Set all the defaults
-        CCBPtr->ccb_Flags = CCB_SPABS|CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_PPABS;
+        CCBPtr->ccb_Flags = CCB_SPABS|CCB_LDPLUT|CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_PPABS;
 
         CCBPtr->ccb_PRE0 = 0x00000005;		// Preamble (Coded 8 bit)
         CCBPtr->ccb_HDX = 1<<20;
@@ -72,7 +74,7 @@ static void initCCBarrayPlaneFlat(void)
 	int i;
 
 	CCBPtr = &CCBArrayPlane[0];
-	for (i=0; i<MAXSCREENHEIGHT; ++i) {
+	for (i=0; i<CCB_ARRAY_PLANE_MAX; ++i) {
 		CCBPtr->ccb_NextPtr = (MyCCB *)(sizeof(MyCCB)-8);	// Create the next offset
 
 		// Set all the defaults
@@ -89,13 +91,13 @@ static void initCCBarrayPlaneFlat(void)
 	}
 }
 
-static void initCCBarrayPlaneFlatVertical(void)
+static void initCCBarrayPlaneFlatVertical()
 {
 	MyCCB *CCBPtr;
 	int i;
 
 	CCBPtr = &CCBArrayPlane[0];
-	for (i=0; i<MAXSCREENWIDTH; ++i) {
+	for (i=0; i<CCB_ARRAY_PLANE_MAX; ++i) {
 		CCBPtr->ccb_NextPtr = (MyCCB *)(sizeof(MyCCB)-8);	// Create the next offset
 
 		// Set all the defaults
@@ -134,37 +136,20 @@ void initPlaneCELs()
 	initSpanDrawFunc();
 }
 
-void drawCCBarrayPlane(Word xEnd, Byte *source)
+void drawCCBarrayPlane(Word xEnd)
 {
     MyCCB *spanCCBstart, *spanCCBend;
 
     spanCCBstart = &CCBArrayPlane[0];           // First span CEL of the plane segment
 	spanCCBend = &CCBArrayPlane[xEnd];          // Last span CEL of the plane segment
 
-    spanCCBstart->ccb_Flags |= CCB_LDPLUT;      // Enable CCB_LDPLUT only for the first span
-    spanCCBstart->ccb_PLUTPtr = source;         // Don't forget to set up the palette pointer, only for the first span
-
-	spanCCBend->ccb_Flags |= CCB_LAST;          // Mark last colume CEL as the last one in the linked list
-    DrawCels(VideoItem,(CCB*)spanCCBstart);     // Draw all the cels of a single plane in one shot
-
-    spanCCBstart->ccb_Flags ^= CCB_LDPLUT;      // Turn off CCB_LDPLUT on the first span after render, the next wall segment might need it off
-    spanCCBend->ccb_Flags ^= CCB_LAST;          // remember to flip off that CCB_LAST flag, since we don't reinit the flags for all spans every time
-}
-
-void drawCCBarrayPlaneFlat(Word xEnd)
-{
-    MyCCB *spanCCBstart, *spanCCBend;
-
-    spanCCBstart = &CCBArrayPlane[0];       	// First span CEL of the plane segment
-	spanCCBend = &CCBArrayPlane[xEnd];      	// Last span CEL of the plane segment
-
 	spanCCBend->ccb_Flags |= CCB_LAST;          // Mark last colume CEL as the last one in the linked list
     DrawCels(VideoItem,(CCB*)spanCCBstart);     // Draw all the cels of a single plane in one shot
 
     spanCCBend->ccb_Flags ^= CCB_LAST;          // remember to flip off that CCB_LAST flag, since we don't reinit the flags for all spans every time
 }
 
-void drawCCBarrayPlaneFlatVertical(MyCCB *columnCCBend)
+void drawCCBarrayPlaneVertical(MyCCB *columnCCBend)
 {
     MyCCB *columnCCBstart;
 
@@ -172,7 +157,16 @@ void drawCCBarrayPlaneFlatVertical(MyCCB *columnCCBend)
 
 	columnCCBend->ccb_Flags |= CCB_LAST;                // Mark last colume CEL as the last one in the linked list
     DrawCels(VideoItem,(CCB*)columnCCBstart);           // Draw all the cels of a single plane in one shot
+
     columnCCBend->ccb_Flags ^= CCB_LAST;                // remember to flip off that CCB_LAST flag, since we don't reinit the flags for all columns every time
+}
+
+void flushCCBarrayPlane()
+{
+	if (CCBArrayPlaneCurrent != 0) {
+		drawCCBarrayPlane(CCBArrayPlaneCurrent - 1);
+		CCBArrayPlaneCurrent = 0;
+	}
 }
 
 static void MapPlane(Word y1, Word y2)
@@ -188,12 +182,16 @@ static void MapPlane(Word y1, Word y2)
     MyCCB *CCBPtr;
     Byte *DestPtr;
     Word Count;
+    int numCels;
 
     if (y1 > y2) return;
-
+	numCels = y2 - y1 + 1;
+	if (CCBArrayPlaneCurrent + numCels > CCB_ARRAY_PLANE_MAX) {
+		flushCCBarrayPlane();
+	}
 
     DestPtr = SpanPtr;
-    CCBPtr = &CCBArrayPlane[0];
+    CCBPtr = &CCBArrayPlane[CCBArrayPlaneCurrent];
     for (y=y1; y<=y2; ++y) {
         x1 = spandata[y].x1;
         Count = spandata[y].x2 - x1;
@@ -220,6 +218,7 @@ static void MapPlane(Word y1, Word y2)
 
         CCBPtr->ccb_PRE1 = 0x3E005000|(Count-1);		/* Second preamble */
         CCBPtr->ccb_SourcePtr = (CelData *)DestPtr;	/* Save the source ptr */
+        CCBPtr->ccb_PLUTPtr = PlaneSource;
         CCBPtr->ccb_XPos = x1<<16;		/* Set the x and y coord for start */
         CCBPtr->ccb_YPos = y<<16;
         CCBPtr->ccb_PIXC = LightTable[light>>LIGHTSCALESHIFT];			/* PIXC control */
@@ -229,7 +228,7 @@ static void MapPlane(Word y1, Word y2)
         DestPtr += Count;
         SpanPtr = DestPtr;
     }
-    drawCCBarrayPlane(y2-y1, PlaneSource);
+    CCBArrayPlaneCurrent += numCels;
 }
 
 static void MapPlaneUnshaded(Word y1, Word y2)
@@ -245,8 +244,13 @@ static void MapPlaneUnshaded(Word y1, Word y2)
     MyCCB *CCBPtr;
     Byte *DestPtr;
     Word Count;
+    int numCels;
 
     if (y1 > y2) return;
+	numCels = y2 - y1 + 1;
+	if (CCBArrayPlaneCurrent + numCels > CCB_ARRAY_PLANE_MAX) {
+		flushCCBarrayPlane();
+	}
 
     if (!optGraphics->depthShading) light = lightmin;
         else light = lightmax;
@@ -254,7 +258,7 @@ static void MapPlaneUnshaded(Word y1, Word y2)
     light = LightTable[light>>LIGHTSCALESHIFT];
 
     DestPtr = SpanPtr;
-    CCBPtr = &CCBArrayPlane[0];
+    CCBPtr = &CCBArrayPlane[CCBArrayPlaneCurrent];
     for (y=y1; y<=y2; ++y) {
         x1 = spandata[y].x1;
         Count = spandata[y].x2 - x1;
@@ -273,6 +277,7 @@ static void MapPlaneUnshaded(Word y1, Word y2)
 
         CCBPtr->ccb_PRE1 = 0x3E005000|(Count-1);		/* Second preamble */
         CCBPtr->ccb_SourcePtr = (CelData *)DestPtr;	/* Save the source ptr */
+        CCBPtr->ccb_PLUTPtr = PlaneSource;
         CCBPtr->ccb_XPos = x1<<16;		/* Set the x and y coord for start */
         CCBPtr->ccb_YPos = y<<16;
         CCBPtr->ccb_PIXC = light;
@@ -282,7 +287,7 @@ static void MapPlaneUnshaded(Word y1, Word y2)
         DestPtr += Count;
         SpanPtr = DestPtr;
     }
-    drawCCBarrayPlane(y2-y1, PlaneSource);
+    CCBArrayPlaneCurrent += numCels;
 }
 
 static void MapPlaneFlat(Word y1, Word y2, Word color)
@@ -294,10 +299,15 @@ static void MapPlaneFlat(Word y1, Word y2, Word color)
 
     MyCCB *CCBPtr;
     void *colorValueAsPtr = (void*)color;
+    int numCels;
 
     if (y1 > y2) return;
+	numCels = y2 - y1 + 1;
+	if (CCBArrayPlaneCurrent + numCels > CCB_ARRAY_PLANE_MAX) {
+		flushCCBarrayPlane();
+	}
 
-    CCBPtr = &CCBArrayPlane[0];
+    CCBPtr = &CCBArrayPlane[CCBArrayPlaneCurrent];
     for (y=y1; y<=y2; ++y) {
         x1 = spandata[y].x1;
         x2 = spandata[y].x2;
@@ -319,7 +329,7 @@ static void MapPlaneFlat(Word y1, Word y2, Word color)
         CCBPtr->ccb_HDX = (x2-x1)<<20;
         CCBPtr++;
     }
-    drawCCBarrayPlaneFlat(y2-y1);
+    CCBArrayPlaneCurrent += numCels;
 }
 
 static void MapPlaneAny(Word y1, Word y2, Word color)
@@ -481,7 +491,7 @@ void DrawVisPlaneVertical(visplane_t *p)
 	} while (++x<=xEnd);
 
 	if (CCBPtr != CCBArrayPlane)
-        drawCCBarrayPlaneFlatVertical(--CCBPtr);
+        drawCCBarrayPlaneVertical(--CCBPtr);
 }
 
 void DrawVisPlane(visplane_t *p)

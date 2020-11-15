@@ -179,6 +179,7 @@ static void DrawPlanes()
         do {
             DrawVisPlane(PlanePtr);		// Convert the plane
         } while (++PlanePtr<LastPlanePtr);		// Loop for all
+        flushCCBarrayPlane();
     }
     resetSpanPointer();
 }

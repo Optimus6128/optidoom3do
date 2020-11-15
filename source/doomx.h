@@ -82,7 +82,7 @@ void initCCBQuadWallTextured(void);
 
 // In phase7.c
 void initPlaneCELs(void);
-
+void flushCCBarrayPlane(void);
 
 // In phase8.c
 extern Word spriteLight;
