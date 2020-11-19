@@ -69,7 +69,7 @@ static void DrawWalls()
 {
     // Now I actually draw the walls back to front to allow for clipping because of slop
 
-    const bool lightShadingOn = (optGraphics->depthShading == DEPTH_SHADING_ON);
+    const bool lightShadingOn = (optGraphics->depthShading >= DEPTH_SHADING_DITHERED);
     bool tooTightForPoly = false;
 
     LastSegPtr = viswalls;		// Stop at the first one

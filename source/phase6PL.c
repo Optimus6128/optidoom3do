@@ -174,7 +174,7 @@ static void DrawWallSegmentTexturedQuadSubdivided(drawtex_t *tex, int run, Word 
         colnum >>= 1;           // Pixel to byte offset
         colnum &= ~3;			// Long word align the source
 
-        if (optGraphics->depthShading == DEPTH_SHADING_ON) {
+        if (optGraphics->depthShading >= DEPTH_SHADING_DITHERED) {
             int textureLight = ((scaleLeft*lightcoef)>>16) - lightsub;
             if (textureLight < lightmin) textureLight = lightmin;
             if (textureLight > lightmax) textureLight = lightmax;
@@ -229,7 +229,7 @@ static void DrawWallSegmentTexturedQuad(drawtex_t *tex, viswall_t *segl)
 
     if (run <= 0 || run >= RECIPROCAL_MAX_NUM) return;
 
-    if (optGraphics->depthShading == DEPTH_SHADING_ON) {
+    if (optGraphics->depthShading >= DEPTH_SHADING_DITHERED) {
         const int l = segl->seglightlevel;
         lightmin = lightmins[l];
         lightmax = l;

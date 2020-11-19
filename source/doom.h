@@ -316,6 +316,7 @@ typedef struct {		/* Describe a floor texture */
 	Word color;
 	Word PlaneLight;	/* Light override */
 	int minx,maxx;		/* Minimum x, max x */
+	int miny,maxy;		/* Minimum y, max y */
 } visplane_t;
 
 #define	MF_SPECIAL		1			// call P_SpecialThing when touched

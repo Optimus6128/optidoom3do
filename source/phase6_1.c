@@ -97,7 +97,7 @@ static visplane_t *FindPlane(visplane_t *check, viswall_t *segl, int start, Word
 	++visplanesCount;
 	check->height = height;		/* Init all the vars in the visplane */
 	check->PicHandle = PicHandle;
-	check->color = color;
+	check->color = color | ((color >> 16) | (1 << 15));	// high bit also for dithered flat two color checkerboard palette
 	check->minx = start;
 	check->maxx = stop;
 	check->PlaneLight = Light;		/* Set the light level */
@@ -119,6 +119,9 @@ static visplane_t *FindPlane(visplane_t *check, viswall_t *segl, int start, Word
             set[3] = i;
             set+=4;
         } while (--j);
+
+        check->miny = MAXSCREENHEIGHT;
+        check->maxy = -1;
     }
 	return check;
 }
@@ -165,6 +168,8 @@ static void SegLoopFloor(viswall_t *segl, Word screenCenterY)
                 --top;
             }
             FloorPlane->open[x] = (top<<8)+bottom;	// Set the new vertical span
+            if (FloorPlane->miny > top) FloorPlane->miny = top;
+            if (FloorPlane->maxy < bottom) FloorPlane->maxy = bottom;
         }
         segdata++;
 	} while (++x<=segl->RightX);
@@ -208,6 +213,8 @@ static void SegLoopCeiling(viswall_t *segl, Word screenCenterY)
                 --top;
             }
             CeilingPlane->open[x] = (top<<8)+bottom;		// Set the vertical span
+            if (CeilingPlane->miny > top) CeilingPlane->miny = top;
+            if (CeilingPlane->maxy < bottom) CeilingPlane->maxy = bottom;
         }
         segdata++;
 	} while (++x<=segl->RightX);
