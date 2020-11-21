@@ -61,14 +61,25 @@ static void initCCBarray(void)
 void initAllCCBelements()
 {
     initCCBarray();
-    initCCBarrayWall();
-    initCCBarrayWallFlat();
+    initWallCELs();
     initCCBarraySky();
     initPlaneCELs();
     initCCBQuadWallFlat();
     initCCBQuadWallTextured();
 
 	if (enableNewSkies) initNewSkies();
+}
+
+void drawCCBarray(MyCCB* lastCCB, MyCCB *CCBArrayPtr)
+{
+    MyCCB *columnCCBstart, *columnCCBend;
+
+	columnCCBstart = CCBArrayPtr;                // First column CEL of the wall segment
+	columnCCBend = lastCCB;                      // Last column CEL of the wall segment
+
+	columnCCBend->ccb_Flags |= CCB_LAST;         // Mark last colume CEL as the last one in the linked list
+    DrawCels(VideoItem,(CCB*)columnCCBstart);    // Draw all the cels of a single wall in one shot
+    columnCCBend->ccb_Flags ^= CCB_LAST;         // remember to flip off that CCB_LAST flag, since we don't reinit the flags for all columns every time
 }
 
 void resetSpanPointer()

@@ -25,6 +25,7 @@ static visspan_t spandata[MAXSCREENHEIGHT];
 static MyCCB CCBArrayPlane[CCB_ARRAY_PLANE_MAX];
 static int CCBArrayPlaneCurrent = 0;
 
+
 /***************************
 
 	Plane quality settings
@@ -168,7 +169,7 @@ void initPlaneCELs()
 			}
 		}
 		break;
-		
+
 		case PLANE_QUALITY_MED:
 		case PLANE_QUALITY_HI:
 			initCCBarrayPlane();
@@ -198,7 +199,6 @@ void drawCCBarrayPlaneVertical(MyCCB *columnCCBend)
 
 	columnCCBend->ccb_Flags |= CCB_LAST;                // Mark last colume CEL as the last one in the linked list
     DrawCels(VideoItem,(CCB*)columnCCBstart);           // Draw all the cels of a single plane in one shot
-
     columnCCBend->ccb_Flags ^= CCB_LAST;                // remember to flip off that CCB_LAST flag, since we don't reinit the flags for all columns every time
 }
 
@@ -379,17 +379,16 @@ static void MapPlaneAny(Word y1, Word y2, const Word *color)
 {
 	const Word depthShading = optGraphics->depthShading;
 
-
-    if (optGraphics->planeQuality > PLANE_QUALITY_LO) {
-        if (depthShading >= DEPTH_SHADING_DITHERED) {
-            MapPlane(y1, y2);
-        } else {
-            MapPlaneUnshaded(y1, y2);
-        }
+	if (optGraphics->planeQuality > PLANE_QUALITY_LO) {
+		if (depthShading >= DEPTH_SHADING_DITHERED) {
+			MapPlane(y1, y2);
+		} else {
+			MapPlaneUnshaded(y1, y2);
+		}
     } else {
     	if (depthShading == DEPTH_SHADING_DITHERED) {
 			MapPlaneFlatDithered(y1, y2, color);
-    	} else {
+		} else {
 			MapPlaneFlat(y1, y2, *color);
     	}
     }

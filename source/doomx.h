@@ -60,22 +60,17 @@ extern bool skyOnView;
 
 
 // In phase6_2.c
-
-void initCCBarrayWall(void);
-void initCCBarrayWallFlat(void);
-
-void DrawSegFull(viswall_t *segl, int *scaleData);
-void DrawSegFullUnshaded(viswall_t *segl, int *scaleData);
-void DrawSegFullFlat(viswall_t *segl, int *scaleData);
-void DrawSegFullFlatUnshaded(viswall_t *segl, int *scaleData);
-void DrawSegHalf(viswall_t *segl, int *scaleData);
-void DrawSegHalfUnshaded(viswall_t *segl, int *scaleData);
-void drawCCBarray(MyCCB* lastCCB, MyCCB *CCBArrayPtr);
+void initWallCELs(void);
+void DrawSeg(viswall_t *segl, int *scaleData);
+void DrawSegUnshaded(viswall_t *segl, int *scaleData);
+void DrawSegFlat(viswall_t *segl, int *scaleData);
+void DrawSegFlatUnshaded(viswall_t *segl, int *scaleData);
+void flushCCBarrayWall(void);
 
 
 // In phase6PL.c
-void DrawSegUnshadedPL(viswall_t *segl, int *scaleData);
-void DrawSegWireframePL(viswall_t *segl, int *scaleData);
+void DrawSegPoly(viswall_t *segl, int *scaleData);
+void DrawSegWireframe(viswall_t *segl, int *scaleData);
 void initCCBQuadWallFlat(void);
 void initCCBQuadWallTextured(void);
 
@@ -113,6 +108,7 @@ extern Byte *CelLine190;            // strange pointer to something having to do
 extern Word LightTable[32];
 
 void initAllCCBelements(void);
+void drawCCBarray(MyCCB* lastCCB, MyCCB *CCBArrayPtr);
 void FlushCCBs(void);
 void resetSpanPointer(void);
 void AddCelToCurrentCCB(CCB* cel);

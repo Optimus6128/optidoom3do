@@ -562,8 +562,6 @@ static void updateWipeScreen()
 
 static void updateMyFpsAndDebugPrint()
 {
-	if (optOther->stats == 0) return;
-
     if (optOther->stats >= STATS_FPS) {
 		PrintNumber(8, 8, updateAndGetFPS(), 0);
 		++nframe;

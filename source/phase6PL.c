@@ -76,7 +76,7 @@ void initCCBQuadWallTextured()
     }
 }
 
-static void DrawWallSegmentFlatPL(drawtex_t *tex)
+static void DrawWallSegmentFlatPoly(drawtex_t *tex)
 {
 	int topLeft, topRight;
 	int bottomLeft, bottomRight;
@@ -390,7 +390,7 @@ static void PrepareWallPartsFlat(viswall_t *segl, int *scaleData)
     wp->xRight = segl->RightX + 1;
 }
 
-static void DrawSegAnyPL(viswall_t *segl, int *scaleData, bool isTop, bool shouldPrepareWallParts)
+static void DrawSegAnyPoly(viswall_t *segl, int *scaleData, bool isTop, bool shouldPrepareWallParts)
 {
     texture_t *tex;
     if (isTop) {
@@ -416,12 +416,12 @@ static void DrawSegAnyPL(viswall_t *segl, int *scaleData, bool isTop, bool shoul
         if (wallPartsCount > 0 && wallPartsCount < MAX_WALL_PARTS) DrawWallSegmentTexturedQuad(&drawtex, segl);
     } else {
         PrepareWallPartsFlat(segl, scaleData);
-        DrawWallSegmentFlatPL(&drawtex);
+        DrawWallSegmentFlatPoly(&drawtex);
     }
 }
 
 
-void DrawSegUnshadedPL(viswall_t *segl, int *scaleData)
+void DrawSegPoly(viswall_t *segl, int *scaleData)
 {
     const Word ActionBits = segl->WallActions;
     const bool topTexOn = (bool)(ActionBits & AC_TOPTEXTURE);
@@ -440,17 +440,17 @@ void DrawSegUnshadedPL(viswall_t *segl, int *scaleData)
     texColumnOffsetPrepared = false;
 
     if (topTexOn)
-        DrawSegAnyPL(segl, scaleData, true, true);
+        DrawSegAnyPoly(segl, scaleData, true, true);
 
     if (bottomTexOn)
-        DrawSegAnyPL(segl, scaleData, false, shouldPrepareAgain);
+        DrawSegAnyPoly(segl, scaleData, false, shouldPrepareAgain);
 }
 
 
 // ============ Wireframe renderer ============
 
 
-static void DrawWallSegmentWireframePL(drawtex_t *tex)
+static void DrawWallSegmentWireframe(drawtex_t *tex)
 {
 	int topLeft, topRight;
 	int bottomLeft, bottomRight;
@@ -483,7 +483,7 @@ static void DrawWallSegmentWireframePL(drawtex_t *tex)
     DrawThickLine(xLeft, bottomLeft, xLeft, topLeft, color);
 }
 
-static void DrawSegWireframeAnyPL(viswall_t *segl, int *scaleData, bool isTop)
+static void DrawSegWireframeAny(viswall_t *segl, int *scaleData, bool isTop)
 {
     texture_t *tex;
     if (isTop) {
@@ -500,10 +500,10 @@ static void DrawSegWireframeAnyPL(viswall_t *segl, int *scaleData, bool isTop)
     drawtex.data = (Byte *)*tex->data;
 
     PrepareWallPartsFlat(segl, scaleData);
-    DrawWallSegmentWireframePL(&drawtex);
+    DrawWallSegmentWireframe(&drawtex);
 }
 
-void DrawSegWireframePL(viswall_t *segl, int *scaleData)
+void DrawSegWireframe(viswall_t *segl, int *scaleData)
 {
     const Word ActionBits = segl->WallActions;
     const bool topTexOn = (bool)(ActionBits & AC_TOPTEXTURE);
@@ -512,8 +512,8 @@ void DrawSegWireframePL(viswall_t *segl, int *scaleData)
 	if (!(topTexOn || bottomTexOn)) return;
 
     if (topTexOn)
-        DrawSegWireframeAnyPL(segl, scaleData, true);
+        DrawSegWireframeAny(segl, scaleData, true);
 
     if (bottomTexOn)
-        DrawSegWireframeAnyPL(segl, scaleData, false);
+        DrawSegWireframeAny(segl, scaleData, false);
 }

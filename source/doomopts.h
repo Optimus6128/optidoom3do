@@ -3,7 +3,6 @@
 // Graphics presets
 enum
 {
-	PRESET_GFX_MIN,
 	PRESET_GFX_ATARI,
 	PRESET_GFX_AMIGA,
 	PRESET_GFX_SNES,
@@ -30,7 +29,6 @@ enum
 enum
 {
     WALL_QUALITY_LO,
-    WALL_QUALITY_MED,
     WALL_QUALITY_HI,
     WALL_QUALITY_OPTIONS_NUM
 };

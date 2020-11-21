@@ -73,7 +73,6 @@ static void DrawWalls()
     bool tooTightForPoly = false;
 
     LastSegPtr = viswalls;		// Stop at the first one
-
     if (optGraphics->renderer == RENDERER_DOOM) {
         do {
             --WallSegPtr;			// Last go backwards!!
@@ -81,31 +80,26 @@ static void DrawWalls()
 
             if (optGraphics->wallQuality == WALL_QUALITY_HI) {
                 if (lightShadingOn) {
-                    DrawSegFull(WallSegPtr, scaleArrayData);
+                    DrawSeg(WallSegPtr, scaleArrayData);
                 } else {
-                    DrawSegFullUnshaded(WallSegPtr, scaleArrayData);
-                }
-            } else if (optGraphics->wallQuality == WALL_QUALITY_MED) {
-                if (lightShadingOn) {
-                    DrawSegHalf(WallSegPtr, scaleArrayData);
-                } else {
-                    DrawSegHalfUnshaded(WallSegPtr, scaleArrayData);
+                    DrawSegUnshaded(WallSegPtr, scaleArrayData);
                 }
             } else {
                 if (lightShadingOn) {
-                    DrawSegFullFlat(WallSegPtr, scaleArrayData);
+                    DrawSegFlat(WallSegPtr, scaleArrayData);
                 } else {
-                    DrawSegFullFlatUnshaded(WallSegPtr, scaleArrayData);
+                    DrawSegFlatUnshaded(WallSegPtr, scaleArrayData);
                 }
             }
         } while (WallSegPtr!=LastSegPtr);
     } else {
+    	bool previousWallsTooTight = false;
         do {
             --WallSegPtr;			// Last go backwards!!
             scaleArrayData = scaleArrayPtr[--scaleArrayIndex];
 
             if (optGraphics->wallQuality ==  WALL_QUALITY_LO) {  // flat
-                DrawSegUnshadedPL(WallSegPtr, scaleArrayData); // so, always poly
+                DrawSegPoly(WallSegPtr, scaleArrayData); // so, always poly
             } else {
                 const int texLeft = (WallSegPtr->offset - IMFixMul( finetangent[(WallSegPtr->CenterAngle+xtoviewangle[WallSegPtr->LeftX])>>ANGLETOFINESHIFT], WallSegPtr->distance)) >> FRACBITS;
                 const int texRight = (WallSegPtr->offset - IMFixMul( finetangent[(WallSegPtr->CenterAngle+xtoviewangle[WallSegPtr->RightX])>>ANGLETOFINESHIFT], WallSegPtr->distance)) >> FRACBITS;
@@ -121,28 +115,25 @@ static void DrawWalls()
                     tooTightForPoly = ((pixLength * texWidth) / texLength) < 8;
                 }
 
-
                 if (tooTightForPoly) {
-                    if (optGraphics->wallQuality == WALL_QUALITY_HI) {
-                        if (lightShadingOn) {
-                            DrawSegFull(WallSegPtr, scaleArrayData);
-                        } else {
-                            DrawSegFullUnshaded(WallSegPtr, scaleArrayData);
-                        }
-                    } else if (optGraphics->wallQuality == WALL_QUALITY_MED) {
-                        if (lightShadingOn) {
-                            DrawSegHalf(WallSegPtr, scaleArrayData);
-                        } else {
-                            DrawSegHalfUnshaded(WallSegPtr, scaleArrayData);
-                        }
-                    }
+					if (lightShadingOn) {
+						DrawSeg(WallSegPtr, scaleArrayData);
+					} else {
+						DrawSegUnshaded(WallSegPtr, scaleArrayData);
+					}
+					previousWallsTooTight = true;
                 } else {
-                    DrawSegUnshadedPL(WallSegPtr, scaleArrayData);  // go poly anyway
+                	if (previousWallsTooTight) {
+						flushCCBarrayWall();
+						previousWallsTooTight = false;
+                	}
+                    DrawSegPoly(WallSegPtr, scaleArrayData);  // go poly anyway
                 }
             }
 
         } while (WallSegPtr!=LastSegPtr);
     }
+	flushCCBarrayWall();
 }
 
 void DrawWallsWireframe()
@@ -153,7 +144,7 @@ void DrawWallsWireframe()
 
     do {
         scaleArrayData = scaleArrayPtr[--scaleArrayIndex];
-        DrawSegWireframePL(--WallSegPtr, scaleArrayData);
+        DrawSegWireframe(--WallSegPtr, scaleArrayData);
     } while (WallSegPtr!=LastSegPtr);
 
     FlushCCBs();

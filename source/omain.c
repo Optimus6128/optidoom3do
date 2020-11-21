@@ -28,12 +28,11 @@ static AllOptions optionsDefault = {{FRAME_LIMIT_1VBL, SCREENSIZE_OPTIONS_NUM - 
 									{STATS_OFF, GIMMICKS_OFF, true, false, false, SKY_DEFAULT, 2, CHEATS_OFF, AUTOMAP_CHEAT_OFF, false, false, false, PLAYER_SPEED_1X, ENEMY_SPEED_1X, false, false}};
 
 static GraphicsOptions graphicsPresets[PRESET_OPTIONS_NUM] = {
-	{FRAME_LIMIT_1VBL, 0, WALL_QUALITY_MED, PLANE_QUALITY_MED, SCREEN_SCALE_2x2, true, DEPTH_SHADING_ON, true, RENDERER_DOOM},	// MIN
 	{FRAME_LIMIT_2VBL, 0, WALL_QUALITY_LO, PLANE_QUALITY_LO, SCREEN_SCALE_2x2, true, DEPTH_SHADING_BRIGHT, false, RENDERER_POLY},	// ATARI
 	{FRAME_LIMIT_2VBL, 5, WALL_QUALITY_LO, PLANE_QUALITY_LO, SCREEN_SCALE_1x1, true, DEPTH_SHADING_BRIGHT, false, RENDERER_POLY},	// AMIGA
 	{FRAME_LIMIT_2VBL, 4, WALL_QUALITY_HI, PLANE_QUALITY_LO, SCREEN_SCALE_2x1, false, DEPTH_SHADING_DITHERED, true, RENDERER_DOOM},		// SNES
 	{FRAME_LIMIT_2VBL, 3, WALL_QUALITY_HI, PLANE_QUALITY_HI, SCREEN_SCALE_2x1, true, DEPTH_SHADING_BRIGHT, false, RENDERER_DOOM},	// GBA
-	{FRAME_LIMIT_3VBL, 5, WALL_QUALITY_HI, PLANE_QUALITY_HI, SCREEN_SCALE_2x1, true, DEPTH_SHADING_BRIGHT, false, RENDERER_DOOM},	// JAGUAR
+	{FRAME_LIMIT_3VBL, 5, WALL_QUALITY_HI, PLANE_QUALITY_HI, SCREEN_SCALE_2x1, true, DEPTH_SHADING_ON, false, RENDERER_DOOM},	// JAGUAR
 	{FRAME_LIMIT_1VBL, 3, WALL_QUALITY_HI, PLANE_QUALITY_HI, SCREEN_SCALE_1x1, false, DEPTH_SHADING_ON, false, RENDERER_DOOM},	// DEFAULT
 	{FRAME_LIMIT_2VBL, 4, WALL_QUALITY_HI, PLANE_QUALITY_MED, SCREEN_SCALE_2x1, false, DEPTH_SHADING_DARK, false, RENDERER_DOOM},// FASTER
 	{FRAME_LIMIT_2VBL, 3, WALL_QUALITY_HI, PLANE_QUALITY_HI, SCREEN_SCALE_1x1, false, DEPTH_SHADING_ON, false, RENDERER_DOOM},  	// CUSTOM
@@ -118,8 +117,8 @@ enum {
 #endif
 	mi_frameLimit,		// Frame limit options
 	mi_screenSize,      // Screen size settings
-	mi_wallQuality,     // Wall quality (fullres(hi), halfres(med), untextured(lo))
-	mi_planeQuality,    // Plane quality (textured, flat)
+	mi_wallQuality,     // Wall quality (textured, flat)
+	mi_planeQuality,    // Plane quality (textured, textured half, flat)
 	mi_presets,			// Graphics presets selection
 	mi_screenScale,		// Pixel scaling of screen (1x1, 2x1, 1x2, 2x2)
 	mi_fitToScreen,		// Switch to fit small window to fullscreen (On/Off)
@@ -168,10 +167,10 @@ enum {
 #define SKY_HEIGHTS_OPTIONS_NUM 4
 
 static char *frameLimitOptionsStr[FRAME_LIMIT_OPTIONS_NUM] = { "UNLIMITED", "1VBL", "2VBL", "3VBL", "4VBL", "VSYNC" };
-static char *presetOptionsStr[PRESET_OPTIONS_NUM] = { "MIN", "ATARI", "AMIGA", "SNES", "GBA", "JAGUAR", "DEFAULT", "FASTER", "CUSTOM", "MAX" };
+static char *presetOptionsStr[PRESET_OPTIONS_NUM] = { "ATARI", "AMIGA", "SNES", "GBA", "JAGUAR", "DEFAULT", "FASTER", "CUSTOM", "MAX" };
 static char *offOnOptionsStr[OFFON_OPTIONS_NUM] = { "OFF", "ON" };
 static char *statsOptionsStr[STATS_OPTIONS_NUM] = { "OFF", "FPS", "MEM", "ALL" };
-static char *wallQualityOptionsStr[WALL_QUALITY_OPTIONS_NUM] = { "LO", "MED", "HI"};
+static char *wallQualityOptionsStr[WALL_QUALITY_OPTIONS_NUM] = { "LO", "HI"};
 static char *planeQualityOptionsStr[PLANE_QUALITY_OPTIONS_NUM] = { "LO", "MED", "HI" };
 static char *screenScaleOptionsStr[SCREEN_SCALE_OPTIONS_NUM] = { "1x1", "2x1", "1x2", "2x2" };
 static char *depthShadingOptionsStr[DEPTH_SHADING_OPTIONS_NUM] = { "DARK", "BRIGHT", "DITHER", "ON" };
@@ -539,7 +538,7 @@ static void handleSpecialMenuItemActions(player_t *player, Word menuItemIndex)
 
         case mi_presets:
         	copyGraphicsOptions(optGraphics, &graphicsPresets[presets]);
-        	initCCBarrayWall();
+        	initWallCELs();
         	initPlaneCELs();
         	initScreenChangeVariables(true);
 		break;
@@ -555,7 +554,7 @@ static void handleSpecialMenuItemActions(player_t *player, Word menuItemIndex)
 		break;
 
         case mi_wallQuality:
-            initCCBarrayWall();
+            initWallCELs();
         break;
 
 		case mi_shading_depth:
