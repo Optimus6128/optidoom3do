@@ -14,7 +14,7 @@ angle_t SlopeAngle(LongWord num,LongWord den)
 	num>>=(FRACBITS-3);			/* Leave in 3 extra bits for just a little more precision */
 	den>>=FRACBITS;				/* Must be an int */
 
-	num = num*(IDivTable[den]>>9);	/* Perform the divide using a recipocal mul */
+	num = (num*IDivTable[den])>>9;	/* Perform the divide using a recipocal mul */
 	num>>=((FRACBITS+3)-SLOPEBITS);	/* Isolate the fraction for index to the angle table */
 
 	if (num>SLOPERANGE) {			/* Out of range? */

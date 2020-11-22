@@ -37,6 +37,8 @@ static const int mode4bpp = 3;
 #define RECIPROCAL_FP 16
 static int reciprocalLength[RECIPROCAL_MAX_NUM];
 
+int texLeft, texRight;
+
 void initCCBQuadWallFlat()
 {
     const int flatTexSize = flatTexStride * flatTexHeight;
@@ -273,31 +275,19 @@ static void DrawWallSegmentTexturedQuad(drawtex_t *tex, viswall_t *segl)
 
 **********************************/
 
-/*static void calcColumnOffsets(viswall_t *segl)
+static void calcColumnOffsets(viswall_t *segl)
 {
     const int xRight = segl->RightX;
     int x = segl->LeftX;
     int *texColOffset = texColumnOffset;
 
-    do {
-        *texColOffset++ = (segl->offset - IMFixMul( finetangent[(segl->CenterAngle+xtoviewangle[x])>>ANGLETOFINESHIFT], segl->distance)) >> FRACBITS;
-    } while(++x <= xRight);
-}*/
-
-static void calcColumnOffsets2(viswall_t *segl)
-{
-    const int xRight = segl->RightX;
-    int x = segl->LeftX;
-    int *texColOffset = texColumnOffset;
-
-    texColOffset[0] = (segl->offset - IMFixMul( finetangent[(segl->CenterAngle+xtoviewangle[x])>>ANGLETOFINESHIFT], segl->distance)) >> FRACBITS;
-    do {
-        texColOffset[2] = (segl->offset - IMFixMul( finetangent[(segl->CenterAngle+xtoviewangle[x+2])>>ANGLETOFINESHIFT], segl->distance)) >> FRACBITS;
-        texColOffset[1] = (texColOffset[0] + texColOffset[2]) >> 1;
-
-        texColOffset += 2;
-        x+=2;
-    } while(x <= xRight);
+    *texColOffset++ = texLeft; ++x;
+    if (x < xRight) {
+		do {
+			*texColOffset++ = (segl->offset-((finetangent[(segl->CenterAngle+xtoviewangle[x])>>ANGLETOFINESHIFT] * segl->distance)>>(FRACBITS-VISWALL_DISTANCE_PRESHIFT)))>>FRACBITS;
+		} while(++x < xRight);
+    }
+    *texColOffset = texRight;
 }
 
 static void PrepareBrokenWallParts(viswall_t *segl, Word texWidth, int *scaleData)
@@ -339,23 +329,22 @@ static void PrepareBrokenWallParts(viswall_t *segl, Word texWidth, int *scaleDat
 
 static void PrepareWallParts(viswall_t *segl, Word texWidth, int *scaleData)
 {
-    int texLeft = (segl->offset - IMFixMul( finetangent[(segl->CenterAngle+xtoviewangle[segl->LeftX])>>ANGLETOFINESHIFT], segl->distance)) >> FRACBITS;
-    int texRight = (segl->offset - IMFixMul( finetangent[(segl->CenterAngle+xtoviewangle[segl->RightX])>>ANGLETOFINESHIFT], segl->distance)) >> FRACBITS;
+	int texL = texLeft;
+	int texR = texRight;
+    int texMinOff = texL;
 
-    int texMinOff = texLeft;
+    texL &= (texWidth - 1);
+    texMinOff -= texL;
+    texR -= texMinOff;
 
-    texLeft &= (texWidth - 1);
-    texMinOff -= texLeft;
-    texRight -= texMinOff;
-
-    if (texLeft > -3 && texRight < texWidth + 2) {
+    if (texL > -3 && texR < texWidth + 2) {
         int texOffset, texLength;
         wallpart_t *wp = wallParts;
 
-        if (texLeft < 0) texLeft = 0;
-        if (texRight > texWidth - 1) texRight = texWidth - 1;
-        texOffset = texLeft;
-        texLength = texRight - texLeft + 1;
+        if (texL < 0) texL = 0;
+        if (texR > texWidth - 1) texR = texWidth - 1;
+        texOffset = texL;
+        texLength = texR - texL + 1;
 
         if (texLength < 1) texLength = 1;
 
@@ -371,7 +360,7 @@ static void PrepareWallParts(viswall_t *segl, Word texWidth, int *scaleData)
         wallPartsCount = 1;
     } else {
         if (!texColumnOffsetPrepared) {
-            calcColumnOffsets2(segl);
+            calcColumnOffsets(segl);
             texColumnOffsetPrepared = true;
         }
         PrepareBrokenWallParts(segl, texWidth, scaleData);
@@ -420,7 +409,6 @@ static void DrawSegAnyPoly(viswall_t *segl, int *scaleData, bool isTop, bool sho
     }
 }
 
-
 void DrawSegPoly(viswall_t *segl, int *scaleData)
 {
     const Word ActionBits = segl->WallActions;
@@ -431,7 +419,7 @@ void DrawSegPoly(viswall_t *segl, int *scaleData)
     Word ambientLight;
 
 	if (!(topTexOn || bottomTexOn)) return;
-
+	
     ambientLight = segl->seglightlevel;
     if (optGraphics->depthShading == DEPTH_SHADING_DARK) ambientLight = lightmins[ambientLight];
     pixcLight = LightTable[ambientLight>>LIGHTSCALESHIFT];

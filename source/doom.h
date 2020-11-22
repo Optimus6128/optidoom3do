@@ -19,6 +19,7 @@
 #define	FINEMASK (FINEANGLES-1)	/* Rounding mask for table */
 #define	ANGLETOFINESHIFT 19		/* Convert angle_t to fineangle table */
 #define	ANGLETOSKYSHIFT	22		/* sky map is 256*128*4 maps */
+#define VISWALL_DISTANCE_PRESHIFT 8		// Early preshift of the stored viswall distance, to allow me to replace IMFixMul with regular mul in the rendering critical parts
 #define	MINZ (FRACUNIT*4)		/* Closest z allowed */
 #define FIELDOFVIEW 2048		/* 90 degrees of view */
 #define BFGCELLS 40				/* Number of energy units per blast */

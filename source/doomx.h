@@ -69,6 +69,9 @@ void flushCCBarrayWall(void);
 
 
 // In phase6PL.c
+extern int texLeft;
+extern int texRight;
+
 void DrawSegPoly(viswall_t *segl, int *scaleData);
 void DrawSegWireframe(viswall_t *segl, int *scaleData);
 void initCCBQuadWallFlat(void);

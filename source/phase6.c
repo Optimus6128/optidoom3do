@@ -78,6 +78,7 @@ static void DrawWalls()
             --WallSegPtr;			// Last go backwards!!
             scaleArrayData = scaleArrayPtr[--scaleArrayIndex];
 
+            WallSegPtr->distance >>= VISWALL_DISTANCE_PRESHIFT;
             if (optGraphics->wallQuality == WALL_QUALITY_HI) {
                 if (lightShadingOn) {
                     DrawSeg(WallSegPtr, scaleArrayData);
@@ -101,20 +102,23 @@ static void DrawWalls()
             if (optGraphics->wallQuality ==  WALL_QUALITY_LO) {  // flat
                 DrawSegPoly(WallSegPtr, scaleArrayData); // so, always poly
             } else {
-                const int texLeft = (WallSegPtr->offset - IMFixMul( finetangent[(WallSegPtr->CenterAngle+xtoviewangle[WallSegPtr->LeftX])>>ANGLETOFINESHIFT], WallSegPtr->distance)) >> FRACBITS;
-                const int texRight = (WallSegPtr->offset - IMFixMul( finetangent[(WallSegPtr->CenterAngle+xtoviewangle[WallSegPtr->RightX])>>ANGLETOFINESHIFT], WallSegPtr->distance)) >> FRACBITS;
-
-                int texLength = texRight - texLeft;
                 const int pixLength = WallSegPtr->RightX - WallSegPtr->LeftX + 1;
-                const int texWidth = WallSegPtr->t_texture->width;  // using top texture (center and top) for now
 
                 if (pixLength < 8) {
                     tooTightForPoly = true;
                 } else {
+                	const int texWidth = WallSegPtr->t_texture->width;  // using top texture (center and top) for now
+                	int texLength;
+
+					texLeft = (WallSegPtr->offset - IMFixMul( finetangent[(WallSegPtr->CenterAngle+xtoviewangle[WallSegPtr->LeftX])>>ANGLETOFINESHIFT], WallSegPtr->distance)) >> FRACBITS;
+					texRight = (WallSegPtr->offset - IMFixMul( finetangent[(WallSegPtr->CenterAngle+xtoviewangle[WallSegPtr->RightX])>>ANGLETOFINESHIFT], WallSegPtr->distance)) >> FRACBITS;
+                	texLength = texRight - texLeft;
+
                     if (texLength < 1) texLength = 1;
                     tooTightForPoly = ((pixLength * texWidth) / texLength) < 8;
                 }
 
+                WallSegPtr->distance >>= VISWALL_DISTANCE_PRESHIFT;
                 if (tooTightForPoly) {
 					if (lightShadingOn) {
 						DrawSeg(WallSegPtr, scaleArrayData);

@@ -284,9 +284,12 @@ void DrawSeg(viswall_t *segl, int *scaleData)
     do {
         scale = *scaleData++;
 
-        textureColumn = (segl->offset-IMFixMul(
+        /*textureColumn = (segl->offset-IMFixMul(
             finetangent[(segl->CenterAngle+xtoviewangle[xPos])>>ANGLETOFINESHIFT],
-            segl->distance))>>FRACBITS;
+            segl->distance))>>FRACBITS;*/
+
+		// I'll keep the above commented for now as I need to test that this replacement of IMFixMul with regular mul doesn't overflow in any level.
+        textureColumn = (segl->offset-((finetangent[(segl->CenterAngle+xtoviewangle[xPos])>>ANGLETOFINESHIFT] * segl->distance)>>(FRACBITS-VISWALL_DISTANCE_PRESHIFT)))>>FRACBITS;
 
         textureLight = ((scale*lightcoef)>>16) - lightsub;
         if (textureLight < lightmin) {
@@ -336,9 +339,12 @@ void DrawSegUnshaded(viswall_t *segl, int *scaleData)
     do {
         scale = *scaleData++;
 
-        textureColumn = (segl->offset-IMFixMul(
+        /*textureColumn = (segl->offset-IMFixMul(
             finetangent[(segl->CenterAngle+xtoviewangle[xPos])>>ANGLETOFINESHIFT],
-            segl->distance))>>FRACBITS;
+            segl->distance))>>FRACBITS;*/
+
+		// I'll keep the above commented for now as I need to test that this replacement of IMFixMul with regular mul doesn't overflow in any level.
+		textureColumn = (segl->offset-((finetangent[(segl->CenterAngle+xtoviewangle[xPos])>>ANGLETOFINESHIFT] * segl->distance)>>(FRACBITS-VISWALL_DISTANCE_PRESHIFT)))>>FRACBITS;
 
         viscol->column = textureColumn;
         viscol->light = textureLight;
