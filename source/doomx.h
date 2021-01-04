@@ -109,6 +109,7 @@ void DisableHardwareClippingWithoutFlush(void);
 extern Byte *SpanPtr;
 extern Byte *CelLine190;            // strange pointer to something having to do with one of the sprite routines
 extern Word LightTable[32];
+extern bool testEnableFog;
 
 void initAllCCBelements(void);
 void drawCCBarray(MyCCB* lastCCB, MyCCB *CCBArrayPtr);
