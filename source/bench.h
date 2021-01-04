@@ -12,6 +12,6 @@ extern int nframe;
 void initTimer(void);
 int getTicks(void);
 uTime getUTime(void);
-int updateAndGetFPS(void);
+void printFPS(int px, int py);
 
 #endif
