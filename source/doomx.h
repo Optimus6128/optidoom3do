@@ -121,6 +121,7 @@ void DrawASpan(Word Count,LongWord xfrac,LongWord yfrac,Fixed ds_xstep,Fixed ds_
 void DrawASpanLo(Word Count,LongWord xfrac,LongWord yfrac,Fixed ds_xstep,Fixed ds_ystep,Byte *Dest);
 void DrawThickLine(Word x1,Word y1,Word x2,Word y2,Word color);
 void clearSpanArray(void);
+void initColoredPals(uint16 *srcPal, uint16 *dstPal, int numCols, Word colorMul);
 
 // In xskies.c
 void initNewSkies(void);

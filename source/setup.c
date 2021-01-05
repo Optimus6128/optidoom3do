@@ -94,6 +94,7 @@ static void LoadSectors(Word lump)
 		ss->lightlevel = Map->lightlevel;		/* Copy the ambient light */
 		ss->special = Map->special;				/* Copy the event number type */
 		ss->tag = Map->tag;						/* Copy the event tag ID */
+		ss->color = (((rand() % 192) + 64) << 16) | (((rand() % 192) + 64) << 8) | ((rand() % 192) + 64);
 		++ss;			/* Next indexs */
 		++Map;
 	} while (--i);		/* All done? */

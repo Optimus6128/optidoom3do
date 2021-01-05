@@ -295,6 +295,7 @@ void WallPrep(Word LeftX,Word RightX,seg_t *LineSeg,angle_t LeftAngle)
 	}
 	CurWallPtr->seglightlevel = f_lightlevel;	/* Save the light level */
 	CurWallPtr->offset = SidePtr->textureoffset+LineSeg->offset;	/* Texture anchor X */
+	CurWallPtr->color = FrontSecPtr->color;
 	LatePrep(CurWallPtr,LineSeg,LeftAngle);
 
 }

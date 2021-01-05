@@ -25,6 +25,9 @@ static visspan_t spandata[MAXSCREENHEIGHT];
 static MyCCB CCBArrayPlane[CCB_ARRAY_PLANE_MAX];
 static int CCBArrayPlaneCurrent = 0;
 
+static uint16 *coloredPlanePals = NULL;
+static int currentVisplaneCount = 0;
+
 
 /***************************
 
@@ -155,6 +158,10 @@ static void initCCBarrayPlaneFlatVertical()
 
 void initPlaneCELs()
 {
+	if (!coloredPlanePals) {
+		coloredPlanePals = (uint16*)AllocAPointer(32 * maxVisplanes * sizeof(uint16));
+	}
+	
 	switch (optGraphics->planeQuality)
 	{
 		case PLANE_QUALITY_LO:
@@ -214,6 +221,7 @@ static void MapPlane(Word y1, Word y2)
 {
     MyCCB *CCBPtr;
     Byte *DestPtr;
+    void *plutPtr;
     int numCels;
     int y;
 
@@ -223,6 +231,7 @@ static void MapPlane(Word y1, Word y2)
 		flushCCBarrayPlane();
 	}
 
+	plutPtr = (void*)&coloredPlanePals[currentVisplaneCount << 5];
     DestPtr = SpanPtr;
     CCBPtr = &CCBArrayPlane[CCBArrayPlaneCurrent];
     for (y=y1; y<=y2; ++y) {
@@ -244,7 +253,7 @@ static void MapPlane(Word y1, Word y2)
 
         CCBPtr->ccb_PRE1 = 0x3E005000|(Count-1);		/* Second preamble */
         CCBPtr->ccb_SourcePtr = (CelData *)DestPtr;	/* Save the source ptr */
-        CCBPtr->ccb_PLUTPtr = PlaneSource;
+        CCBPtr->ccb_PLUTPtr = plutPtr; /*PlaneSource;*/
         CCBPtr->ccb_XPos = x1<<16;		/* Set the x and y coord for start */
         CCBPtr->ccb_YPos = y<<16;
         CCBPtr->ccb_PIXC = light;			/* PIXC control */
@@ -261,6 +270,7 @@ static void MapPlaneUnshaded(Word y1, Word y2)
 {
     MyCCB *CCBPtr;
     Byte *DestPtr;
+    void *plutPtr;
     int numCels;
     int y, light;
 
@@ -275,6 +285,7 @@ static void MapPlaneUnshaded(Word y1, Word y2)
 
     light = LightTable[light>>LIGHTSCALESHIFT];
 
+    plutPtr = (void*)&coloredPlanePals[currentVisplaneCount << 5];
     DestPtr = SpanPtr;
     CCBPtr = &CCBArrayPlane[CCBArrayPlaneCurrent];
     for (y=y1; y<=y2; ++y) {
@@ -295,7 +306,7 @@ static void MapPlaneUnshaded(Word y1, Word y2)
 
         CCBPtr->ccb_PRE1 = 0x3E005000|(Count-1);		/* Second preamble */
         CCBPtr->ccb_SourcePtr = (CelData *)DestPtr;	/* Save the source ptr */
-        CCBPtr->ccb_PLUTPtr = PlaneSource;
+        CCBPtr->ccb_PLUTPtr = plutPtr; /*PlaneSource;*/
         CCBPtr->ccb_XPos = x1<<16;		/* Set the x and y coord for start */
         CCBPtr->ccb_YPos = y<<16;
         CCBPtr->ccb_PIXC = light;
@@ -480,7 +491,6 @@ static void initVisplaneSpanData(visplane_t *p)
 	}
 }
 
-
 /**********************************
 
 	Draw a plane by scanning the open records.
@@ -514,6 +524,7 @@ void DrawVisPlaneHorizontal(visplane_t *p)
 	lightcoef = planelightcoef[stop];
 
 	initVisplaneSpanData(p);
+	initColoredPals((uint16*)PlaneSource, &coloredPlanePals[currentVisplaneCount << 5], 32, p->color);
 
 	stop = p->maxx+1;	/* Maximum x coord */
 	x = p->minx;		/* Starting x */
@@ -637,5 +648,6 @@ void DrawVisPlane(visplane_t *p)
         DrawVisPlaneVertical(p);
     } else {
         DrawVisPlaneHorizontal(p);
+		if (++currentVisplaneCount == maxVisplanes) currentVisplaneCount = 0;
     }
 }

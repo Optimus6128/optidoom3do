@@ -65,11 +65,11 @@ int visplanesCountMax = 0;
 
 static visplane_t *FindPlane(visplane_t *check, viswall_t *segl, int start, Word color)
 {
-	Fixed height = segl->floorheight;
+	const Fixed height = segl->floorheight;
 	void **PicHandle = segl->FloorPic;
-	int stop = segl->RightX;
-	Word Light = segl->seglightlevel;
-
+	const int stop = segl->RightX;
+	const Word Light = segl->seglightlevel;
+	
 	if (visplanesCount > maxVisplanes-2) return 0;
 
 	++check;		/* Automatically skip to the next plane */
@@ -77,7 +77,8 @@ static visplane_t *FindPlane(visplane_t *check, viswall_t *segl, int start, Word
 		do {
 			if (height == check->height &&		/* Same plane as before? */
 				PicHandle == check->PicHandle &&
-				Light == check->PlaneLight &&
+				Light == check->PlaneLight && 
+				color == check->color && 
 				check->open[start] == OPENMARK) {	/* Not defined yet? */
 				if (start < check->minx) {	/* In range of the plane? */
 					check->minx = start;	/* Mark the new edge */
@@ -97,7 +98,7 @@ static visplane_t *FindPlane(visplane_t *check, viswall_t *segl, int start, Word
 	++visplanesCount;
 	check->height = height;		/* Init all the vars in the visplane */
 	check->PicHandle = PicHandle;
-	check->color = color | ((color >> 16) | (1 << 15));	// high bit also for dithered flat two color checkerboard palette
+	check->color = color;
 	check->minx = start;
 	check->maxx = stop;
 	check->PlaneLight = Light;		/* Set the light level */
@@ -142,9 +143,15 @@ static void SegLoopFloor(viswall_t *segl, Word screenCenterY)
 	visplane_t *FloorPlane;
 	int top, bottom;
 	int ceilingclipy, floorclipy;
-	const Word color = segl->floorAndCeilingColor & 0xFFFF0000;
-
+	Word color;
 	segloop_t *segdata = segloops;
+
+	if (optGraphics->planeQuality == PLANE_QUALITY_LO) {
+		const Word floorColor = segl->floorAndCeilingColor >> 16;
+		color = (floorColor << 16) | floorColor | (1 << 15); // high bit also for dithered flat two color checkerboard palette
+	} else {
+		color = segl->color;
+	}
 
 	FloorPlane = visplanes;		// Reset the visplane pointers
 
@@ -183,9 +190,15 @@ static void SegLoopCeiling(viswall_t *segl, Word screenCenterY)
 	visplane_t *CeilingPlane;
 	int top, bottom;
 	int ceilingclipy, floorclipy;
-	const Word color = segl->floorAndCeilingColor << 16;
-
+	Word color;
 	segloop_t *segdata = segloops;
+
+	if (optGraphics->planeQuality == PLANE_QUALITY_LO) {
+		const Word ceilingColor = segl->floorAndCeilingColor & 0x0000FFFF;
+		color = (ceilingColor << 16) | ceilingColor | (1 << 15); // high bit also for dithered flat two color checkerboard palette
+	} else {
+		color = segl->color;
+	}
 
 	CeilingPlane = visplanes;		// Reset the visplane pointers
 

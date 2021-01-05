@@ -442,6 +442,7 @@ typedef	struct sector_s {		/* Describe a playfield sector (Polygon) */
 	Word FloorPic;		/* Floor texture # */
 	Word CeilingPic;	/* If ceilingpic==-1, draw sky */
 	Word lightlevel;	/* Light override */
+	Word color;
 	Word special;		/* Special event number */
 	Word tag;			/* Event tag */
 	Word soundtraversed;	/* 0 = untraversed, 1,2 = sndlines -1 */
@@ -565,6 +566,8 @@ typedef struct {		/* Describe a wall segment to be drawn */
 
 	int	ceilingheight;
 	int	ceilingnewheight;
+	
+	Word color;
 
 	Fixed LeftScale;	/* LeftX Scale */
 	Fixed RightScale;	/* RightX scale */

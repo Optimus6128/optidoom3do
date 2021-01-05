@@ -81,6 +81,22 @@ static void initFog()
 	}
 }
 
+void initColoredPals(uint16 *srcPal, uint16 *dstPal, int numCols, Word colorMul)
+{
+	int i;
+	const int rMul = (colorMul >> 16) & 255;
+	const int gMul = (colorMul >> 8) & 255;
+	const int bMul = colorMul & 255;
+
+	for (i=0; i<numCols; ++i) {
+		const uint16 c = srcPal[i];
+		const int r = (rMul * (c >> 10)) >> 8;
+		const int g = (gMul * ((c >> 5) & 31)) >> 8;
+		const int b = (bMul * (c & 31)) >> 8;
+		dstPal[i] = (uint16)((r << 10) | (g << 5) | b);
+	}
+}
+
 void initAllCCBelements()
 {
     initCCBarray();

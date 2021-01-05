@@ -17,6 +17,9 @@ static drawtex_t drawtex;
 
 viscol_t viscols[MAXSCREENWIDTH];
 
+static uint16 *coloredWallPals = NULL;
+static int currentWallCount = 0;
+//MAXWALLCMDS
 
 /**********************************
 
@@ -88,6 +91,10 @@ static void initCCBarrayWallFlat(void)
 
 void initWallCELs()
 {
+	if (!coloredWallPals) {
+		coloredWallPals = (uint16*)AllocAPointer(16 * MAXWALLCMDS * sizeof(uint16));
+	}
+
 	if (optGraphics->wallQuality == WALL_QUALITY_LO) {
 		initCCBarrayWallFlat();
 	} else {
@@ -130,6 +137,7 @@ static void DrawWallSegment(drawtex_t *tex, Word screenCenterY)
 	int pre0, pre1;
 	int numCels;
 
+	void *coloredPal = (void*)&coloredWallPals[currentWallCount << 4];
 	const Byte *texPal = tex->data;
 	const Byte *texBitmap = &texPal[32];
 
@@ -169,7 +177,7 @@ static void DrawWallSegment(drawtex_t *tex, Word screenCenterY)
         CCBPtr->ccb_PRE0 = pre0;
         CCBPtr->ccb_PRE1 = pre1;
         CCBPtr->ccb_SourcePtr = (CelData*)&texBitmap[colnum];	// Get the source ptr
-        CCBPtr->ccb_PLUTPtr = (void*)texPal;
+        CCBPtr->ccb_PLUTPtr = coloredPal; /*(void*)texPal;*/
         CCBPtr->ccb_XPos = xPos << 16;
         CCBPtr->ccb_YPos = (top<<16) + 0xFF00;
         CCBPtr->ccb_HDY = vc->scale<<(20-SCALEBITS);
@@ -250,11 +258,14 @@ static void DrawSegAny(viswall_t *segl, bool isTop, bool isFlat)
     } else {
 		drawtex.width = tex->width;
 		drawtex.height = tex->height;
-		drawtex.color = tex->color;
 		drawtex.data = (Byte *)*tex->data;
+		
+		initColoredPals((uint16*)drawtex.data, &coloredWallPals[currentWallCount << 4], 16, segl->color);
 
 		DrawWallSegment(&drawtex, CenterY);
     }
+
+    if (++currentWallCount == MAXWALLCMDS) currentWallCount = 0;
 }
 
 void DrawSeg(viswall_t *segl, int *scaleData)
