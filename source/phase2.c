@@ -185,6 +185,7 @@ void WallPrep(Word LeftX,Word RightX,seg_t *LineSeg,angle_t LeftAngle)
 		(FrontSecPtr->FloorPic != BackSecPtr->FloorPic ||	/* Floor texture changed? */
 		f_floorheight != b_floorheight ||	/* Differant height? */
 		f_lightlevel != b_lightlevel || 	/* Differant light? */
+		FrontSecPtr->color != BackSecPtr->color ||	// Different color
 		b_ceilingheight == b_floorheight) ) {	/* No thickness line? */
 		CurWallPtr->floorheight = CurWallPtr->floornewheight = f_floorheight>>FIXEDTOHEIGHT;
 		actionbits = (AC_ADDFLOOR|AC_NEWFLOOR);	/* Create floor */
@@ -195,6 +196,7 @@ void WallPrep(Word LeftX,Word RightX,seg_t *LineSeg,angle_t LeftAngle)
 		(f_ceilingpic != b_ceilingpic || 	/* New ceiling image? */
 		f_ceilingheight != b_ceilingheight ||	/* Differant ceiling height? */
 		f_lightlevel != b_lightlevel || 		/* Differant ceiling light? */
+		FrontSecPtr->color != BackSecPtr->color || // Different color
 		b_ceilingheight == b_floorheight ) ) {	/* Thin dividing line? */
 		CurWallPtr->ceilingheight = CurWallPtr->ceilingnewheight = f_ceilingheight >>FIXEDTOHEIGHT;			
 		if (f_ceilingpic == -1) {
@@ -285,7 +287,13 @@ void WallPrep(Word LeftX,Word RightX,seg_t *LineSeg,angle_t LeftAngle)
 			}
 		}
 	}
-	
+
+	if (FrontSecPtr->special < 32) {
+		CurWallPtr->color = 0;
+	} else {
+		CurWallPtr->color = FrontSecPtr->color;
+	}
+
 	CurWallPtr->WallActions = actionbits;		/* Save the action bits */
 	if (f_lightlevel < 240) {		/* Get the light level */
 		f_lightlevel += extralight;	/* Add the light factor */
@@ -295,7 +303,6 @@ void WallPrep(Word LeftX,Word RightX,seg_t *LineSeg,angle_t LeftAngle)
 	}
 	CurWallPtr->seglightlevel = f_lightlevel;	/* Save the light level */
 	CurWallPtr->offset = SidePtr->textureoffset+LineSeg->offset;	/* Texture anchor X */
-	CurWallPtr->color = FrontSecPtr->color;
 	LatePrep(CurWallPtr,LineSeg,LeftAngle);
 
 }

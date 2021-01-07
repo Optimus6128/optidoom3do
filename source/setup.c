@@ -72,6 +72,22 @@ typedef	struct {		/* Map sector loaded from disk */
 	Word tag;			/* Tag ID */
 } mapsector_t;
 
+static Word extractColorFromSpecial(Word special)
+{
+	// 3 R * 8192
+	// 3 G * 1024
+	// 2 B * 256
+
+	static int col2[4] = {0, 85, 170, 255};
+	static int col3[8] = {0, 36, 72, 108, 144, 180, 216, 255};
+
+	const int r = col3[(special >> 13) & 7];
+	const int g = col3[(special >> 10) & 7];
+	const int b = col2[(special >> 8) & 3];
+
+	return (r << 16) | (g << 8) | b;
+}
+
 static void LoadSectors(Word lump)
 {
 	Word i;
@@ -94,7 +110,8 @@ static void LoadSectors(Word lump)
 		ss->lightlevel = Map->lightlevel;		/* Copy the ambient light */
 		ss->special = Map->special;				/* Copy the event number type */
 		ss->tag = Map->tag;						/* Copy the event tag ID */
-		ss->color = (((rand() % 192) + 64) << 16) | (((rand() % 192) + 64) << 8) | ((rand() % 192) + 64);
+		ss->color = extractColorFromSpecial(ss->special);
+
 		++ss;			/* Next indexs */
 		++Map;
 	} while (--i);		/* All done? */

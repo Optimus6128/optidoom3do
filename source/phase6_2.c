@@ -19,7 +19,7 @@ viscol_t viscols[MAXSCREENWIDTH];
 
 static uint16 *coloredWallPals = NULL;
 static int currentWallCount = 0;
-//MAXWALLCMDS
+
 
 /**********************************
 
@@ -122,7 +122,7 @@ void flushCCBarrayWall()
 	}
 }
 
-static void DrawWallSegment(drawtex_t *tex, Word screenCenterY)
+static void DrawWallSegment(drawtex_t *tex, void *texPal, Word screenCenterY)
 {
     int xPos = tex->xStart;
 	int top;
@@ -137,9 +137,7 @@ static void DrawWallSegment(drawtex_t *tex, Word screenCenterY)
 	int pre0, pre1;
 	int numCels;
 
-	void *coloredPal = (void*)&coloredWallPals[currentWallCount << 4];
-	const Byte *texPal = tex->data;
-	const Byte *texBitmap = &texPal[32];
+	const Byte *texBitmap = &tex->data[32];
 
 	if (xPos > tex->xEnd) return;
     numCels = tex->xEnd - xPos + 1;
@@ -177,7 +175,7 @@ static void DrawWallSegment(drawtex_t *tex, Word screenCenterY)
         CCBPtr->ccb_PRE0 = pre0;
         CCBPtr->ccb_PRE1 = pre1;
         CCBPtr->ccb_SourcePtr = (CelData*)&texBitmap[colnum];	// Get the source ptr
-        CCBPtr->ccb_PLUTPtr = coloredPal; /*(void*)texPal;*/
+        CCBPtr->ccb_PLUTPtr = texPal;
         CCBPtr->ccb_XPos = xPos << 16;
         CCBPtr->ccb_YPos = (top<<16) + 0xFF00;
         CCBPtr->ccb_HDY = vc->scale<<(20-SCALEBITS);
@@ -256,16 +254,22 @@ static void DrawSegAny(viswall_t *segl, bool isTop, bool isFlat)
     if (isFlat) {
         DrawWallSegmentFlat(&drawtex, &tex->color, CenterY);
     } else {
+		void *texPal;
+
 		drawtex.width = tex->width;
 		drawtex.height = tex->height;
 		drawtex.data = (Byte *)*tex->data;
-		
-		initColoredPals((uint16*)drawtex.data, &coloredWallPals[currentWallCount << 4], 16, segl->color);
 
-		DrawWallSegment(&drawtex, CenterY);
+		if (segl->color==0) {
+			texPal = drawtex.data;
+		} else {
+			texPal = &coloredWallPals[currentWallCount << 4];
+			initColoredPals((uint16*)drawtex.data, texPal, 16, segl->color);
+		    if (++currentWallCount == MAXWALLCMDS) currentWallCount = 0;
+		}
+
+		DrawWallSegment(&drawtex, texPal, CenterY);
     }
-
-    if (++currentWallCount == MAXWALLCMDS) currentWallCount = 0;
 }
 
 void DrawSeg(viswall_t *segl, int *scaleData)

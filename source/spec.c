@@ -571,12 +571,13 @@ void P_ShootSpecialLine(mobj_t *thing,line_t *line)
 void PlayerInSpecialSector(player_t *player,sector_t *sector)
 {
 	Word Damage;
+	const Word secSpecial = sector->special & 31;
 
 	if (player->mo->z != sector->floorheight) {
 		return;		/* not all the way down yet */
 	}
 	Damage = 0;		/* No damage taken */
-	switch (sector->special) {
+	switch (secSpecial) {
 	case 5:		/* HELLSLIME DAMAGE */
 		Damage = 10;
 		break;
@@ -592,7 +593,7 @@ void PlayerInSpecialSector(player_t *player,sector_t *sector)
 		break;
 	case 9:		/* Found a secret sector */
 		++player->secretcount;
-		sector->special = 0;		/* Remove the special */
+		sector->special &= ~31;		/* Remove the special */
 	}
 	if (Damage && Tick1) {		/* Time for pain */
 		if (Damage&0x8000 || !player->powers[pw_ironfeet]) {	/* Inflict? */
@@ -664,7 +665,8 @@ void SpawnSpecials(void)
 	sector = sectors;
 	i = 0;
 	do {
-		switch(sector->special) {
+		const Word secSpecial = sector->special & 31;
+		switch(secSpecial) {
 		case 1:		/* FLICKERING LIGHTS */
 			P_SpawnLightFlash(sector);
 			break;

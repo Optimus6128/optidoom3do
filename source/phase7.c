@@ -28,6 +28,8 @@ static int CCBArrayPlaneCurrent = 0;
 static uint16 *coloredPlanePals = NULL;
 static int currentVisplaneCount = 0;
 
+static void *texPal;
+
 
 /***************************
 
@@ -221,7 +223,6 @@ static void MapPlane(Word y1, Word y2)
 {
     MyCCB *CCBPtr;
     Byte *DestPtr;
-    void *plutPtr;
     int numCels;
     int y;
 
@@ -231,7 +232,6 @@ static void MapPlane(Word y1, Word y2)
 		flushCCBarrayPlane();
 	}
 
-	plutPtr = (void*)&coloredPlanePals[currentVisplaneCount << 5];
     DestPtr = SpanPtr;
     CCBPtr = &CCBArrayPlane[CCBArrayPlaneCurrent];
     for (y=y1; y<=y2; ++y) {
@@ -253,7 +253,7 @@ static void MapPlane(Word y1, Word y2)
 
         CCBPtr->ccb_PRE1 = 0x3E005000|(Count-1);		/* Second preamble */
         CCBPtr->ccb_SourcePtr = (CelData *)DestPtr;	/* Save the source ptr */
-        CCBPtr->ccb_PLUTPtr = plutPtr; /*PlaneSource;*/
+        CCBPtr->ccb_PLUTPtr = texPal;
         CCBPtr->ccb_XPos = x1<<16;		/* Set the x and y coord for start */
         CCBPtr->ccb_YPos = y<<16;
         CCBPtr->ccb_PIXC = light;			/* PIXC control */
@@ -270,7 +270,6 @@ static void MapPlaneUnshaded(Word y1, Word y2)
 {
     MyCCB *CCBPtr;
     Byte *DestPtr;
-    void *plutPtr;
     int numCels;
     int y, light;
 
@@ -285,7 +284,6 @@ static void MapPlaneUnshaded(Word y1, Word y2)
 
     light = LightTable[light>>LIGHTSCALESHIFT];
 
-    plutPtr = (void*)&coloredPlanePals[currentVisplaneCount << 5];
     DestPtr = SpanPtr;
     CCBPtr = &CCBArrayPlane[CCBArrayPlaneCurrent];
     for (y=y1; y<=y2; ++y) {
@@ -306,7 +304,7 @@ static void MapPlaneUnshaded(Word y1, Word y2)
 
         CCBPtr->ccb_PRE1 = 0x3E005000|(Count-1);		/* Second preamble */
         CCBPtr->ccb_SourcePtr = (CelData *)DestPtr;	/* Save the source ptr */
-        CCBPtr->ccb_PLUTPtr = plutPtr; /*PlaneSource;*/
+        CCBPtr->ccb_PLUTPtr = texPal;
         CCBPtr->ccb_XPos = x1<<16;		/* Set the x and y coord for start */
         CCBPtr->ccb_YPos = y<<16;
         CCBPtr->ccb_PIXC = light;
@@ -524,7 +522,15 @@ void DrawVisPlaneHorizontal(visplane_t *p)
 	lightcoef = planelightcoef[stop];
 
 	initVisplaneSpanData(p);
-	initColoredPals((uint16*)PlaneSource, &coloredPlanePals[currentVisplaneCount << 5], 32, p->color);
+
+	if (p->color==0) {
+		texPal = PlaneSource;
+	} else {
+		texPal = &coloredPlanePals[currentVisplaneCount << 5];
+		initColoredPals((uint16*)PlaneSource, texPal, 32, p->color);
+		if (++currentVisplaneCount == maxVisplanes) currentVisplaneCount = 0;
+	}
+	
 
 	stop = p->maxx+1;	/* Maximum x coord */
 	x = p->minx;		/* Starting x */
@@ -648,6 +654,5 @@ void DrawVisPlane(visplane_t *p)
         DrawVisPlaneVertical(p);
     } else {
         DrawVisPlaneHorizontal(p);
-		if (++currentVisplaneCount == maxVisplanes) currentVisplaneCount = 0;
     }
 }
