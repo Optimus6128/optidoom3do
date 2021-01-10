@@ -45,6 +45,11 @@ typedef struct {
     Word light;
 } viscol_t;
 
+typedef enum {
+	SEC_SPEC_FOG = 32,
+	SEC_SPEC_DISTORT = 64
+} viswallspecial_e;
+
 
 // In phase6.c
 extern int *scaleArrayData;
@@ -109,6 +114,7 @@ void DisableHardwareClippingWithoutFlush(void);
 extern Byte *SpanPtr;
 extern Byte *CelLine190;            // strange pointer to something having to do with one of the sprite routines
 extern Word LightTable[32];
+extern Word LightTableFog[32];
 extern bool testEnableFog;
 
 void initAllCCBelements(void);
@@ -146,7 +152,6 @@ void P_SpawnPuffParticle(Fixed x,Fixed y,Fixed z);
 
 // In omain.c
 extern bool useOffscreenBuffer;
-extern bool useOffscreenGrid;
 void resetMenuOptions(void);
 void setPrimaryMenuOptions(void);
 void setScreenSizeSliderFromOption(void);

@@ -69,6 +69,7 @@ static visplane_t *FindPlane(visplane_t *check, viswall_t *segl, int start, Word
 	void **PicHandle = segl->FloorPic;
 	const int stop = segl->RightX;
 	const Word Light = segl->seglightlevel;
+	const Word special = segl->special;
 	
 	if (visplanesCount > maxVisplanes-2) return 0;
 
@@ -79,6 +80,7 @@ static visplane_t *FindPlane(visplane_t *check, viswall_t *segl, int start, Word
 				PicHandle == check->PicHandle &&
 				Light == check->PlaneLight && 
 				color == check->color && 
+				special == check->special && 
 				check->open[start] == OPENMARK) {	/* Not defined yet? */
 				if (start < check->minx) {	/* In range of the plane? */
 					check->minx = start;	/* Mark the new edge */
@@ -99,6 +101,7 @@ static visplane_t *FindPlane(visplane_t *check, viswall_t *segl, int start, Word
 	check->height = height;		/* Init all the vars in the visplane */
 	check->PicHandle = PicHandle;
 	check->color = color;
+	check->special = special;
 	check->minx = start;
 	check->maxx = stop;
 	check->PlaneLight = Light;		/* Set the light level */

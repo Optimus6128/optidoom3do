@@ -523,9 +523,7 @@ void P_PlayerThink(player_t *player)
 	{
 	sector_t *sector;			/* Local pointer */
 	sector = player->mo->subsector->sector;		/* Get sector I'm standing on */
-	if (sector->special) {	/* Am I standing on a special? */
-		PlayerInSpecialSector(player,sector);		/* Process special event */
-	}
+	PlayerInSpecialSector(player,sector);		/* Process special event */
 	}
 
 /* Process use actions */

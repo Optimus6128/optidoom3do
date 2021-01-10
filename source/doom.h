@@ -315,6 +315,7 @@ typedef struct {		/* Describe a floor texture */
 	Fixed height;		/* Height of the floor */
 	void **PicHandle;	/* Texture handle */
 	Word color;
+	Word special;
 	Word PlaneLight;	/* Light override */
 	int minx,maxx;		/* Minimum x, max x */
 	int miny,maxy;		/* Minimum y, max y */
@@ -568,6 +569,7 @@ typedef struct {		/* Describe a wall segment to be drawn */
 	int	ceilingnewheight;
 	
 	Word color;
+	Word special;
 
 	Fixed LeftScale;	/* LeftX Scale */
 	Fixed RightScale;	/* RightX scale */

@@ -8,6 +8,10 @@ static Point2D *gridVertices = NULL;
 
 static GridMesh *gridMesh = NULL;
 
+static int distortMagnitude = 0;
+
+bool useOffscreenGrid = false;
+static int activeGridEffect = GRID_FX_NONE;
 
 static void recalculateGridMeshVertices()
 {
@@ -173,7 +177,7 @@ static void warpGridVertices(int t)
 	}
 }
 
-static void distortGridVertices(int t)
+static void distortGridVertices(int t, ubyte magnitude)
 {
 	const int xCount = gridMesh->width + 1;
 	const int yCount = gridMesh->height + 1;
@@ -188,8 +192,8 @@ static void distortGridVertices(int t)
 				gridVertices[i].y = gridMesh->vrtx[i].y-1;
 			} else {
 				const int lvx = ((3*i*x + 5*i*x*x) & 15) * t;
-				gridVertices[i].x = gridMesh->vrtx[i].x + (isin[lvy & 255] >> 10);
-				gridVertices[i].y = gridMesh->vrtx[i].y + (isin[(lvx + ISINES_90_DEG) & 255] >> 10);
+				gridVertices[i].x = gridMesh->vrtx[i].x + (((isin[lvy & 255] >> 10) * magnitude) >> 8);
+				gridVertices[i].y = gridMesh->vrtx[i].y + (((isin[(lvx + ISINES_90_DEG) & 255] >> 10) * magnitude) >> 8);
 			}
 			++i;
 		}
@@ -220,12 +224,30 @@ static void prepareGridCELs()
 	}
 }
 
-void updateGridFx(int fx, int t)
+int getActiveGridEffect()
 {
-	switch(fx)
+	return activeGridEffect;
+}
+
+void alterDistortMagnitude(int change)
+{
+	distortMagnitude += change;
+	if (distortMagnitude > 255) distortMagnitude = 255;
+	if (distortMagnitude < 0) distortMagnitude = 0;
+
+	if (distortMagnitude == 0) {
+		activeGridEffect = GRID_FX_NONE;
+	} else {
+		activeGridEffect = GRID_FX_DISTORT;
+	}
+}
+
+void updateGridFx(int t)
+{
+	switch(activeGridEffect)
 	{
 		case GRID_FX_DISTORT:
-			distortGridVertices(t);
+			distortGridVertices(t, distortMagnitude);
 		break;
 
 		case GRID_FX_WARP:

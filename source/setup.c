@@ -78,6 +78,8 @@ static Word extractColorFromSpecial(Word special)
 	// 3 G * 1024
 	// 2 B * 256
 
+	//RRRGGGBB xDF11111
+
 	static int col2[4] = {0, 85, 170, 255};
 	static int col3[8] = {0, 36, 72, 108, 144, 180, 216, 255};
 

@@ -20,6 +20,8 @@ viscol_t viscols[MAXSCREENWIDTH];
 static uint16 *coloredWallPals = NULL;
 static int currentWallCount = 0;
 
+static Word *LightTablePtr = LightTable;
+
 
 /**********************************
 
@@ -179,7 +181,7 @@ static void DrawWallSegment(drawtex_t *tex, void *texPal, Word screenCenterY)
         CCBPtr->ccb_XPos = xPos << 16;
         CCBPtr->ccb_YPos = (top<<16) + 0xFF00;
         CCBPtr->ccb_HDY = vc->scale<<(20-SCALEBITS);
-        CCBPtr->ccb_PIXC = LightTable[vc->light>>LIGHTSCALESHIFT];		// PIXC control
+        CCBPtr->ccb_PIXC = LightTablePtr[vc->light>>LIGHTSCALESHIFT];		// PIXC control
 
         CCBPtr++;
         vc++;
@@ -216,7 +218,7 @@ static void DrawWallSegmentFlat(drawtex_t *tex, const void *color, Word screenCe
         CCBPtr->ccb_XPos = xPos << 16;
         CCBPtr->ccb_YPos = (top<<16) + 0xFF00;
         CCBPtr->ccb_VDY = (run * vc->scale) << (16-flatColTexHeightShr-SCALEBITS);
-        CCBPtr->ccb_PIXC = LightTable[vc->light>>LIGHTSCALESHIFT];		// PIXC control
+        CCBPtr->ccb_PIXC = LightTablePtr[vc->light>>LIGHTSCALESHIFT];		// PIXC control
         CCBPtr->ccb_PLUTPtr = (void*)color;
 
         CCBPtr++;
@@ -266,6 +268,12 @@ static void DrawSegAny(viswall_t *segl, bool isTop, bool isFlat)
 			texPal = &coloredWallPals[currentWallCount << 4];
 			initColoredPals((uint16*)drawtex.data, texPal, 16, segl->color);
 		    if (++currentWallCount == MAXWALLCMDS) currentWallCount = 0;
+		}
+
+		if (segl->special & SEC_SPEC_FOG) {
+			LightTablePtr = LightTableFog;
+		} else {
+			LightTablePtr = LightTable;
 		}
 
 		DrawWallSegment(&drawtex, texPal, CenterY);

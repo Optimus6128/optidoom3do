@@ -3,7 +3,7 @@
 
 #include "types.h"
 
-enum {GRID_FX_DISTORT, GRID_FX_WARP};
+enum {GRID_FX_NONE, GRID_FX_DISTORT, GRID_FX_WARP};
 
 
 typedef struct Point2D
@@ -26,9 +26,13 @@ typedef struct GridMesh
 	int celsNum;
 }GridMesh;
 
+extern bool useOffscreenGrid;
+
 void initGrid(int gridWidth, int gridHeight);
 void updateScreenGridCels(void);
-void updateGridFx(int fx, int t);
+void alterDistortMagnitude(int change);
+int getActiveGridEffect(void);
+void updateGridFx(int t);
 void renderGrid(void);
 
 #endif

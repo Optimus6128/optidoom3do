@@ -46,6 +46,13 @@ Word LightTableFog[32] = {
  0x1F4E,0x1F4C,0x1F4A,0x1F48,0x1F46,0x1F44,0x1F42,0x1F40
 };
 
+Word LightTableFogOrig[32] = {
+ 0x1F7E,0x1F7C,0x1F7A,0x1F78,0x1F76,0x1F74,0x1F72,0x1F70,
+ 0x1F6E,0x1F6C,0x1F6A,0x1F68,0x1F66,0x1F64,0x1F62,0x1F60,
+ 0x1F5E,0x1F5C,0x1F5A,0x1F58,0x1F56,0x1F54,0x1F52,0x1F50,
+ 0x1F4E,0x1F4C,0x1F4A,0x1F48,0x1F46,0x1F44,0x1F42,0x1F40
+};
+
 static void initCCBarray(void)
 {
 	MyCCB *CCBPtr;
@@ -60,8 +67,6 @@ static void initCCBarray(void)
 	} while (--i);
 }
 
-bool testEnableFog = false;
-
 static void initFog()
 {
 	int i,a,b,c,d;
@@ -71,13 +76,13 @@ static void initFog()
 	c = 12;
 	d = 31;
 	for (i=0; i<a; ++i) {
-		LightTable[i] = LightTableFog[c];
+		LightTableFog[i] = LightTableFogOrig[c];
 	}
 	for (i=a; i<b; ++i) {
-		LightTable[i] = LightTableFog[c + (int)((d - c) * ((float)(i - a) / (float)(b - a - 1)))];
+		LightTableFog[i] = LightTableFogOrig[c + (int)((d - c) * ((float)(i - a) / (float)(b - a - 1)))];
 	}
 	for (i=b; i<32; ++i) {
-		LightTable[i] = LightTableFog[d];
+		LightTableFog[i] = LightTableFogOrig[d];
 	}
 }
 
@@ -108,7 +113,7 @@ void initAllCCBelements()
 
 	if (enableNewSkies) initNewSkies();
 
-	if (testEnableFog) initFog();
+	initFog();
 }
 
 void drawCCBarray(MyCCB* lastCCB, MyCCB *CCBArrayPtr)

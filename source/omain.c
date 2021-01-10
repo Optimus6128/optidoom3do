@@ -45,7 +45,7 @@ static Word cursorPos;			// Y position of the skull
 static Word moveCount;			// Time mark to move the skull
 static Word toggleIDKFAcount;   // A count to turn IDKFA exclamation mark off after triggered (because it doesn't have two option states)
 bool useOffscreenBuffer = false;// Use only when screen scale is not 1x1
-bool useOffscreenGrid = false;	// Use only when grid screen effects are running
+
 
 enum { BAR, HANDLE};    // Sub shapes for slider bar
 
@@ -175,7 +175,7 @@ static char *planeQualityOptionsStr[PLANE_QUALITY_OPTIONS_NUM] = { "LO", "MED", 
 static char *screenScaleOptionsStr[SCREEN_SCALE_OPTIONS_NUM] = { "1x1", "2x1", "1x2", "2x2" };
 static char *depthShadingOptionsStr[DEPTH_SHADING_OPTIONS_NUM] = { "DARK", "BRIGHT", "DITHER", "ON" };
 static char *rendererOptionsStr[RENDERER_OPTIONS_NUM] = { "DOOM", "POLY" };
-static char *gimmickOptionsStr[GIMMICKS_OPTIONS_NUM] = { "OFF", "WIREFRAME", "CUBE", "DISTORT", "BLUR" };
+static char *gimmickOptionsStr[GIMMICKS_OPTIONS_NUM] = { "OFF", "WIREFRAME", "CUBE", "BLUR" };
 static char *automapOptionsStr[AUTOMAP_OPTIONS_NUM] = { "OFF", "THINGS", "LINES", "ALL" };
 static char *dummyIDKFAoptionsStr[DUMMY_IDKFA_OPTIONS_NUM] = { " ", "!" };
 static char *thicklinesOptionsStr[THICK_LINES_OPTIONS_NUM] = { "NORMAL", "THICK" };
@@ -300,7 +300,6 @@ void setScreenScaleValuesFromOption()
 	screenScaleX = optGraphics->screenScale & 1;
 	screenScaleY = (optGraphics->screenScale & 2) >> 1;
 	useOffscreenBuffer = (screenScaleX | screenScaleY | optGraphics->fitToScreen | (optOther->gimmicks == GIMMICKS_CUBE) | (optOther->gimmicks == GIMMICKS_MOTION_BLUR));
-	useOffscreenGrid = (optOther->gimmicks == GIMMICKS_DISTORT);
 }
 
 #ifdef DEBUG_MENU_HACK

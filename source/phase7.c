@@ -30,6 +30,8 @@ static int currentVisplaneCount = 0;
 
 static void *texPal;
 
+static Word *LightTablePtr = LightTable;
+
 
 /***************************
 
@@ -282,7 +284,7 @@ static void MapPlaneUnshaded(Word y1, Word y2)
     if (!optGraphics->depthShading) light = lightmin;
         else light = lightmax;
 
-    light = LightTable[light>>LIGHTSCALESHIFT];
+    light = LightTablePtr[light>>LIGHTSCALESHIFT];
 
     DestPtr = SpanPtr;
     CCBPtr = &CCBArrayPlane[CCBArrayPlaneCurrent];
@@ -364,7 +366,7 @@ static void MapPlaneFlatDithered(Word y1, Word y2, const Word *color)
 		int light = spandata[y].light;
         const Word Count = spandata[y].x2 - x1;
         const int poffX = (y + x1) & 1;
-        const Word pixc1 = LightTable[light];
+        const Word pixc1 = LightTablePtr[light];
 
 		CCBPtr->ccb_PRE0 = 0x00000005 | (poffX << 24);	// Preamble (Coded 8 bit)
         CCBPtr->ccb_PRE1 = 0x3E005000|(Count+poffX-1);		/* Second preamble */
@@ -377,7 +379,7 @@ static void MapPlaneFlatDithered(Word y1, Word y2, const Word *color)
         	CCBPtr->ccb_PIXC = (pixc1 << 16) | pixc1;
         } else {
 			if (--light < 0) light = 0;
-        	CCBPtr->ccb_PIXC = (pixc1 << 16) | LightTable[light];
+        	CCBPtr->ccb_PIXC = (pixc1 << 16) | LightTablePtr[light];
         }
         CCBPtr++;
     }
@@ -416,7 +418,7 @@ static void initVisplaneSpanDataTextured(visplane_t *p)
         } else if (light > lightmax) {
             light = lightmax;
         }
-        spandata[y].light = LightTable[light>>LIGHTSCALESHIFT];
+        spandata[y].light = LightTablePtr[light>>LIGHTSCALESHIFT];
 
 		spandata[y].distance = distance;
 		spandata[y].xstep = ((Fixed)distance*basexscale)>>4;
@@ -448,7 +450,7 @@ static void initVisplaneSpanDataFlat(visplane_t *p)
         } else if (light > lightmax) {
             light = lightmax;
         }
-        spandata[y].light = LightTable[light>>LIGHTSCALESHIFT];
+        spandata[y].light = LightTablePtr[light>>LIGHTSCALESHIFT];
 	}
 }
 
@@ -521,8 +523,6 @@ void DrawVisPlaneHorizontal(visplane_t *p)
 	lightsub = lightsubs[stop];
 	lightcoef = planelightcoef[stop];
 
-	initVisplaneSpanData(p);
-
 	if (p->color==0) {
 		texPal = PlaneSource;
 	} else {
@@ -530,7 +530,14 @@ void DrawVisPlaneHorizontal(visplane_t *p)
 		initColoredPals((uint16*)PlaneSource, texPal, 32, p->color);
 		if (++currentVisplaneCount == maxVisplanes) currentVisplaneCount = 0;
 	}
-	
+
+	if (p->special & SEC_SPEC_FOG) {
+		LightTablePtr = LightTableFog;
+	} else {
+		LightTablePtr = LightTable;
+	}
+
+	initVisplaneSpanData(p);
 
 	stop = p->maxx+1;	/* Maximum x coord */
 	x = p->minx;		/* Starting x */
@@ -614,7 +621,7 @@ void DrawVisPlaneVertical(visplane_t *p)
 	Word light = p->PlaneLight;
 
     if (!optGraphics->depthShading) light = lightmins[light];
-    light = LightTable[light>>LIGHTSCALESHIFT];
+    light = LightTablePtr[light>>LIGHTSCALESHIFT];
 
 
 	x = p->minx;

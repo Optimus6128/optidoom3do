@@ -97,26 +97,14 @@ void setupOffscreenCel()
 		offscreenCel->ccb_VDY = (1 + screenScaleY) << 16;
 	}
 
-	if (enableGimmicks) updateScreenGridCels();
+	updateScreenGridCels();
 }
 
 static void renderOffscreenBufferGrid()
 {
 	const int t = getTicks() >> 6;
 
-	switch(optOther->gimmicks) {
-		case GIMMICKS_DISTORT:
-			updateGridFx(GRID_FX_DISTORT, t);
-		break;
-
-		/*case GIMMICKS_WARP:
-			updateGridFx(GRID_FX_WARP, t);
-		break;*/
-
-		default:
-		break;
-	}
-
+	updateGridFx(t);
 	renderGrid();
 }
 
@@ -144,7 +132,7 @@ void R_Init(void)
 	cubeMesh = initGenMesh(256, feedbackTex, MESH_OPTION_CPU_CCW_TEST, MESH_CUBE, NULL);
 	setMeshPolygonOrder(cubeMesh, true, true);
 
-	if (enableGimmicks) initGrid(8, 8);
+	initGrid(8, 8);
 }
 
 /**********************************
@@ -195,6 +183,9 @@ void R_RenderPlayerView (void)
 	BSP();			/* Traverse the BSP tree for possible walls to render */
 
 	FlushCCBs();
+
+	useOffscreenGrid = getActiveGridEffect();
+
 	if (useOffscreenBuffer || useOffscreenGrid) {
 		setupOffscreenCel();
 		SetMyScreen(offscreenPage);	// Offscreen buffer is the last

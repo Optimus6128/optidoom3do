@@ -1,6 +1,8 @@
 #include "Doom.h"
 #include <String.h>
 
+#include "engine_grid.h"
+
 Word NumFlatAnims;		/* Number of flat anims */
 anim_t FlatAnims[] = {
 	{rNUKAGE3-rF_START,rNUKAGE1-rF_START,rNUKAGE1-rF_START},
@@ -571,13 +573,21 @@ void P_ShootSpecialLine(mobj_t *thing,line_t *line)
 void PlayerInSpecialSector(player_t *player,sector_t *sector)
 {
 	Word Damage;
-	const Word secSpecial = sector->special & 31;
+	const Word secSpecialOrig = sector->special & 31;
+	const Word secSpecialExtra = sector->special & 0xE0;	// 3 high bits of low byte
 
-	if (player->mo->z != sector->floorheight) {
+	const int change = 16;
+	if (secSpecialExtra & SEC_SPEC_DISTORT) {
+		alterDistortMagnitude(change);
+	} else {
+		alterDistortMagnitude(-change);
+	}
+
+	if (!secSpecialOrig || player->mo->z != sector->floorheight) {
 		return;		/* not all the way down yet */
 	}
 	Damage = 0;		/* No damage taken */
-	switch (secSpecial) {
+	switch (secSpecialOrig) {
 	case 5:		/* HELLSLIME DAMAGE */
 		Damage = 10;
 		break;
@@ -665,8 +675,8 @@ void SpawnSpecials(void)
 	sector = sectors;
 	i = 0;
 	do {
-		const Word secSpecial = sector->special & 31;
-		switch(secSpecial) {
+		const Word secSpecialOrig = sector->special & 31;
+		switch(secSpecialOrig) {
 		case 1:		/* FLICKERING LIGHTS */
 			P_SpawnLightFlash(sector);
 			break;
