@@ -79,6 +79,7 @@ static Word extractColorFromSpecial(Word special)
 	// 2 B * 256
 
 	//RRRGGGBB xDF11111
+	//11111111 00100000 (SEC_SPEC_RENDER_BITS = 0xFF20: bits relevant to rendering for splitting visplanes)
 
 	static int col2[4] = {0, 85, 170, 255};
 	static int col3[8] = {0, 36, 72, 108, 144, 180, 216, 255};

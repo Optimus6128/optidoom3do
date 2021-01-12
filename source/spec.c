@@ -573,8 +573,8 @@ void P_ShootSpecialLine(mobj_t *thing,line_t *line)
 void PlayerInSpecialSector(player_t *player,sector_t *sector)
 {
 	Word Damage;
-	const Word secSpecialOrig = sector->special & 31;
-	const Word secSpecialExtra = sector->special & 0xE0;	// 3 high bits of low byte
+	const Word secSpecialOrig = sector->special & SEC_SPEC_ORIG_BITS;
+	const Word secSpecialExtra = sector->special & SEC_SPEC_EXTRA_BITS;	// 3 high bits of low byte
 
 	const int change = 16;
 	if (secSpecialExtra & SEC_SPEC_DISTORT) {
@@ -603,7 +603,7 @@ void PlayerInSpecialSector(player_t *player,sector_t *sector)
 		break;
 	case 9:		/* Found a secret sector */
 		++player->secretcount;
-		sector->special &= ~31;		/* Remove the special */
+		sector->special &= ~SEC_SPEC_ORIG_BITS;		/* Remove the special */
 	}
 	if (Damage && Tick1) {		/* Time for pain */
 		if (Damage&0x8000 || !player->powers[pw_ironfeet]) {	/* Inflict? */
@@ -675,7 +675,7 @@ void SpawnSpecials(void)
 	sector = sectors;
 	i = 0;
 	do {
-		const Word secSpecialOrig = sector->special & 31;
+		const Word secSpecialOrig = sector->special & SEC_SPEC_ORIG_BITS;
 		switch(secSpecialOrig) {
 		case 1:		/* FLICKERING LIGHTS */
 			P_SpawnLightFlash(sector);

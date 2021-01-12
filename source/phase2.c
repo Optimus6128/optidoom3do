@@ -137,6 +137,9 @@ void WallPrep(Word LeftX,Word RightX,seg_t *LineSeg,angle_t LeftAngle)
 	Word b_lightlevel;		/* Back sector light level */
 	Fixed b_floorheight, b_ceilingheight;
 
+	Word frontSecSpecial;
+	Word backSecSpecial;
+
 	CurWallPtr = lastwallcmd;		/* Get the first wall pointer */
 	lastwallcmd = CurWallPtr+1;		/* Inc my pointer */
 	CurWallPtr->LeftX = LeftX;		/* Set the edges of the visible wall */
@@ -156,7 +159,7 @@ void WallPrep(Word LeftX,Word RightX,seg_t *LineSeg,angle_t LeftAngle)
 	f_lightlevel = FrontSecPtr->lightlevel;
 	f_floorheight = FrontSecPtr->floorheight - viewz;	/* Adjust for camera z */
 	f_ceilingheight = FrontSecPtr->ceilingheight - viewz;
-	
+
 	/* Set the floor and ceiling shape handles */
 	
 	CurWallPtr->FloorPic = FlatTranslation[FrontSecPtr->FloorPic];	/* Store the floor shape */
@@ -181,12 +184,16 @@ void WallPrep(Word LeftX,Word RightX,seg_t *LineSeg,angle_t LeftAngle)
 	
 /* Add floors and ceilings if the wall needs one */
 
+	// special but without the lower 5bits (so only RGB color, fog, distort)
+	frontSecSpecial = FrontSecPtr->special & SEC_SPEC_RENDER_BITS;
+	backSecSpecial = BackSecPtr->special & SEC_SPEC_RENDER_BITS;
+
 	if (f_floorheight < 0 &&		/* Is the camera above the floor? */
 		(FrontSecPtr->FloorPic != BackSecPtr->FloorPic ||	/* Floor texture changed? */
 		f_floorheight != b_floorheight ||	/* Differant height? */
 		f_lightlevel != b_lightlevel || 	/* Differant light? */
 		FrontSecPtr->color != BackSecPtr->color ||	// Different color
-		FrontSecPtr->special != BackSecPtr->special || // Different special
+		frontSecSpecial != backSecSpecial || // Different special
 		b_ceilingheight == b_floorheight) ) {	/* No thickness line? */
 		CurWallPtr->floorheight = CurWallPtr->floornewheight = f_floorheight>>FIXEDTOHEIGHT;
 		actionbits = (AC_ADDFLOOR|AC_NEWFLOOR);	/* Create floor */
@@ -198,7 +205,7 @@ void WallPrep(Word LeftX,Word RightX,seg_t *LineSeg,angle_t LeftAngle)
 		f_ceilingheight != b_ceilingheight ||	/* Differant ceiling height? */
 		f_lightlevel != b_lightlevel || 		/* Differant ceiling light? */
 		FrontSecPtr->color != BackSecPtr->color || // Different color
-		FrontSecPtr->special != BackSecPtr->special || // Different special
+		frontSecSpecial != backSecSpecial || // Different special
 		b_ceilingheight == b_floorheight ) ) {	/* Thin dividing line? */
 		CurWallPtr->ceilingheight = CurWallPtr->ceilingnewheight = f_ceilingheight >>FIXEDTOHEIGHT;			
 		if (f_ceilingpic == -1) {
@@ -291,7 +298,7 @@ void WallPrep(Word LeftX,Word RightX,seg_t *LineSeg,angle_t LeftAngle)
 	}
 
 	CurWallPtr->color = FrontSecPtr->color;
-	CurWallPtr->special = FrontSecPtr->special;
+	CurWallPtr->special = frontSecSpecial;
 
 	CurWallPtr->WallActions = actionbits;		/* Save the action bits */
 	if (f_lightlevel < 240) {		/* Get the light level */

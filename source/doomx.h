@@ -7,6 +7,9 @@
 
 
 #define LIGHTSCALESHIFT 3
+#define SEC_SPEC_RENDER_BITS 0xFF20
+#define SEC_SPEC_ORIG_BITS 0x1F
+#define SEC_SPEC_EXTRA_BITS 0xE0
 
 
 typedef struct MyCCB {		/* Clone of the CCB Block from the 3DO includes */

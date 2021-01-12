@@ -69,7 +69,7 @@ static visplane_t *FindPlane(visplane_t *check, viswall_t *segl, int start, Word
 	void **PicHandle = segl->FloorPic;
 	const int stop = segl->RightX;
 	const Word Light = segl->seglightlevel;
-	const Word special = segl->special;
+	const Word special = segl->special & SEC_SPEC_RENDER_BITS;
 	
 	if (visplanesCount > maxVisplanes-2) return 0;
 
