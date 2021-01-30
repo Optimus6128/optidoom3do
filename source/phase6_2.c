@@ -253,6 +253,12 @@ static void DrawSegAny(viswall_t *segl, bool isTop, bool isFlat)
         drawtex.texturemid = segl->b_texturemid;
     }
 
+	if (segl->special & SEC_SPEC_FOG) {
+		LightTablePtr = LightTableFog;
+	} else {
+		LightTablePtr = LightTable;
+	}
+
     if (isFlat) {
         DrawWallSegmentFlat(&drawtex, &tex->color, CenterY);
     } else {
@@ -268,12 +274,6 @@ static void DrawSegAny(viswall_t *segl, bool isTop, bool isFlat)
 			texPal = &coloredWallPals[currentWallCount << 4];
 			initColoredPals((uint16*)drawtex.data, texPal, 16, segl->color);
 		    if (++currentWallCount == MAXWALLCMDS) currentWallCount = 0;
-		}
-
-		if (segl->special & SEC_SPEC_FOG) {
-			LightTablePtr = LightTableFog;
-		} else {
-			LightTablePtr = LightTable;
 		}
 
 		DrawWallSegment(&drawtex, texPal, CenterY);

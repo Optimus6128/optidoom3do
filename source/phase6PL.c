@@ -5,6 +5,9 @@
 
 #define MAX_WALL_PARTS 300
 
+// OLD POLY (trick to avoid Y tiling) fails on real hardware (black textures and FPS almost freezes)
+//#define OLD_POLY
+
 typedef struct {
     int xLeft, xRight;
     int scaleLeft, scaleRight;
@@ -32,6 +35,9 @@ static unsigned char *texBufferFlat;
 
 static const int mode8bpp = 5;
 static const int mode4bpp = 3;
+
+static uint16 coloredPolyWallPals[16];
+static Word *LightTablePtr = LightTable;
 
 #define RECIPROCAL_MAX_NUM 1024
 #define RECIPROCAL_FP 16
@@ -180,7 +186,7 @@ static void DrawWallSegmentTexturedQuadSubdivided(drawtex_t *tex, int run, Word 
             int textureLight = ((scaleLeft*lightcoef)>>16) - lightsub;
             if (textureLight < lightmin) textureLight = lightmin;
             if (textureLight > lightmax) textureLight = lightmax;
-            pixcLight = LightTable[textureLight>>LIGHTSCALESHIFT];
+            pixcLight = LightTablePtr[textureLight>>LIGHTSCALESHIFT];
         }
 
         topLeft = CenterY - ((scaleLeft * tex->topheight) >> (HEIGHTBITS+SCALEBITS)) - 1;
@@ -212,12 +218,11 @@ static void DrawWallSegmentTexturedQuadSubdivided(drawtex_t *tex, int run, Word 
         ++CCBPtr;
     } while(--count != 0);
 
-    CCBQuadWallTextured[0].ccb_PLUTPtr = tex->data;    // plut pointer only for first element
     drawCCBarray(--CCBPtr, CCBQuadWallTextured);
 }
 
 
-static void DrawWallSegmentTexturedQuad(drawtex_t *tex, viswall_t *segl)
+static void DrawWallSegmentTexturedQuad(drawtex_t *tex, void *texPal, viswall_t *segl)
 {
     Word frac;
     Word colnum7;
@@ -258,13 +263,21 @@ static void DrawWallSegmentTexturedQuad(drawtex_t *tex, viswall_t *segl)
     pre0part = (colnum7 << 24) | mode4bpp;
     pre1part = (((texStride >> 2) - 2) << 24) | 0x5000; // 5000 for the LSB of blue to match exact colors as in original Doom column renderer
 
-    while(run > texHeight) {
-        DrawWallSegmentTexturedQuadSubdivided(tex, texHeight, pre0part, pre1part, frac);
-        tex->topheight -= (texHeight << HEIGHTBITS);
-        run-= texHeight;
-    };
-    if (run > 0)
-        DrawWallSegmentTexturedQuadSubdivided(tex, run, pre0part, pre1part, frac);
+	CCBQuadWallTextured[0].ccb_PLUTPtr = texPal;    // plut pointer only for first element
+
+	#ifdef OLD_POLY
+	// OLD Poly, no Y tiling (fails on real hardware)
+		DrawWallSegmentTexturedQuadSubdivided(tex, run, pre0part, pre1part, frac);
+	#else
+	// New Poly, Y tiling
+	while(run > texHeight) {
+		DrawWallSegmentTexturedQuadSubdivided(tex, texHeight, pre0part, pre1part, frac);
+		tex->topheight -= (texHeight << HEIGHTBITS);
+		run-= texHeight;
+	};
+	if (run > 0)
+		DrawWallSegmentTexturedQuadSubdivided(tex, run, pre0part, pre1part, frac);
+	#endif
 }
 
 
@@ -382,6 +395,8 @@ static void PrepareWallPartsFlat(viswall_t *segl, int *scaleData)
 static void DrawSegAnyPoly(viswall_t *segl, int *scaleData, bool isTop, bool shouldPrepareWallParts)
 {
     texture_t *tex;
+    void *texPal;
+
     if (isTop) {
         tex = segl->t_texture;
 
@@ -400,9 +415,22 @@ static void DrawSegAnyPoly(viswall_t *segl, int *scaleData, bool isTop, bool sho
     drawtex.color = tex->color;
     drawtex.data = (Byte *)*tex->data;
 
+	if (segl->color==0) {
+		texPal = drawtex.data;
+	} else {
+		texPal = coloredPolyWallPals;
+		initColoredPals((uint16*)drawtex.data, texPal, 16, segl->color);
+	}
+
+	if (segl->special & SEC_SPEC_FOG) {
+		LightTablePtr = LightTableFog;
+	} else {
+		LightTablePtr = LightTable;
+	}
+
     if (optGraphics->wallQuality > WALL_QUALITY_LO) {
         if (shouldPrepareWallParts) PrepareWallParts(segl, tex->width, scaleData);
-        if (wallPartsCount > 0 && wallPartsCount < MAX_WALL_PARTS) DrawWallSegmentTexturedQuad(&drawtex, segl);
+        if (wallPartsCount > 0 && wallPartsCount < MAX_WALL_PARTS) DrawWallSegmentTexturedQuad(&drawtex, texPal, segl);
     } else {
         PrepareWallPartsFlat(segl, scaleData);
         DrawWallSegmentFlatPoly(&drawtex);
@@ -422,7 +450,7 @@ void DrawSegPoly(viswall_t *segl, int *scaleData)
 	
     ambientLight = segl->seglightlevel;
     if (optGraphics->depthShading == DEPTH_SHADING_DARK) ambientLight = lightmins[ambientLight];
-    pixcLight = LightTable[ambientLight>>LIGHTSCALESHIFT];
+    pixcLight = LightTablePtr[ambientLight>>LIGHTSCALESHIFT];
 
 
     texColumnOffsetPrepared = false;

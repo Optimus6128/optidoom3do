@@ -244,12 +244,11 @@ static void SegLoopSpriteClipsBottom(viswall_t *segl, Word screenCenterY)
 	Word x = segl->LeftX;
 	do {
         int low = screenCenterY - ((segdata->scale * segl->floornewheight)>>(HEIGHTBITS+SCALEBITS));
-        int floorclipy = segdata->floorclipy;
+        const int floorclipy = segdata->floorclipy;
 
         if (low > floorclipy) {
             low = floorclipy;
-        }
-        if (low < 0) {
+        } else if (low < 0) {
             low = 0;
         }
         if (ActionBits & AC_BOTTOMSIL) {
@@ -270,12 +269,11 @@ static void SegLoopSpriteClipsTop(viswall_t *segl, Word screenCenterY)
 	Word x = segl->LeftX;
 	do {
         int high = (screenCenterY-1) - ((segdata->scale * segl->ceilingnewheight)>>(HEIGHTBITS+SCALEBITS));
-        int ceilingclipy = segdata->ceilingclipy;
+        const int ceilingclipy = segdata->ceilingclipy;
 
         if (high < ceilingclipy) {
             high = ceilingclipy;
-        }
-        if (high > (int)ScreenHeight-1) {
+        } else if (high > (int)ScreenHeight-1) {
             high = ScreenHeight-1;
         }
         if (ActionBits & AC_TOPSIL) {
@@ -284,6 +282,48 @@ static void SegLoopSpriteClipsTop(viswall_t *segl, Word screenCenterY)
         if (ActionBits & AC_NEWCEILING) {
             clipboundtop[x] = high;
         }
+		segdata++;
+	} while (++x<=segl->RightX);
+}
+
+static void SegLoopSpriteClipsBoth(viswall_t *segl, Word screenCenterY)
+{
+    Word ActionBits = segl->WallActions;
+	segloop_t *segdata = segloops;
+
+	Word x = segl->LeftX;
+	do {
+        const int floorclipy = segdata->floorclipy;
+        const int ceilingclipy = segdata->ceilingclipy;
+        int low = screenCenterY - ((segdata->scale * segl->floornewheight)>>(HEIGHTBITS+SCALEBITS));
+        int high = (screenCenterY-1) - ((segdata->scale * segl->ceilingnewheight)>>(HEIGHTBITS+SCALEBITS));
+
+		if (low > floorclipy) {
+            low = floorclipy;
+        }
+        else if (low < 0) {
+            low = 0;
+        }
+        if (high < ceilingclipy) {
+            high = ceilingclipy;
+        }
+        else if (high > (int)ScreenHeight-1) {
+            high = ScreenHeight-1;
+        }
+
+        if (ActionBits & AC_BOTTOMSIL) {
+            segl->BottomSil[x] = low;
+        }
+        if (ActionBits & AC_NEWFLOOR) {
+            clipboundbottom[x] = low;
+        }
+        if (ActionBits & AC_TOPSIL) {
+            segl->TopSil[x] = high+1;
+        }
+        if (ActionBits & AC_NEWCEILING) {
+            clipboundtop[x] = high;
+        }
+
 		segdata++;
 	} while (++x<=segl->RightX);
 }
@@ -364,16 +404,21 @@ void SegLoop(viswall_t *segl)
     }
 
 // Sprite clip sils
-    if (ActionBits & (AC_BOTTOMSIL|AC_NEWFLOOR)) {
-        SegLoopSpriteClipsBottom(segl, CenterY);
-    }
+	{
+		const bool silsTop = ActionBits & (AC_TOPSIL|AC_NEWCEILING);
+		const bool silsBottom = ActionBits & (AC_BOTTOMSIL|AC_NEWFLOOR);
 
-    if (ActionBits & (AC_TOPSIL|AC_NEWCEILING)) {
-        SegLoopSpriteClipsTop(segl, CenterY);
-    }
+		if (silsTop && silsBottom) {
+			SegLoopSpriteClipsBoth(segl, CenterY);
+		} else if (silsBottom) {
+			SegLoopSpriteClipsBottom(segl, CenterY);
+		} else if (silsTop) {
+			SegLoopSpriteClipsTop(segl, CenterY);
+		}
+	}
 
 // I can draw the sky right now!!
-    if (optOther->gimmicks != GIMMICKS_WIREFRAME) {
+    if (!enableWireframeMode) {
         if (ActionBits & AC_ADDSKY) {
             skyOnView = true;
             if (optOther->sky==SKY_DEFAULT) {

@@ -53,7 +53,6 @@ typedef enum {
 	SEC_SPEC_DISTORT = 64
 } viswallspecial_e;
 
-
 // In phase6.c
 extern int *scaleArrayData;
 extern bool background_clear;
@@ -93,6 +92,9 @@ void flushCCBarrayPlane(void);
 // In phase8.c
 extern Word spriteLight;
 
+// In modmenu.c
+extern char *wadSelected;
+
 // In rdata.c
 extern int screenScaleX;
 extern int screenScaleY;
@@ -100,6 +102,7 @@ void initScreenSizeValues(void);
 
 // In rmain.c
 extern int offscreenPage;
+extern bool enableWireframeMode;
 void setupOffscreenCel(void);
 
 // In threedo.c
@@ -163,7 +166,6 @@ void setScreenSizeSliderFromOption(void);
 // In modmenu.c
 extern bool loadPsxSamples;
 extern bool enableNewSkies;
-extern bool enableGimmicks;
 extern bool skipLogos;
 void startModMenu(void);
 

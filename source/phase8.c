@@ -1,5 +1,6 @@
 #include "Doom.h"
 #include <IntMath.h>
+#include "string.h"
 
 #define SCREENGUNY -40		/* Y offset to center the player's weapon properly */
 
@@ -347,20 +348,22 @@ void DrawVisSprite(vissprite_t *vis)
 
 static void DrawAWeapon(pspdef_t *psp,Word Shadow)
 {
-	Short *Input;		/* Pointer to the xy offset'd shape */
+	Word *Input;		/* Pointer to the xy offset'd shape */
 	Word RezNum;
 	int x,y;
 	state_t *StatePtr;
 
+	sector_t *playerSector = players.mo->subsector->sector;
+	const Word sectorColor = playerSector->color;
+
 	StatePtr = psp->StatePtr;		/* Get the state struct pointer */
 	RezNum = StatePtr->SpriteFrame>>FF_SPRITESHIFT;	/* Get the file */
-	Input = (Short *)LoadAResource(RezNum);	/* Get the main pointer */
-	Input = (Short *)GetShapeIndexPtr(Input,StatePtr->SpriteFrame & FF_FRAMEMASK);
+	Input = (Word*)GetShapeIndexPtr(LoadAResource(RezNum),StatePtr->SpriteFrame & FF_FRAMEMASK);
 
-	((LongWord *)Input)[7] = GunXScale;		/* Set the scale factor */
-	((LongWord *)Input)[10] = GunYScale;
+	Input[7] = GunXScale;		/* Set the scale factor */
+	Input[10] = GunYScale;
 	if (Shadow) {
-		((LongWord *)Input)[13] = 0x9C81;	/* Set the shadow bits */
+		Input[13] = 0x9C81;	/* Set the shadow bits */
 	} else {
         int shade = 0x1F00;
 
@@ -369,22 +372,42 @@ static void DrawAWeapon(pspdef_t *psp,Word Shadow)
             if (StatePtr->SpriteFrame & FF_FULLBRIGHT) {
                 shade = 255;			/* Full bright */
             } else {					/* Ambient light */
-                shade = players.mo->subsector->sector->lightlevel;
+                shade = playerSector->lightlevel;
             }
             shade = LightTable[shade>>LIGHTSCALESHIFT];
         }
 
-		((LongWord *)Input)[13] = shade;	/* Normal PMode */
+		Input[13] = shade;	/* Normal PMode */
 	}
-	x = Input[0];
-	y = Input[1];
+
+	x = ((short*)Input)[0];
+	y = ((short*)Input)[1];
 	x = ((psp->WeaponX+x)*(int)GunXScale)>>20;
 	y = ((psp->WeaponY+SCREENGUNY+y)*(int)GunYScale)>>16;
 	if (!optGraphics->fitToScreen) {
 		x+=ScreenXOffsetPhysical;
 		y+=ScreenYOffsetPhysical+2;			/* Add 2 pixels to cover up the hole in the bottom */
 	}
-	DrawMShape(x,y,&Input[2]);	/* Draw the weapon's shape */
+
+	{
+		static uint16 coloredWeaponPal[32];
+		void *weaponPal = (void*)&Input[16];
+		uint16 *tempPal = (uint16*)&coloredWeaponPal[0];
+
+		int numCols = (Input[3] - Input[4] - 4) / 2;
+
+		if (sectorColor != 0) {
+			memcpy(tempPal, weaponPal, numCols * 2);
+			initColoredPals(tempPal, weaponPal, numCols, sectorColor);
+		}
+
+		DrawMShape(x,y,&Input[1]);	/* Draw the weapon's shape */
+
+		if (sectorColor != 0) {
+			FlushCCBs();
+			memcpy(weaponPal, tempPal, numCols * 2);
+		}
+	}
 	ReleaseAResource(RezNum);
 }
 

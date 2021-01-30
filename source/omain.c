@@ -25,7 +25,7 @@ OtherOptions *optOther = &options.other;
 
 
 static AllOptions optionsDefault = {{FRAME_LIMIT_1VBL, SCREENSIZE_OPTIONS_NUM - 3, WALL_QUALITY_HI, PLANE_QUALITY_HI, SCREEN_SCALE_1x1, false, DEPTH_SHADING_ON, false, RENDERER_DOOM},
-									{STATS_OFF, GIMMICKS_OFF, true, false, false, SKY_DEFAULT, 2, CHEATS_OFF, AUTOMAP_CHEAT_OFF, false, false, false, PLAYER_SPEED_1X, ENEMY_SPEED_1X, false, false}};
+									{STATS_OFF, true, false, SKY_DEFAULT, 2, CHEATS_OFF, AUTOMAP_CHEAT_OFF, false, false, false, PLAYER_SPEED_1X, ENEMY_SPEED_1X, false, false}};
 
 static GraphicsOptions graphicsPresets[PRESET_OPTIONS_NUM] = {
 	{FRAME_LIMIT_2VBL, 0, WALL_QUALITY_LO, PLANE_QUALITY_LO, SCREEN_SCALE_2x2, true, DEPTH_SHADING_BRIGHT, false, RENDERER_POLY},	// ATARI
@@ -125,10 +125,8 @@ enum {
 	mi_shading_depth,   // Depth shading option (on, dithered, off (dark/bright))
 	mi_shading_items,   // Shading enable option for items (weapons, enemies, things, etc)
 	mi_renderer,        // Selection of the new renderers (polygons instead of columns, etc)
-	mi_gimmicks,		// Extra gimmicky rendering things (pure wireframe, etc)
 	mi_border,			// Draw background border (on/off)
 	mi_mapLines,        // Map thick lines on/off
-	mi_waterFx,         // Water fx on/off
 	mi_sky,             // New skies
 	mi_firesky_slider,  // Slider to change firesky height
 	mi_enableCheats,    // Switch to enable cheats
@@ -175,7 +173,6 @@ static char *planeQualityOptionsStr[PLANE_QUALITY_OPTIONS_NUM] = { "LO", "MED", 
 static char *screenScaleOptionsStr[SCREEN_SCALE_OPTIONS_NUM] = { "1x1", "2x1", "1x2", "2x2" };
 static char *depthShadingOptionsStr[DEPTH_SHADING_OPTIONS_NUM] = { "DARK", "BRIGHT", "DITHER", "ON" };
 static char *rendererOptionsStr[RENDERER_OPTIONS_NUM] = { "DOOM", "POLY" };
-static char *gimmickOptionsStr[GIMMICKS_OPTIONS_NUM] = { "OFF", "WIREFRAME", "CUBE", "BLUR" };
 static char *automapOptionsStr[AUTOMAP_OPTIONS_NUM] = { "OFF", "THINGS", "LINES", "ALL" };
 static char *dummyIDKFAoptionsStr[DUMMY_IDKFA_OPTIONS_NUM] = { " ", "!" };
 static char *thicklinesOptionsStr[THICK_LINES_OPTIONS_NUM] = { "NORMAL", "THICK" };
@@ -299,7 +296,7 @@ void setScreenScaleValuesFromOption()
 {
 	screenScaleX = optGraphics->screenScale & 1;
 	screenScaleY = (optGraphics->screenScale & 2) >> 1;
-	useOffscreenBuffer = (screenScaleX | screenScaleY | optGraphics->fitToScreen | (optOther->gimmicks == GIMMICKS_CUBE) | (optOther->gimmicks == GIMMICKS_MOTION_BLUR));
+	useOffscreenBuffer = screenScaleX | screenScaleY | optGraphics->fitToScreen;
 }
 
 #ifdef DEBUG_MENU_HACK
@@ -394,14 +391,12 @@ void initMenuOptions()
     setMenuItemWithOptionNames(mi_renderer, 48, 140, "Renderer", false, muiStyle_text, &optGraphics->renderer, RENDERER_OPTIONS_NUM, rendererOptionsStr);
     setItemPageRange(mi_presets, mi_renderer, page_rendering);
 
-    setMenuItemWithOptionNames(mi_gimmicks, 48, 40, "Gimmicks", false, muiStyle_text, &optOther->gimmicks, GIMMICKS_OPTIONS_NUM, gimmickOptionsStr); setMenuItemVisibility(mi_gimmicks, enableGimmicks);
-    setMenuItemWithOptionNames(mi_border, 40, 60, "Draw border", false, muiStyle_text, &optOther->border, OFFON_OPTIONS_NUM,offOnOptionsStr);
-    setMenuItemWithOptionNames(mi_mapLines, 48, 80, "Map lines", false, muiStyle_text, &optOther->thickLines, THICK_LINES_OPTIONS_NUM, thicklinesOptionsStr);
-    setMenuItemWithOptionNames(mi_waterFx, 80, 100, "Water fx", false, muiStyle_text, &optOther->border, OFFON_OPTIONS_NUM, offOnOptionsStr);
-        setMenuItemVisibility(mi_waterFx, false);   // removing this in case I won't be able to fully implement it in this release
-    setMenuItemWithOptionNames(mi_sky, 96, 120, "Sky", false, muiStyle_text, &optOther->sky, SKY_OPTIONS_NUM, skyOptionsStr); setMenuItemVisibility(mi_sky, enableNewSkies);
-    setMenuItem(mi_firesky_slider, 96, 140, 0, false, muiStyle_slider, &optOther->fireSkyHeight, SKY_HEIGHTS_OPTIONS_NUM); setMenuItemVisibility(mi_firesky_slider, false);
-    setItemPageRange(mi_gimmicks, mi_firesky_slider, page_effects);
+    setMenuItemWithOptionNames(mi_border, 40, 40, "Draw border", false, muiStyle_text, &optOther->border, OFFON_OPTIONS_NUM,offOnOptionsStr);
+    setMenuItemWithOptionNames(mi_mapLines, 48, 60, "Map lines", false, muiStyle_text, &optOther->thickLines, THICK_LINES_OPTIONS_NUM, thicklinesOptionsStr);
+
+    setMenuItemWithOptionNames(mi_sky, 96, 100, "Sky", false, muiStyle_text, &optOther->sky, SKY_OPTIONS_NUM, skyOptionsStr); setMenuItemVisibility(mi_sky, enableNewSkies);
+    setMenuItem(mi_firesky_slider, 96, 120, 0, false, muiStyle_slider, &optOther->fireSkyHeight, SKY_HEIGHTS_OPTIONS_NUM); setMenuItemVisibility(mi_firesky_slider, false);
+    setItemPageRange(mi_border, mi_firesky_slider, page_effects);
 
     setMenuItem(mi_enableCheats, 160, 40, "Enable cheats", true, muiStyle_slider, &optOther->cheatsRevealed, CHEATS_REVEALED_OPTIONS_NUM);
     setMenuItemWithOptionNames(mi_cheatAutomap, 96, 80, "Automap", false, muiStyle_text, &optOther->cheatAutomap, AUTOMAP_OPTIONS_NUM, automapOptionsStr);     setMenuItemVisibility(mi_cheatAutomap, false);
@@ -547,10 +542,6 @@ static void handleSpecialMenuItemActions(player_t *player, Word menuItemIndex)
 		case mi_fitToScreen:
 			initScreenChangeVariables(true);
         break;
-
-        case mi_gimmicks:
-			initScreenChangeVariables(false);
-		break;
 
         case mi_wallQuality:
             initWallCELs();

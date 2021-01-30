@@ -34,8 +34,10 @@ angle_t doubleclipangle; /* Doubled leftmost clipping angle */
 int offscreenPage;
 
 static CCB *offscreenCel = NULL;
-static Mesh *cubeMesh;
-static Texture *feedbackTex;
+
+bool enableMotionBlur = false;
+bool enableWireframeMode = false;
+
 
 static void updateOffscreenCel(CCB *cel)
 {
@@ -50,30 +52,11 @@ static void updateOffscreenCel(CCB *cel)
 	cel->ccb_Width = ScreenWidth;
 	cel->ccb_Height = ScreenHeight;
 
-	if (optOther->gimmicks == GIMMICKS_MOTION_BLUR) {
+	if (enableMotionBlur) {
 		offscreenCel->ccb_PIXC = 0x1F811F81;
 	} else {
 		offscreenCel->ccb_PIXC = PIXC_OPAQUE;
 	}
-}
-
-static void renderGimmick3D()
-{
-	int i;
-	const int t = getTicks() >> 4;
-	setMeshPosition(cubeMesh, 0, 32, 640);
-	setMeshRotation(cubeMesh, t, t >> 1, t >> 2);
-
-	transformGeometry(cubeMesh);
-
-	for (i=0; i<cubeMesh->quadsNum; ++i) {
-		QuadData *qd = &cubeMesh->quad[i];
-		updateOffscreenCel(qd->cel);
-		cubeMesh->tex[qd->textureId].width = ScreenWidth;
-		cubeMesh->tex[qd->textureId].height = ScreenHeight;
-	}
-
-	renderTransformedGeometry(cubeMesh);
 }
 
 void setupOffscreenCel()
@@ -127,10 +110,6 @@ void R_Init(void)
 	R_InitData();			/* Init the data (Via loading or calculations) */
 	clipangle = xtoviewangle[0];	/* Get the left clip angle from viewport */
 	doubleclipangle = clipangle*2;	/* Precalc angle * 2 */
-
-	feedbackTex = initFeedbackTexture(0, 0, 320, 200, SCREENS);
-	cubeMesh = initGenMesh(256, feedbackTex, MESH_OPTION_CPU_CCW_TEST, MESH_CUBE, NULL);
-	setMeshPolygonOrder(cubeMesh, true, true);
 
 	initGrid(8, 8);
 }
@@ -211,9 +190,6 @@ void R_RenderPlayerView (void)
 			renderOffscreenBufferGrid();
 		} else {
 			renderOffscreenBuffer();
-			if (optOther->gimmicks == GIMMICKS_CUBE) {
-				renderGimmick3D();
-			}
 		}
     }
 

@@ -98,7 +98,11 @@ void initColoredPals(uint16 *srcPal, uint16 *dstPal, int numCols, Word colorMul)
 		const int r = (rMul * (c >> 10)) >> 8;
 		const int g = (gMul * ((c >> 5) & 31)) >> 8;
 		const int b = (bMul * (c & 31)) >> 8;
-		dstPal[i] = (uint16)((r << 10) | (g << 5) | b);
+		if (c!=0) {
+			dstPal[i] = (uint16)((r << 10) | (g << 5) | (b | 1));
+		} else {
+			dstPal[i] = c;
+		}
 	}
 }
 

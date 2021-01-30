@@ -40,12 +40,12 @@ static bool SegCommands_Init()
 
 static void DrawBackground()
 {
-    if (background_clear | optOther->cheatNoclip | (optOther->gimmicks==GIMMICKS_WIREFRAME)) {
+    if (background_clear | optOther->cheatNoclip | enableWireframeMode) {
         DrawARect(0,0, ScreenWidth, ScreenHeight, 0);   // To avoid HOM when noclipping outside
         FlushCCBs(); // Flush early to render noclip black quad early before everything, for the same reason as sky below
     }
 
-    if (skyOnView && (optOther->sky!=SKY_DEFAULT) && (optOther->gimmicks!=GIMMICKS_WIREFRAME)) {
+    if (skyOnView && (optOther->sky!=SKY_DEFAULT) && !enableWireframeMode) {
         drawNewSky(optOther->sky);
         FlushCCBs(); // Flush early to render the sky early before everything, as we hacked the wall renderer to draw earlier than the final flush.
     }
@@ -103,8 +103,9 @@ static void DrawWalls()
                 DrawSegPoly(WallSegPtr, scaleArrayData); // so, always poly
             } else {
                 const int pixLength = WallSegPtr->RightX - WallSegPtr->LeftX + 1;
+                const int threshold = 8;
 
-                if (pixLength < 8) {
+                if (pixLength < threshold) {
                     tooTightForPoly = true;
                 } else {
                 	const int texWidth = WallSegPtr->t_texture->width;  // using top texture (center and top) for now
@@ -115,7 +116,7 @@ static void DrawWalls()
                 	texLength = texRight - texLeft;
 
                     if (texLength < 1) texLength = 1;
-                    tooTightForPoly = ((pixLength * texWidth) / texLength) < 8;
+                    tooTightForPoly = ((pixLength * texWidth) / texLength) < threshold;
                 }
 
                 WallSegPtr->distance >>= VISWALL_DISTANCE_PRESHIFT;
@@ -212,7 +213,7 @@ void SegCommands()
 
         StartSegLoop();
 
-        if (optOther->gimmicks == GIMMICKS_WIREFRAME) {
+        if (enableWireframeMode) {
             DrawWallsWireframe();
         } else {
             DrawWalls();

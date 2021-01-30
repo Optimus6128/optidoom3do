@@ -45,8 +45,8 @@ int memLowHits = 0;
 static void optHack()
 {
     #ifdef DEBUG_OPT_HACK
-        optGraphics->floorQuality = FLOOR_QUALITY_LO;
-        optGraphics->depthShading = DEPTH_SHADING_BRIGHT;
+        //optGraphics->planeQuality = PLANE_QUALITY_LO;
+        //optGraphics->depthShading = DEPTH_SHADING_BRIGHT;
         background_clear = true;
     #endif
 }

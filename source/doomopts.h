@@ -93,16 +93,6 @@ enum {
     SKY_OPTIONS_NUM
 };
 
-// Extra render options
-enum
-{
-    GIMMICKS_OFF,
-    GIMMICKS_WIREFRAME,
-    GIMMICKS_CUBE,
-    GIMMICKS_MOTION_BLUR,
-    GIMMICKS_OPTIONS_NUM
-};
-
 // Cheats revealed options
 enum
 {
@@ -157,10 +147,8 @@ typedef struct GraphicsOptions
 typedef struct OtherOptions
 {
 	Word stats;
-	Word gimmicks;
 	Word border;
 	Word thickLines;
-	Word waterFx;
 	Word sky;
 	Word fireSkyHeight;
 	Word cheatsRevealed;
