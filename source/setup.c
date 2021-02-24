@@ -1,13 +1,12 @@
 #include "Doom.h"
+#include "wad_loader.h"
 #include <IntMath.h>
 #include <String.h>
 
-/* lump order in a map wad */
-enum {
-	ML_THINGS,ML_LINEDEFS,ML_SIDEDEFS,ML_VERTEXES,ML_SEGS,
-	ML_SSECTORS,ML_SECTORS,ML_NODES,ML_REJECT,ML_BLOCKMAP,
-	ML_TOTAL
-};
+
+
+static bool loadPWad = false;	// true if resource loading is going to be overriden by PWAD
+static Word pWadMapNum = 0;		// map number to load
 
 static vertex_t *vertexes;	/* Only needed during load, then discarded before game play */
 static Word LoadedLevel;	/* Resource number of the loaded level */
@@ -91,13 +90,54 @@ static Word extractColorFromSpecial(Word special)
 	return (r << 16) | (g << 8) | b;
 }
 
-static void LoadSectors(Word lump)
+static bool shouldOverrideLump(Word lumpId)
+{
+	switch(lumpId) {
+		case ML_THINGS:
+		case ML_LINEDEFS:
+		case ML_SIDEDEFS:
+		case ML_VERTEXES:
+		case ML_SEGS:
+		case ML_SSECTORS:
+		case ML_SECTORS:
+		case ML_NODES:
+		case ML_REJECT:
+		case ML_BLOCKMAP:
+			return true;
+		default:
+			return false;
+	}
+}
+
+
+static void *LoadALump(Word lumpStart, Word lumpId)
+{
+	if (loadPWad && shouldOverrideLump(lumpId)) {
+		void *lumpData = loadLumpData(pWadMapNum, mapLumpNames[lumpId]);
+		if (lumpData != NULL) {
+			return lumpData;
+		}
+	}
+	return LoadAResource(lumpStart + lumpId);
+}
+
+static void KillALump(Word lumpStart, Word lumpId)
+{
+	if (loadPWad && shouldOverrideLump(lumpId)) {
+		releaseLumpData(pWadMapNum, mapLumpNames[lumpId]);
+	} else {
+		Word lump = lumpStart + lumpId;
+		KillAResource(lump);
+	}
+}
+
+static void LoadSectors(Word lumpStart, Word lumpId)
 {
 	Word i;
 	mapsector_t *Map;
 	sector_t *ss;
 
-	Map = (mapsector_t *)LoadAResource(lump);		/* Load the data in */
+	Map = (mapsector_t *)LoadALump(lumpStart, lumpId);		/* Load the data in */
 	numsectors = ((Word *)Map)[0];			/* Get the number of entries */
 	Map = (mapsector_t *)&((Word*)Map)[1];	/* Index past the entry count */
 	i = numsectors*sizeof(sector_t);	/* Get the data size */
@@ -118,7 +158,7 @@ static void LoadSectors(Word lump)
 		++ss;			/* Next indexs */
 		++Map;
 	} while (--i);		/* All done? */
-	KillAResource(lump);	/* Dispose of the original */
+	KillALump(lumpStart, lumpId);	/* Dispose of the original */
 }
 
 /**********************************
@@ -135,13 +175,13 @@ typedef struct {		/* Map sidedef loaded from disk */
 	Word sector;		/* on viewer's side */
 } mapsidedef_t;
 
-static void LoadSideDefs(Word lump)
+static void LoadSideDefs(Word lumpStart, Word lumpId)
 {
 	Word i;
 	mapsidedef_t *MapSide;
 	side_t *sd;
 
-	MapSide = (mapsidedef_t *)LoadAResource(lump);	/* Load in the data */
+	MapSide = (mapsidedef_t *)LoadALump(lumpStart, lumpId);	/* Load in the data */
 	numsides = ((Word *)MapSide)[0];			/* Get the side count */		
 	MapSide = (mapsidedef_t *)&((Word *)MapSide)[1];	/* Index to the array */
 
@@ -159,7 +199,7 @@ static void LoadSideDefs(Word lump)
 		++MapSide;		/* Next indexs */
 		++sd;
 	} while (--i);		/* Count down */
-	KillAResource(lump);	/* Release the memory */
+	KillALump(lumpStart, lumpId);	/* Release the memory */
 }
 
 /**********************************
@@ -180,13 +220,13 @@ typedef struct {
 	Word sidenum[2];	/* sidenum[1] will be -1 if one sided */
 } maplinedef_t;
 
-static void LoadLineDefs(Word lump)
+static void LoadLineDefs(Word lumpStart, Word lumpId)
 {
 	Word i;
 	maplinedef_t *mld;
 	line_t *ld;
 
-	mld = (maplinedef_t *)LoadAResource(lump);	/* Load in the data */
+	mld = (maplinedef_t *)LoadALump(lumpStart, lumpId);	/* Load in the data */
 	numlines = ((Word*)mld)[0];			/* Get the number of lines in the struct array */	
 	i = numlines*sizeof(line_t);		/* Get the size of the dest buffer */
 	ld = (line_t *)AllocAPointer(i);	/* Get the memory for the lines array */
@@ -246,7 +286,7 @@ static void LoadLineDefs(Word lump)
 		++ld;			/* Next indexes */
 		++mld;
 	} while (--i);
-	KillAResource(lump);	/* Release the resource */
+	KillALump(lumpStart, lumpId);	/* Release the resource */
 }
 
 /**********************************
@@ -259,16 +299,23 @@ static void LoadLineDefs(Word lump)
 	
 **********************************/
 
-static void LoadBlockMap(Word lump)
+static void LoadBlockMap(Word lumpStart, Word lumpId)
 {
 	Word Count;
 	Word Entries;
 	Byte *MyLumpPtr;
-	void **BlockHandle;
+	void **BlockHandle = NULL;
 	LongWord *StartIndex;
+	Word lump = lumpStart + lumpId;
 
-	BlockHandle = LoadAResourceHandle(lump);	/* Load the data */
-	MyLumpPtr = (Byte *)LockAHandle(BlockHandle);
+	if (loadPWad && shouldOverrideLump(lumpId)) {
+		MyLumpPtr = (Byte *)LoadALump(lumpStart, lumpId);
+	} else {
+		BlockHandle = LoadAResourceHandle(lump);	/* Load the data */
+		MyLumpPtr = (Byte *)LockAHandle(BlockHandle);
+	}
+
+
 	BlockMapOrgX = ((Word *)MyLumpPtr)[0];		/* Get the orgx and y */
 	BlockMapOrgY = ((Word *)MyLumpPtr)[1];
 	BlockMapWidth = ((Word *)MyLumpPtr)[2];		/* Get the map size */
@@ -288,7 +335,11 @@ static void LoadBlockMap(Word lump)
 
 /* Convert the lists appended to the array into pointers to lines */
 
-	Count = GetAHandleSize(BlockHandle)/4;		/* How much memory is needed? (Longs) */
+	if (loadPWad && shouldOverrideLump(lumpId)) {
+		Count = blockListSizeFinal/4;
+	} else {
+		Count = GetAHandleSize(BlockHandle)/4;		/* How much memory is needed? (Longs) */
+	}
 	Count -= (Entries+4);		/* Remove the header count */
 	do {
 		if (StartIndex[0]!=-1) {	/* End of a list? */
@@ -321,14 +372,14 @@ typedef struct {
 	Word side;			/* Side of the line segment */
 } mapseg_t;
 
-static void LoadSegs(Word lump)
+static void LoadSegs(Word lumpStart, Word lumpId)
 {
 	Word i;
 	mapseg_t *ml;
 	seg_t *li;
 	Word numsegs;
 
-	ml = (mapseg_t *)LoadAResource(lump);		/* Load in the map data */
+	ml = (mapseg_t *)LoadALump(lumpStart, lumpId);		/* Load in the map data */
 	numsegs = ((Word*)ml)[0];		/* Get the count */
 	i = numsegs*sizeof(seg_t);		/* Get the memory size */
 	li = (seg_t *)AllocAPointer(i);	/* Allocate it */
@@ -359,7 +410,7 @@ static void LoadSegs(Word lump)
 		++li;		/* Next entry */
 		++ml;		/* Next resource entry */
 	} while (++i<numsegs);
-	KillAResource(lump);	/* Release the resource */
+	KillALump(lumpStart, lumpId);	/* Release the resource */
 }
 
 /**********************************
@@ -374,14 +425,14 @@ typedef struct {		/* Loaded map subsectors */
 	Word firstline;		/* Segs are stored sequentially */
 } mapsubsector_t;
 
-static void LoadSubsectors(Word lump)
+static void LoadSubsectors(Word lumpStart, Word lumpId)
 {
 	Word numsubsectors;
 	Word i;
 	mapsubsector_t *ms;
 	subsector_t *ss;
 
-	ms = (mapsubsector_t *)LoadAResource(lump);	/* Get the map data */
+	ms = (mapsubsector_t *)LoadALump(lumpStart, lumpId);	/* Get the map data */
 	numsubsectors = ((Word*)ms)[0];		/* Get the subsector count */
 	i = numsubsectors*sizeof(subsector_t);	/* Calc needed buffer */
 	ss = (subsector_t *)AllocAPointer(i);	/* Get the memory */
@@ -397,7 +448,7 @@ static void LoadSubsectors(Word lump)
 		++ss;		/* Index to the next entry */
 		++ms;
 	} while (--i);
-	KillAResource(lump);
+	KillALump(lumpStart, lumpId);
 }
 
 /**********************************
@@ -416,7 +467,7 @@ typedef struct {
 	LongWord children[2];	/* if NF_SUBSECTOR it's a subsector index else node index */
 } mapnode_t;
 
-static void LoadNodes(Word lump)
+static void LoadNodes(Word lumpStart, Word lumpId)
 {
 	Word numnodes;		/* Number of BSP nodes */
 	Word i,j,k;
@@ -424,7 +475,7 @@ static void LoadNodes(Word lump)
 	node_t *no;	
 	node_t *nodes;
 
-	mn = (mapnode_t *)LoadAResource(lump);	/* Get the data */
+	mn = (mapnode_t *)LoadALump(lumpStart, lumpId);	/* Get the data */
 	numnodes = ((Word*)mn)[0];			/* How many nodes to process */
 	mn = (mapnode_t *)&((Word *)mn)[1];
 	no = (node_t *)mn;
@@ -535,19 +586,17 @@ static void GroupLines(void)
 
 **********************************/
 
-static void LoadThings(Word lump)
+static void LoadThings(Word lumpStart, Word lumpId)
 {
 	Word i;
-	mapthing_t *mt;
-	
-	mt = (mapthing_t *)LoadAResource(lump);	/* Load the thing list */
+	mapthing_t *mt = (mapthing_t *)LoadALump(lumpStart, lumpId);	/* Load the thing list */
 	i = ((Word*)mt)[0];			/* Get the count */
 	mt = (mapthing_t *)&((Word *)mt)[1];	/* Point to the first entry */
 	do {
 		SpawnMapThing(mt);	/* Spawn the thing */
 		++mt;		/* Next item */
 	} while (--i);	/* More? */
-	KillAResource(lump);	/* Release the list */
+	KillALump(lumpStart, lumpId);	/* Release the list */
 }
 
 /**********************************
@@ -750,6 +799,9 @@ void SetupLevel(Word map)
 	Word lumpnum;
 	player_t *p;
 
+	pWadMapNum = map;
+	loadPWad = isMapReplaced(map);
+
 	Randomize();			/* Reset the random number generator */
 	LoadingPlaque();		/* Display "Loading" */
 	PurgeHandles(0);		/* Purge memory */
@@ -762,24 +814,25 @@ void SetupLevel(Word map)
 	
 	InitThinkers();			/* Zap the think logics */
 
+
 	lumpnum = ((map-1)*ML_TOTAL)+rMAP01;	/* Get the map number */
 	LoadedLevel = lumpnum;		/* Save the loaded resource number */
 
 /* Note: most of this ordering is important */
 
-	vertexes = (vertex_t *)LoadAResource(lumpnum+ML_VERTEXES);	/* Load the map vertexes */
-	LoadSectors(lumpnum+ML_SECTORS);	/* Needs nothing */
-	LoadSideDefs(lumpnum+ML_SIDEDEFS);	/* Needs sectors */
-	LoadLineDefs(lumpnum+ML_LINEDEFS);	/* Needs vertexes,sectors and sides */
-	LoadBlockMap(lumpnum+ML_BLOCKMAP);	/* Needs lines */
-	LoadSegs(lumpnum+ML_SEGS);		/* Needs vertexes,lines,sides */
-	LoadSubsectors(lumpnum+ML_SSECTORS);	/* Needs sectors and segs and sides */
-	LoadNodes(lumpnum+ML_NODES);		/* Needs subsectors */
-	KillAResource(lumpnum+ML_VERTEXES);		/* Release the map vertexes */
-	RejectMatrix = (Byte *)LoadAResource(lumpnum+ML_REJECT);	/* Get the reject matrix */
+	vertexes = (vertex_t *)LoadALump(lumpnum, ML_VERTEXES);	/* Load the map vertexes */
+	LoadSectors(lumpnum, ML_SECTORS);	/* Needs nothing */
+	LoadSideDefs(lumpnum, ML_SIDEDEFS);	/* Needs sectors */
+	LoadLineDefs(lumpnum, ML_LINEDEFS);	/* Needs vertexes,sectors and sides */
+	LoadBlockMap(lumpnum, ML_BLOCKMAP);	/* Needs lines */
+	LoadSegs(lumpnum, ML_SEGS);		/* Needs vertexes,lines,sides */
+	LoadSubsectors(lumpnum, ML_SSECTORS);	/* Needs sectors and segs and sides */
+	LoadNodes(lumpnum, ML_NODES);		/* Needs subsectors */
+	KillALump(lumpnum, ML_VERTEXES);		/* Release the map vertexes */
+	RejectMatrix = (Byte *)LoadALump(lumpnum, ML_REJECT);	/* Get the reject matrix */
 	GroupLines();			/* Final last minute data arranging */
 	deathmatch_p = deathmatchstarts;
-	LoadThings(lumpnum+ML_THINGS);	/* Spawn all the items */
+	LoadThings(lumpnum, ML_THINGS);	/* Spawn all the items */
 	SpawnSpecials();		/* Spawn all sector specials */
 	PreloadWalls();			/* Load all the wall textures and sprites */
 
@@ -801,12 +854,12 @@ void ReleaseMapMemory(void)
 	DeallocAPointer(sectors);		/* Dispose of the sectors */
 	DeallocAPointer(sides);			/* Dispose of the side defs */
 	DeallocAPointer(lines);			/* Dispose of the lines */
-	KillAResource(LoadedLevel+ML_BLOCKMAP);	/* Make sure it's discarded since I modified it */
+	KillALump(LoadedLevel, ML_BLOCKMAP);	/* Make sure it's discarded since I modified it */
 	DeallocAPointer(BlockLinkPtr);	/* Discard the block map mobj linked list */
 	DeallocAPointer(segs);		/* Release the line segment memory */
 	DeallocAPointer(subsectors);	/* Release the sub sectors */
-	KillAResource(LoadedLevel+ML_NODES);	/* Release the BSP tree */
-	KillAResource(LoadedLevel+ML_REJECT);	/* Release the quick reject matrix */	
+	KillALump(LoadedLevel, ML_NODES);	/* Release the BSP tree */
+	KillALump(LoadedLevel, ML_REJECT);	/* Release the quick reject matrix */	
 	DeallocAPointer(LineArrayBuffer);
 	sectors = 0;		/* Zap the pointers */
 	sides = 0;			/* May cause a memory fault, but this will aid in debugging! */

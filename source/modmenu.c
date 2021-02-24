@@ -1,9 +1,16 @@
 #include "doom.h"
 #include "bench.h"
 #include "stdio.h"
+#include "string.h"
 
 #include <Init3do.h>
 
+#include "filesystem.h"
+#include "filefunctions.h"
+#include "directory.h"
+#include "directoryfunctions.h"
+
+#include "wad_loader.h"
 
 #define FONT_WIDTH 8
 #define FONT_HEIGHT 8
@@ -99,18 +106,25 @@ static uint16 fontsPal[2];
 bool loadPsxSamples = false;
 bool enableNewSkies = false;
 bool skipLogos = true;
-char *wadSelected = 0;
+
 
 #define NUM_OFF_ON_SELECTIONS 2
 #define NUM_SOUND_FX_SELECTIONS 2
-#define NUM_WAD_SELECTIONS 4
 #define NUM_VISPLANE_SELECTIONS 5
 
-static char *wadsSelection[NUM_WAD_SELECTIONS] = { "NONE", "UFO.WAD", "LELE.WAD", "CHEX5.WAD" };
+#define MAX_WAD_SELECTIONS 256
+
+static char *wadsSelection[MAX_WAD_SELECTIONS];
 static char *offOnSelection[NUM_OFF_ON_SELECTIONS] = { "OFF", "ON" };
 static char *soundFxSelection[NUM_SOUND_FX_SELECTIONS] = { "ORIGINAL", "PSX" };
 static int maxVisplanesSelection[NUM_VISPLANE_SELECTIONS] = { 32, 40, 48, 56, 64 };
 
+static char *wadsFolder = "wads";
+static DirectoryEntry *wadsDirectoryEntry;
+
+// These 3 will be externed for later loading
+static char wadSelectedFullPath[32];
+char *wadSelected = NULL;
 
 enum {
 	MMOPT_MODS,
@@ -122,7 +136,7 @@ enum {
 };
 
 static ModMenuItem mmItems[MMOPT_NUM] = {
-	{ "MODS:", wadsSelection, NUM_WAD_SELECTIONS, TYPE_STRING, 0 },
+	{ "MODS:", wadsSelection, 1, TYPE_STRING, 0 },
 	{ "NEW SKIES:", offOnSelection, NUM_OFF_ON_SELECTIONS, TYPE_STRING, 0 },
 	{ "SOUND FX:", soundFxSelection, NUM_SOUND_FX_SELECTIONS, TYPE_STRING, 0 },
 	{ "MAX VISPLANES:", maxVisplanesSelection, NUM_VISPLANE_SELECTIONS, TYPE_INT, 2 },
@@ -132,6 +146,27 @@ static ModMenuItem mmItems[MMOPT_NUM] = {
 int cursorIndexY = 0;
 bool exit = false;
 
+
+static void waitMs(int ms)
+{
+	int t = getTicks();
+	while (getTicks() - t < ms) {};
+}
+
+static bool getBoolFromValue(ModMenuItem *mmItem)
+{
+	return (bool)mmItem->selection;
+}
+
+static int getIntFromValue(ModMenuItem *mmItem)
+{
+	return *((int*)mmItem->values + mmItem->selection);
+}
+
+static char* getStringFromValue(ModMenuItem *mmItem)
+{
+	return *((char**)mmItem->values + mmItem->selection);
+}
 
 static void initFonts()
 {
@@ -318,7 +353,10 @@ static void renderModMenu()
 			case TYPE_STRING:
 			{
 				char **valArray = (char**)mmItem->values;
-				drawText(menuXstart + labelOffsetX, currentMenuY, valArray[mmItem->selection]);
+				char *label = valArray[mmItem->selection];
+				if (!label) label = "NONE";
+
+				drawText(menuXstart + labelOffsetX, currentMenuY, label);
 			}
 			break;
 		}
@@ -336,30 +374,62 @@ static void renderModMenu()
 	updateScreenAndWait();
 }
 
-static void waitMs(int ms)
+static void getWadFullPath(char *fullPathDst, const char *filename)
 {
-	int t = getTicks();
-	while (getTicks() - t < ms) {};
+	sprintf(fullPathDst, "%s/%s", wadsFolder, filename);
 }
 
-static bool getBoolFromValue(ModMenuItem *mmItem)
+
+
+static bool hasWadExtension(const char *filename)
 {
-	return (bool)mmItem->selection;
+	char *hasExtension = NULL;
+	hasExtension = strstr(filename, ".wad");
+	if (!hasExtension) hasExtension = strstr(filename, ".WAD");
+	return (hasExtension != NULL);
 }
 
-static int getIntFromValue(ModMenuItem *mmItem)
+static void getWadsDirectory()
 {
-	return *((int*)mmItem->values + mmItem->selection);
-}
+	Directory *dir = OpenDirectoryPath(wadsFolder);
+	int entriesNum = 0;
 
-static char* getStringFromValue(ModMenuItem *mmItem)
-{
-	return *((char**)mmItem->values + mmItem->selection);
+	wadsSelection[0] = NULL;
+
+	if (dir)
+	{
+		DirectoryEntry *de;
+
+		wadsDirectoryEntry = (DirectoryEntry*)AllocMem(MAX_WAD_SELECTIONS * sizeof(DirectoryEntry), MEMTYPE_TRACKSIZE);
+		de = wadsDirectoryEntry;
+
+		while (ReadDirectory(dir, de) >= 0)
+		{
+			if (de->de_Type != FILE_TYPE_DIRECTORY) {
+				char *filename = de->de_FileName;
+
+				if (hasWadExtension(filename)) {
+					static char fullPath[32];
+					getWadFullPath(fullPath, filename);
+					if (isPwad(fullPath)) {
+						wadsSelection[entriesNum+1] = filename;
+						++de;
+						++entriesNum;
+					}
+				}
+			}
+		}
+		CloseDirectory(dir);
+	}
+
+    mmItems[MMOPT_MODS].num_values = entriesNum + 1;
 }
 
 void startModMenu()
 {
     initFonts();
+
+    getWadsDirectory();
 
 	optGraphics->frameLimit = FRAME_LIMIT_VSYNC;
 
@@ -367,7 +437,7 @@ void startModMenu()
         controlModMenu();
 		renderModMenu();
 
-		waitMs(125);
+		waitMs(100);
     } while(!exit);
 
     enableNewSkies = getBoolFromValue(&mmItems[MMOPT_SKIES]);
@@ -376,8 +446,16 @@ void startModMenu()
 	maxVisplanes = getIntFromValue(&mmItems[MMOPT_MAXVIS]);
 	wadSelected = getStringFromValue(&mmItems[MMOPT_MODS]);
 
+	resetMapLumpData();
+	if (wadSelected != NULL) {
+		getWadFullPath(wadSelectedFullPath, wadSelected);
+		wadSelected = wadSelectedFullPath;
+		loadSelectedWadLumpInfo(wadSelected);
+	}
+
 	FreeMem(fontsBmp, -1);
 	FreeMem(fontsMap, -1);
+	if (wadsDirectoryEntry) FreeMem(wadsDirectoryEntry, -1);
 
 	fadeOutScanlineEffect();
 }
