@@ -58,7 +58,7 @@ void P_SpawnLightFlash (sector_t *sector)
 {
 	lightflash_t *flash;
 
-	sector->special = 0;	/* Nothing special about it during gameplay */
+	sector->special &= ~SEC_SPEC_ORIG_BITS;	/* Nothing special about it during gameplay */
 
 	flash = (lightflash_t *)AddThinker(T_LightFlash,sizeof(lightflash_t));
 	flash->sector = sector;			/* Sector to affect */
@@ -110,7 +110,7 @@ void P_SpawnStrobeFlash(sector_t *sector,Word fastOrSlow,Boolean inSync)
 	if (flash->minlight == flash->maxlight) {	/* No differance in light? */
 		flash->minlight = 0;		/* Pitch black then */
 	}
-	sector->special = 0;	/* Nothing special about it during gameplay */
+	sector->special &= ~SEC_SPEC_ORIG_BITS;	/* Nothing special about it during gameplay */
 
 	if (!inSync) {
 		flash->count = GetRandom(7)+1;	/* Start at a random time */
@@ -262,5 +262,5 @@ void P_SpawnGlowingLight(sector_t *sector)
 	g->minlight = P_FindMinSurroundingLight(sector,sector->lightlevel);
 	g->maxlight = sector->lightlevel;
 	g->direction = -1;		/* Darken */
-	sector->special = 0;	/* Nothing special here */
+	sector->special &= ~SEC_SPEC_ORIG_BITS;	/* Nothing special here */
 }

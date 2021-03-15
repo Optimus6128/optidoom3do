@@ -574,10 +574,9 @@ void PlayerInSpecialSector(player_t *player,sector_t *sector)
 {
 	Word Damage;
 	const Word secSpecialOrig = sector->special & SEC_SPEC_ORIG_BITS;
-	const Word secSpecialExtra = sector->special & SEC_SPEC_EXTRA_BITS;	// 3 high bits of low byte
 
 	const int change = 16;
-	if (secSpecialExtra & SEC_SPEC_DISTORT) {
+	if (sector->special & SEC_SPEC_DISTORT) {
 		alterDistortMagnitude(change);
 	} else {
 		alterDistortMagnitude(-change);

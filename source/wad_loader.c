@@ -1,13 +1,19 @@
 #include "Doom.h"
 #include "string.h"
+#include "stdio.h"
 
 #include "wad_loader.h"
+#include "tools.h"
 
 #include "filestream.h"
 #include "filestreamfunctions.h"
 
 #define MAX_MAPS_NUM 32
 #define MAX_BLOCKMAP_SIZE 65536
+
+
+static bool relaxedWADloading = true;	// temporary variable to autocorrect incompatible WAD rules, like DOOM PC texture IDs (which I'll try to map to closest 3DO), ExMx instead MAPxx, etc.
+										// the idea is that you could throw a Doom1 or even Doom2 WAD with PC without cleaning it first in Doom Builder (changing wall/sector textures to 3DO ones)
 
 const char* mapLumpNames[ML_TOTAL] = {
 	"THINGS", 
@@ -25,6 +31,19 @@ const char* mapLumpNames[ML_TOTAL] = {
 #define TEXTURE_NAMES_NUM 74
 #define FLAT_NAMES_NUM 43
 
+#define MISSING_TEX_REPLACE 28
+#define MISSING_FLAT_REPLACE 1
+
+static int mapExMxToMAPxx[3][9] = {	1,2,3,4,5,6,7,8,24,
+									9,10,11,12,13,14,15,0,23,
+									16,17,18,19,20,21,22,0,0};
+
+static int lumpEntrySizeIn[ML_TOTAL] = { 10, 14, 30, 4, 12, 4, 26, 28, -1, -1 };
+static int lumpEntrySizeOut[ML_TOTAL] = { 20, 28, 24, 8, 24, 8, 28, 56, -1, -1 };
+
+static MapLumpData mapLumpData[MAX_MAPS_NUM];
+
+
 static const char textureNames[TEXTURE_NAMES_NUM][9] = {
 	"BIGDOOR2", "BIGDOOR6", "BRNPOIS", "BROWNGRN", "BROWN1", "COMPSPAN", "COMPTALL", "CRATE1", "CRATELIT", "CRATINY", "DOOR1", "DOOR3", "DOORBLU",
 	"DOORRED", "DOORSTOP", "DOORTRAK", "DOORYEL", "EXITDOOR", "EXITSIGN", "GRAY5", "GSTSATYR", "LITE5", "MARBFAC3", "METAL", "METAL1", "NUKE24",
@@ -41,10 +60,63 @@ static const char flatNames[FLAT_NAMES_NUM][9] = {
 	"GRASS", "ROCKS"
 };
 
-static int lumpEntrySizeIn[ML_TOTAL] = { 10, 14, 30, 4, 12, 4, 26, 28, -1, 1 };
-static int lumpEntrySizeOut[ML_TOTAL] = { 20, 28, 24, 8, 24, 8, 28, 56, -1, 2 };
+int additionalTexturesNum;
+int additionalFlatsNum;
 
-static MapLumpData mapLumpData[MAX_MAPS_NUM];
+bool hasLoadedAdditionalTextureIndexMaps = false;
+bool hasLoadedAdditionalFlatIndexMaps = false;
+
+char **textureNamesAdditional;
+int *textureNamesAdditionalIndexMap;
+char **flatNamesAdditional;
+int *flatNamesAdditionalIndexMap;
+
+char *PCto3DOtextureIndexMapFilepath = "data/maptex.bin";
+char *PCto3DOflatIndexMapFilepath = "data/mapflat.bin";
+
+static void readPCto3DOresourceIndexMaps(char *filepath, char ***names, int **indexMaps, int *num)
+{
+	int i, count;
+
+	Stream *CDstream;
+	CDstream = OpenDiskStream(filepath, 0);
+
+	if (CDstream!=NULL) {
+		ReadDiskStream(CDstream, (char*)&count, 4);
+		*num = count;
+
+		*indexMaps = (int*)AllocAPointer(sizeof(int) * count);
+		*names = (char**)AllocAPointer(sizeof(char*) * count);
+		
+		for (i=0; i<count; ++i) {
+			(*names)[i] = (char*)AllocAPointer(8);
+			ReadDiskStream(CDstream, (*names)[i], 8);
+			ReadDiskStream(CDstream, (char*)&(*indexMaps)[i], 4);
+		}
+		CloseDiskStream(CDstream);
+	}
+}
+
+void releasePCto3DOresourceIndexMaps()
+{
+	int i;
+	if (hasLoadedAdditionalTextureIndexMaps) {
+		for (i=0; i<additionalTexturesNum; ++i) {
+			DeallocAPointer(textureNamesAdditional[i]);
+		}
+		DeallocAPointer(textureNamesAdditional);
+		DeallocAPointer(textureNamesAdditionalIndexMap);
+		hasLoadedAdditionalTextureIndexMaps = false;
+	}
+	if (hasLoadedAdditionalFlatIndexMaps) {
+		for (i=0; i<additionalFlatsNum; ++i) {
+			DeallocAPointer(flatNamesAdditional[i]);
+		}
+		DeallocAPointer(flatNamesAdditional);
+		DeallocAPointer(flatNamesAdditionalIndexMap);
+		hasLoadedAdditionalFlatIndexMaps = false;
+	}
+}
 
 
 static int getNumberOfLumpElements(LumpData *ld, int lumpId)
@@ -52,30 +124,47 @@ static int getNumberOfLumpElements(LumpData *ld, int lumpId)
 	return ld->info.size / lumpEntrySizeIn[lumpId];
 }
 
-static char *getUpperCaseStr8(const char *name)
+static int getTextureIdIfMissing(const char *texName)
 {
-	static char upperStr[8];
-	int i;
-
-	for (i=0; i<8; ++i) {
-		char c = name[i];
-		if (c >= 'a' && c <= 'z') {
-			c -= 32;
+	int i = 0;
+	if (relaxedWADloading) {
+		if (!hasLoadedAdditionalTextureIndexMaps) {
+			readPCto3DOresourceIndexMaps(PCto3DOtextureIndexMapFilepath, &textureNamesAdditional, &textureNamesAdditionalIndexMap, &additionalTexturesNum);
+			hasLoadedAdditionalTextureIndexMaps = true;
 		}
-		upperStr[i] = c;
+		while(strncmp(texName, textureNamesAdditional[i], 8) != 0) {
+			if (++i == additionalTexturesNum) return MISSING_TEX_REPLACE;
+		};
+		return textureNamesAdditionalIndexMap[i];
 	}
-	return upperStr;
+	return -1;
+}
+
+static int getFlatIdIfMissing(const char *texName)
+{
+	int i = 0;
+	if (relaxedWADloading) {
+		if (!hasLoadedAdditionalFlatIndexMaps) {
+			readPCto3DOresourceIndexMaps(PCto3DOflatIndexMapFilepath, &flatNamesAdditional, &flatNamesAdditionalIndexMap, &additionalFlatsNum);
+			hasLoadedAdditionalFlatIndexMaps = true;
+		}
+		while(strncmp(texName, flatNamesAdditional[i], 8) != 0) {
+			if (++i == additionalFlatsNum) return MISSING_FLAT_REPLACE;
+		};
+		return flatNamesAdditionalIndexMap[i];
+	}
+	return -1;
 }
 
 static int getTextureIdFromName(const char *texName)
 {
 	int i = 0;
-	const char *texNameUpper = getUpperCaseStr8(texName);
+	const char *texNameUpper = getUpperCaseStr(texName, 8);
 
 	if (texNameUpper[0] == '-') return 58;	// could be -1 but right now it maps the ASH_01 texture (in the created lumps when using Versus tools)
 
 	while(strncmp(texNameUpper, textureNames[i], 8) != 0) {
-		if (++i == TEXTURE_NAMES_NUM) return -1;
+		if (++i == TEXTURE_NAMES_NUM) return getTextureIdIfMissing(texNameUpper);
 	};
 	return i;
 }
@@ -83,23 +172,20 @@ static int getTextureIdFromName(const char *texName)
 static int getFlatIdFromName(const char *flatName)
 {
 	int i = 0;
-	const char *flatNameUpper = getUpperCaseStr8(flatName);
+	const char *flatNameUpper = getUpperCaseStr(flatName, 8);
 
 	if (strncmp(flatNameUpper, "F_SKY1", 8) == 0) return -1;	// ID for Sky ceiling maps to -1
 
 	while(strncmp(flatNameUpper, flatNames[i], 8) != 0) {
-		if (++i == FLAT_NAMES_NUM) return -1;
+		if (++i == FLAT_NAMES_NUM) return getFlatIdIfMissing(flatNameUpper);
 	};
+
+	// in case of using animated textures, map to last one else they don't animate in 3DO
+	if (IN_RANGE(i,4,5)) i = 6;		// NUKAGE12to3
+	if (IN_RANGE(i,33,35)) i =36;	// FWATER123to4
+	if (IN_RANGE(i,37,39)) i = 40;	// LAVA123to4
+
 	return i;
-}
-
-static Word readDiskStreamEndianSwap32(Stream *strm)
-{
-	Word value;
-
-	ReadDiskStream(strm, (char*)&value, 4);
-
-	return READ_ENDIAN_32(value);
 }
 
 static uint32 readEndianShortConvert(uint16 value, int conversion)
@@ -128,19 +214,39 @@ static uint32 readEndianShortConvert(uint16 value, int conversion)
 	}
 }
 
-static int getMapNumberString(const char *lumpName)
+static void convertMapIdFromExMx(char *mapId, int episodeNum, int mapNum)
+{
+	int newMapNum = 0;
+	if (IN_RANGE(episodeNum,1,3) && IN_RANGE(mapNum,1,9)) {
+		newMapNum = mapExMxToMAPxx[episodeNum-1][mapNum-1];
+	}
+	if (newMapNum != 0) {
+		sprintf(mapId, "MAP%02d", newMapNum);
+	}
+}
+
+static int getMapNumberString(char *lumpName)
 {
 	int i;
+	
+	if (relaxedWADloading && lumpName[0]=='E' && lumpName[2]=='M') {
+		const char c1 = lumpName[1];
+		const char c3 = lumpName[3];
+
+		if (isCharNumeric(c1) && isCharNumeric(c3)) {
+			convertMapIdFromExMx(lumpName, c1-48, c3-48);
+		}
+	}
 
 	// Starts with MAP
 	if (strncmp(lumpName, "MAP", 3) != 0) return 0;
 
 	// Next two chars are numeric?
 	for (i=3; i<5; ++i) {
-		if (!(lumpName[i] >= '0' && lumpName[i] <= '9')) return 0;
+		if (!isCharNumeric(lumpName[i])) return 0;
 	}
 
-	return atoi(&lumpName[3]);
+	return 10*(lumpName[3] - 48) + lumpName[4] - 48;
 }
 
 static int getLumpIdFromName(const char *lumpName)
@@ -516,7 +622,7 @@ bool isPwad(char *filepath)
 
 		ReadDiskStream(CDstreamWad, wadId, 4);
 		CloseDiskStream(CDstreamWad);
-		hasPwadId = strstr(wadId, "PWAD");
+		hasPwadId = strstr(wadId, "WAD");
 		return (hasPwadId != NULL);
 	}
 	return false;
@@ -530,3 +636,25 @@ void resetMapLumpData()
 		mapLumpData[i].lumpsNum = 0;
 	}
 }
+
+// NOTES
+
+// I'd like to do now
+// ==================
+// 4 directional scrolling for floors(2bits) and walls(extra)
+
+// Things that could need more work
+// ================================
+// Investigate which things/line/sector effects exist and not in Doombuilder compared to 3DO Doom. Could you implement some of them in the future? Or simply map them to others?
+
+// Fix later
+// =========
+// Investigate why the BIGDOOR2 resource is missing in DoomBuilder, also add it if so
+// Optimize more the blockmap creation with search for already existing blocklists of lines.
+
+// Also later
+// ==========
+// Will need option to enable/disable arbitrary mapping of missing things to closest existing resources (maybe enabled in modmenu)
+// Generate texture denoting missing resources?
+// Relaxing loading options on MOD Menu: 0=totally Off, 1=unknown textures to special missing texture, 2=unknown textures to shawn (needed?), 3=map textures from Doom 1/2 PC, 4=also map things/line triggers/etc to ones working
+// 0, (1-2), (3-4) missing things could be mapped to e.g. the health potion (or a new missing thing)

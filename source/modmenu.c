@@ -11,15 +11,16 @@
 #include "directoryfunctions.h"
 
 #include "wad_loader.h"
+#include "tools.h"
 
 #define FONT_WIDTH 8
 #define FONT_HEIGHT 8
 #define FONT_SIZE (FONT_WIDTH * FONT_HEIGHT)
 
 #define MAX_STRING_LENGTH 20
-#define NUM_FONTS 59
+#define NUM_FONTS 60
 
-static unsigned char bitfonts[] = {0,0,0,0,0,0,0,0,
+static unsigned char bitfonts[8 * NUM_FONTS] = {0,0,0,0,0,0,0,0,
 4,12,8,24,16,0,32,0,
 10,18,20,0,0,0,0,0,
 0,20,126,40,252,80,0,0,
@@ -80,7 +81,8 @@ static unsigned char bitfonts[] = {0,0,0,0,0,0,0,0,
 33,97,67,66,86,84,40,0,
 67,36,24,28,36,66,66,0,
 34,18,22,12,12,8,24,0,
-31,2,4,4,8,24,62,0};
+31,2,4,4,8,24,62,0,
+0,0,0,0,0,0,0,126};
 
 
 enum {
@@ -110,14 +112,14 @@ bool skipLogos = true;
 
 #define NUM_OFF_ON_SELECTIONS 2
 #define NUM_SOUND_FX_SELECTIONS 2
-#define NUM_VISPLANE_SELECTIONS 5
+#define NUM_VISPLANE_SELECTIONS 9
 
 #define MAX_WAD_SELECTIONS 256
 
 static char *wadsSelection[MAX_WAD_SELECTIONS];
 static char *offOnSelection[NUM_OFF_ON_SELECTIONS] = { "OFF", "ON" };
 static char *soundFxSelection[NUM_SOUND_FX_SELECTIONS] = { "ORIGINAL", "PSX" };
-static int maxVisplanesSelection[NUM_VISPLANE_SELECTIONS] = { 32, 40, 48, 56, 64 };
+static int maxVisplanesSelection[NUM_VISPLANE_SELECTIONS] = { 32, 40, 48, 56, 64, 72, 80, 88, 96 };
 
 static char *wadsFolder = "wads";
 static DirectoryEntry *wadsDirectoryEntry;
@@ -139,7 +141,7 @@ static ModMenuItem mmItems[MMOPT_NUM] = {
 	{ "MODS:", wadsSelection, 1, TYPE_STRING, 0 },
 	{ "NEW SKIES:", offOnSelection, NUM_OFF_ON_SELECTIONS, TYPE_STRING, 0 },
 	{ "SOUND FX:", soundFxSelection, NUM_SOUND_FX_SELECTIONS, TYPE_STRING, 0 },
-	{ "MAX VISPLANES:", maxVisplanesSelection, NUM_VISPLANE_SELECTIONS, TYPE_INT, 2 },
+	{ "MAX VISPLANES:", maxVisplanesSelection, NUM_VISPLANE_SELECTIONS, TYPE_INT, 0 },
 	{ "SKIP LOGOS:", offOnSelection, NUM_OFF_ON_SELECTIONS, TYPE_STRING, 1 }
 };
 
@@ -176,7 +178,7 @@ static void initFonts()
 	fontsBmp = (uchar*)AllocMem(NUM_FONTS * FONT_SIZE, MEMTYPE_TRACKSIZE);
 	fontsMap = (uchar*)AllocMem(256, MEMTYPE_TRACKSIZE);
 
-	for (n=0; n<59; n++) {
+	for (n=0; n<NUM_FONTS; n++) {
 		for (y=0; y<8; y++) {
 			int c = bitfonts[i++];
 			for (x=0; x<8; x++) {
@@ -193,6 +195,8 @@ static void initFonts()
         else
             if (c>96 && c<123) c-=64;
         else
+			if (c==95) c = 59;
+		else
             c = 255;
 
         fontsMap[i] = c;
@@ -379,14 +383,12 @@ static void getWadFullPath(char *fullPathDst, const char *filename)
 	sprintf(fullPathDst, "%s/%s", wadsFolder, filename);
 }
 
-
-
 static bool hasWadExtension(const char *filename)
 {
-	char *hasExtension = NULL;
-	hasExtension = strstr(filename, ".wad");
-	if (!hasExtension) hasExtension = strstr(filename, ".WAD");
-	return (hasExtension != NULL);
+	const char *filenameUpper = getUpperCaseStr(filename, 256);
+	const char *extensionStr = strstr(filenameUpper, ".WAD");
+	bool hasExtension = (extensionStr != NULL) && (extensionStr[4] == 0);
+	return hasExtension;
 }
 
 static void getWadsDirectory()

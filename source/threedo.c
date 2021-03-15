@@ -680,6 +680,56 @@ void DrawPlaque(Word RezNum)
 	SetMyScreen(WorkPage);		/* Reset to normal */
 }
 
+static void drawLoadingBarPlaque(int pos, int max)
+{
+	const int width = 160;
+	const int height = 16;
+	const int yPos = 156;
+	const int wBlock = width / (max + 1);
+	int i;
+
+	// Also draw plaque
+	DrawPlaque(rLOADING);
+
+	DrawARect(160 - width/2 - 1, yPos - height/2, width, height, MakeRGB15(7,7,7));
+
+	for (i=0; i<=pos; ++i) {
+		DrawARect(160 - width/2 + 1 + i*wBlock, yPos - height/2 + 1, wBlock-1, height-2, MakeRGB15(24,28,31));
+	}
+	
+	FlushCCBs();
+
+	updateScreenAndWait();
+}
+
+void drawDebugValue(int value)
+{
+	int i;
+	static int yp = 0;
+
+	for (i=0; i<60; ++i) {
+		PrintNumber(0, yp, value, 0);
+		FlushCCBs();
+		updateScreenAndWait();
+	}
+	yp+=16;
+	if (yp==240) yp = 0;
+}
+
+void drawLoadingBar(int pos, int max, const char *text)
+{
+	int i;
+
+	for (i=0; i<30; ++i) {
+		DrawARect(64,160, 232,208, MakeRGB15(3,7,7));
+		PrintBigFont(80, 168, (Byte*)text);
+		PrintNumber(80, 184, GetTotalFreeMem(), 0);
+		drawLoadingBarPlaque(pos, max);
+	}
+}
+
+
+
 /**********************************
 
 	Perform a "Doom" like screen wipe

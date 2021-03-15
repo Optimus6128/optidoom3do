@@ -7,9 +7,8 @@
 
 
 #define LIGHTSCALESHIFT 3
-#define SEC_SPEC_RENDER_BITS 0xFF20
+#define SEC_SPEC_RENDER_BITS 0xFC20
 #define SEC_SPEC_ORIG_BITS 0x1F
-#define SEC_SPEC_EXTRA_BITS 0xE0
 
 
 typedef struct MyCCB {		/* Clone of the CCB Block from the 3DO includes */
@@ -50,7 +49,8 @@ typedef struct {
 
 typedef enum {
 	SEC_SPEC_FOG = 32,
-	SEC_SPEC_DISTORT = 64
+	SEC_SPEC_DISTORT = 64,
+	SEC_SPEC_WATER = 128
 } viswallspecial_e;
 
 // In phase6.c
@@ -112,6 +112,8 @@ extern Word WorkPage;
 void SetMyScreen(Word Page);
 Byte *getVideoPointer(Word Page);
 LongWord getVBLtic(void);
+void drawLoadingBar(int pos, int max, const char *text);
+void drawDebugValue(int value);
 void printDbg(int value);
 void updateScreenAndWait(void);
 void DisableHardwareClippingWithoutFlush(void);

@@ -73,19 +73,23 @@ typedef	struct {		/* Map sector loaded from disk */
 
 static Word extractColorFromSpecial(Word special)
 {
-	// 3 R * 8192
-	// 3 G * 1024
-	// 2 B * 256
+	// FOG = 32
+	// DIST = 64
+	// WATER = 128
+	// 256 and 512 free. Two more effects or a selector for 4 effects?
 
-	//RRRGGGBB xDF11111
-	//11111111 00100000 (SEC_SPEC_RENDER_BITS = 0xFF20: bits relevant to rendering for splitting visplanes)
+	// 2 R * 16384
+	// 2 G * 4096
+	// 2 B * 1024
 
-	static int col2[4] = {0, 85, 170, 255};
-	static int col3[8] = {0, 36, 72, 108, 144, 180, 216, 255};
+	//RRGGBBxx xDF11111
+	//11111100 00100000 (SEC_SPEC_RENDER_BITS = 0xFC20: bits relevant to rendering for splitting visplanes)
 
-	const int r = col3[(special >> 13) & 7];
-	const int g = col3[(special >> 10) & 7];
-	const int b = col2[(special >> 8) & 3];
+	static int col[4] = {0, 85, 170, 255};
+	
+	const int r = col[(special >> 14) & 3];
+	const int g = col[(special >> 12) & 3];
+	const int b = col[(special >> 10) & 3];
 
 	return (r << 16) | (g << 8) | b;
 }
@@ -378,7 +382,7 @@ static void LoadSegs(Word lumpStart, Word lumpId)
 	mapseg_t *ml;
 	seg_t *li;
 	Word numsegs;
-
+	
 	ml = (mapseg_t *)LoadALump(lumpStart, lumpId);		/* Load in the map data */
 	numsegs = ((Word*)ml)[0];		/* Get the count */
 	i = numsegs*sizeof(seg_t);		/* Get the memory size */
@@ -796,6 +800,9 @@ static void PreloadWalls(void)
 
 void SetupLevel(Word map)
 {
+	const int barMax = 11;
+	int barCurrent = 0;
+
 	Word lumpnum;
 	player_t *p;
 
@@ -820,21 +827,36 @@ void SetupLevel(Word map)
 
 /* Note: most of this ordering is important */
 
+drawLoadingBar(barCurrent++, barMax, "VERTEXES");
 	vertexes = (vertex_t *)LoadALump(lumpnum, ML_VERTEXES);	/* Load the map vertexes */
+drawLoadingBar(barCurrent++, barMax, "SECTORS");
 	LoadSectors(lumpnum, ML_SECTORS);	/* Needs nothing */
+drawLoadingBar(barCurrent++, barMax, "SIDEDEFS");
 	LoadSideDefs(lumpnum, ML_SIDEDEFS);	/* Needs sectors */
+
+	releasePCto3DOresourceIndexMaps();
+
+drawLoadingBar(barCurrent++, barMax, "LINEDEFS");
 	LoadLineDefs(lumpnum, ML_LINEDEFS);	/* Needs vertexes,sectors and sides */
+drawLoadingBar(barCurrent++, barMax, "BLOCKMAP");
 	LoadBlockMap(lumpnum, ML_BLOCKMAP);	/* Needs lines */
+drawLoadingBar(barCurrent++, barMax, "SEGS");
 	LoadSegs(lumpnum, ML_SEGS);		/* Needs vertexes,lines,sides */
+drawLoadingBar(barCurrent++, barMax, "SSECTORS");
 	LoadSubsectors(lumpnum, ML_SSECTORS);	/* Needs sectors and segs and sides */
+drawLoadingBar(barCurrent++, barMax, "NODES");
 	LoadNodes(lumpnum, ML_NODES);		/* Needs subsectors */
 	KillALump(lumpnum, ML_VERTEXES);		/* Release the map vertexes */
+drawLoadingBar(barCurrent++, barMax, "REJECT");
 	RejectMatrix = (Byte *)LoadALump(lumpnum, ML_REJECT);	/* Get the reject matrix */
 	GroupLines();			/* Final last minute data arranging */
 	deathmatch_p = deathmatchstarts;
+drawLoadingBar(barCurrent++, barMax, "THINGS");
 	LoadThings(lumpnum, ML_THINGS);	/* Spawn all the items */
 	SpawnSpecials();		/* Spawn all sector specials */
+drawLoadingBar(barCurrent++, barMax, "PRELOAD WALLS");
 	PreloadWalls();			/* Load all the wall textures and sprites */
+drawLoadingBar(barCurrent++, barMax, "END");
 
 /* if deathmatch, randomly spawn the active players */
 
