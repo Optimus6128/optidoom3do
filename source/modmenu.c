@@ -11,13 +11,14 @@
 #include "directoryfunctions.h"
 
 #include "wad_loader.h"
+#include "input.h"
 #include "tools.h"
 
 #define FONT_WIDTH 8
 #define FONT_HEIGHT 8
 #define FONT_SIZE (FONT_WIDTH * FONT_HEIGHT)
 
-#define MAX_STRING_LENGTH 20
+#define MAX_STRING_LENGTH 41
 #define NUM_FONTS 60
 
 static unsigned char bitfonts[8 * NUM_FONTS] = {0,0,0,0,0,0,0,0,
@@ -104,19 +105,21 @@ static uchar *fontsBmp;
 static uchar *fontsMap;
 static uint16 fontsPal[2];
 
-
-bool loadPsxSamples = false;
-bool enableNewSkies = false;
-bool skipLogos = true;
+bool loadPsxSamples;
+bool enableNewSkies;
+bool skipLogos;
+bool debugMode;
 
 
 #define NUM_OFF_ON_SELECTIONS 2
+#define NUM_LOADING_FIX 3
 #define NUM_SOUND_FX_SELECTIONS 2
 #define NUM_VISPLANE_SELECTIONS 9
 
 #define MAX_WAD_SELECTIONS 256
 
 static char *wadsSelection[MAX_WAD_SELECTIONS];
+static char *loadingFixSelection[NUM_LOADING_FIX] = { "OFF", "ON", "RELAXED" };
 static char *offOnSelection[NUM_OFF_ON_SELECTIONS] = { "OFF", "ON" };
 static char *soundFxSelection[NUM_SOUND_FX_SELECTIONS] = { "ORIGINAL", "PSX" };
 static int maxVisplanesSelection[NUM_VISPLANE_SELECTIONS] = { 32, 40, 48, 56, 64, 72, 80, 88, 96 };
@@ -130,30 +133,43 @@ char *wadSelected = NULL;
 
 enum {
 	MMOPT_MODS,
+	MMOPT_LOADING_TYPE,
 	MMOPT_SKIES,
 	MMOPT_SOUNDFX,
 	MMOPT_MAXVIS,
 	MMOPT_SKIPLOGOS,
+	MMOPT_DEBUG_MODE,
 	MMOPT_NUM
 };
 
-static ModMenuItem mmItems[MMOPT_NUM] = {
+static ModMenuItem mmItems[MMOPT_NUM+1] = {
 	{ "MODS:", wadsSelection, 1, TYPE_STRING, 0 },
+	{ "LOADING FIX:", loadingFixSelection, NUM_LOADING_FIX, TYPE_STRING, 1 },
 	{ "NEW SKIES:", offOnSelection, NUM_OFF_ON_SELECTIONS, TYPE_STRING, 0 },
 	{ "SOUND FX:", soundFxSelection, NUM_SOUND_FX_SELECTIONS, TYPE_STRING, 0 },
 	{ "MAX VISPLANES:", maxVisplanesSelection, NUM_VISPLANE_SELECTIONS, TYPE_INT, 0 },
-	{ "SKIP LOGOS:", offOnSelection, NUM_OFF_ON_SELECTIONS, TYPE_STRING, 1 }
+	{ "SKIP LOGOS:", offOnSelection, NUM_OFF_ON_SELECTIONS, TYPE_STRING, 1 },
+	{ "DEBUG MODE:", offOnSelection, NUM_OFF_ON_SELECTIONS, TYPE_STRING, 0 },
+	NULL
 };
+
+static char *menuItemScrollText[MMOPT_NUM] = {
+	"Select and load new maps located in 'wads' folder. Doom 1 and 2 maps from PC can also be loaded (with issues) depending on the Loading Fix option\0",
+	"What actions to take if a WAD has issues.   OFF: Don't load ExMx map ids, don't replace unknown textures.   ON: Replace missing textures with one default texture, map ExMx ids to MAPxx   RELAXED: map closest Doom 1/2 texture IDs to 3DO resources\0",
+	"Enable new skies (gradients, fire sky). Disable to save in memory.\0",
+	"Chose original or PSX sound effects. PSX sound effects sound better but  will steal more memory.\0",
+	"Max Visplanes. Lower is better for memory. Higher is more suitable for high detailed maps, although chosing low visplanes will only create visual artifacts in the distance if map is too complex. Most original Doom 3DO maps don't even reach 32\0",
+	"Skip those company logos that make start slower and even take some memory strangely enough\0",
+	"Debug Mode ON = additional info displayed (lump name and remaining memory) during WAD loading, additional info like visplanes num when enabling Stats (instead of just FPS/Memory)\0"
+};
+
+static int scrollChar = 0;
+static int scrollOffX = 320;
+static char* scrollText;
 
 int cursorIndexY = 0;
 bool exit = false;
 
-
-static void waitMs(int ms)
-{
-	int t = getTicks();
-	while (getTicks() - t < ms) {};
-}
 
 static bool getBoolFromValue(ModMenuItem *mmItem)
 {
@@ -264,9 +280,9 @@ static void fadeOutScanlineEffect()
 {
 	int y, j;
 	for (j=0; j<SCREENS; ++j) {
-		for (y=0; y<200; y+=4) {
-			DrawARect(0, y, 320, 2, 0); FlushCCBs();
-			DrawARect(0, 198 - y, 320, 2, 0); FlushCCBs();
+		for (y=0; y<200; y+=8) {
+			DrawARect(0, y, 320, 8, 0); FlushCCBs();
+			DrawARect(0, 192 - y, 320, 8, 0); FlushCCBs();
 			updateScreenAndWait();
 		}
 	}
@@ -293,38 +309,51 @@ static int getStringSize(char *str)
 	return count;
 }
 
+static void resetScroll()
+{
+	scrollText = menuItemScrollText[cursorIndexY];
+	scrollChar = 0;
+	scrollOffX = 320;
+}
+
 static void controlModMenu()
 {
-	Word buttons = ReadJoyButtons(0);
-
-	if (buttons & PadUp) {
-		if (cursorIndexY > 0) --cursorIndexY;
+	if (isJoyButtonPressedOnce(JOY_BUTTON_UP)) {
+		if (cursorIndexY > 0) {
+			--cursorIndexY;
+			resetScroll();
+		}
 	}
 
-	if (buttons & PadDown) {
-		if (cursorIndexY < MMOPT_NUM) ++cursorIndexY;
+	if (isJoyButtonPressedOnce(JOY_BUTTON_DOWN)) {
+		if (cursorIndexY < MMOPT_NUM) {
+			++cursorIndexY;
+			resetScroll();
+		}
 	}
 
-	if ((buttons & PadLeft) | (buttons & PadRight)) {
+	if (isJoyButtonPressedOnce(JOY_BUTTON_LEFT) | isJoyButtonPressedOnce(JOY_BUTTON_RIGHT)) {
 		int i;
 		for (i=0; i<MMOPT_NUM; ++i) {
 			if (i==cursorIndexY) {
-				alterMenuOption(i, buttons);
+				alterMenuOption(i, ReadJoyButtons(0));
 			}
 		}
 	}
 
 	if (cursorIndexY==MMOPT_NUM) {
-		if (buttons & PadA) exit = true;
+		if (isJoyButtonPressedOnce(JOY_BUTTON_A)) exit = true;
 	}
-	if (buttons & PadStart) exit = true;
+	if (isJoyButtonPressedOnce(JOY_BUTTON_START)) exit = true;
 }
 
 static void renderModMenu()
 {
-    const int menuXstart = 80;
-    const int menuYstart = 64;
-    const int cursorPosX = 64;
+    const int menuXstart = 72;
+    const int menuYstart = 48;
+    const int lastOptionOffset = 8;
+
+    int cursorPosX;
     int cursorPosY;
 
 	int i;
@@ -368,12 +397,32 @@ static void renderModMenu()
 	}
 
 	setFontColor(31,15,0);
-	drawText(menuXstart + 48, currentMenuY, "start!");
+	drawText(menuXstart + 56, currentMenuY+lastOptionOffset, "start!");
 
 	cursorPosY = menuYstart + cursorIndexY * 16;
-
+	if (cursorIndexY==MMOPT_NUM) {
+		cursorPosX = 112;
+		cursorPosY += lastOptionOffset;
+	} else {
+		cursorPosX = 56;
+	}
 	setFontColor(31,31,15);
 	drawText(cursorPosX, cursorPosY, "*");
+
+	setFontColor(31,31,15);
+	if (scrollText) {
+		if (scrollText[scrollChar] == 0) {
+			scrollOffX = 320;
+			scrollChar = 0;
+		} else {
+			drawText(scrollOffX, 188, &scrollText[scrollChar]);
+			scrollOffX-=2;
+			if (scrollOffX < -7) {
+				scrollOffX = 0;
+				scrollChar++;
+			}
+		}
+	}
 
 	updateScreenAndWait();
 }
@@ -429,25 +478,29 @@ static void getWadsDirectory()
 
 void startModMenu()
 {
+    initInput();
     initFonts();
 
     getWadsDirectory();
 
 	optGraphics->frameLimit = FRAME_LIMIT_VSYNC;
 
+	scrollText = menuItemScrollText[cursorIndexY];
+
     do {
+		updateInput();
         controlModMenu();
 		renderModMenu();
-
-		waitMs(100);
     } while(!exit);
 
     enableNewSkies = getBoolFromValue(&mmItems[MMOPT_SKIES]);
 	loadPsxSamples = getBoolFromValue(&mmItems[MMOPT_SOUNDFX]);
 	skipLogos = getBoolFromValue(&mmItems[MMOPT_SKIPLOGOS]);
 	maxVisplanes = getIntFromValue(&mmItems[MMOPT_MAXVIS]);
+	loadingFix = mmItems[MMOPT_LOADING_TYPE].selection;
+	debugMode = getBoolFromValue(&mmItems[MMOPT_DEBUG_MODE]);
+	
 	wadSelected = getStringFromValue(&mmItems[MMOPT_MODS]);
-
 	resetMapLumpData();
 	if (wadSelected != NULL) {
 		getWadFullPath(wadSelectedFullPath, wadSelected);

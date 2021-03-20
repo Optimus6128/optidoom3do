@@ -355,12 +355,15 @@ void setPrimaryMenuOptions() // Set menu options only once at start up
 
 void initMenuOptions()
 {
+	int maxStatOptions = STATS_OPTIONS_NUM;
+	if (!debugMode) --maxStatOptions;
+
     setMenuItem(mi_soundVolume, 160, 40, "Sound volume", true, muiStyle_slider, &SfxVolume, AUDIOSLIDERS_OPTIONS_NUM);
     setMenuItem(mi_musicVolume, 160, 100, "Music volume", true, muiStyle_slider, &MusicVolume, AUDIOSLIDERS_OPTIONS_NUM);
     setItemPageRange(mi_soundVolume, mi_musicVolume, page_audio);
 
     setMenuItem(mi_controls, 160, 40, "Controls", true, muiStyle_special, &ControlType, CONTROLS_OPTIONS_NUM);
-    setMenuItemWithOptionNames(mi_stats, 88, 120, "Stats", false, muiStyle_text, &optOther->stats, STATS_OPTIONS_NUM, statsOptionsStr);
+    setMenuItemWithOptionNames(mi_stats, 88, 120, "Stats", false, muiStyle_text, &optOther->stats, maxStatOptions, statsOptionsStr);
     setMenuItemLoopBehaviour(mi_controls, false);
     setItemPageRange(mi_controls, mi_stats, page_controls);
 

@@ -12,8 +12,7 @@
 #define MAX_BLOCKMAP_SIZE 65536
 
 
-static bool relaxedWADloading = true;	// temporary variable to autocorrect incompatible WAD rules, like DOOM PC texture IDs (which I'll try to map to closest 3DO), ExMx instead MAPxx, etc.
-										// the idea is that you could throw a Doom1 or even Doom2 WAD with PC without cleaning it first in Doom Builder (changing wall/sector textures to 3DO ones)
+int loadingFix;
 
 const char* mapLumpNames[ML_TOTAL] = {
 	"THINGS", 
@@ -127,7 +126,7 @@ static int getNumberOfLumpElements(LumpData *ld, int lumpId)
 static int getTextureIdIfMissing(const char *texName)
 {
 	int i = 0;
-	if (relaxedWADloading) {
+	if (loadingFix == LOADING_FIX_RELAXED) {
 		if (!hasLoadedAdditionalTextureIndexMaps) {
 			readPCto3DOresourceIndexMaps(PCto3DOtextureIndexMapFilepath, &textureNamesAdditional, &textureNamesAdditionalIndexMap, &additionalTexturesNum);
 			hasLoadedAdditionalTextureIndexMaps = true;
@@ -136,6 +135,8 @@ static int getTextureIdIfMissing(const char *texName)
 			if (++i == additionalTexturesNum) return MISSING_TEX_REPLACE;
 		};
 		return textureNamesAdditionalIndexMap[i];
+	} else if (loadingFix == LOADING_FIX_ON) {
+		return MISSING_TEX_REPLACE;
 	}
 	return -1;
 }
@@ -143,7 +144,7 @@ static int getTextureIdIfMissing(const char *texName)
 static int getFlatIdIfMissing(const char *texName)
 {
 	int i = 0;
-	if (relaxedWADloading) {
+	if (loadingFix == LOADING_FIX_RELAXED) {
 		if (!hasLoadedAdditionalFlatIndexMaps) {
 			readPCto3DOresourceIndexMaps(PCto3DOflatIndexMapFilepath, &flatNamesAdditional, &flatNamesAdditionalIndexMap, &additionalFlatsNum);
 			hasLoadedAdditionalFlatIndexMaps = true;
@@ -152,6 +153,8 @@ static int getFlatIdIfMissing(const char *texName)
 			if (++i == additionalFlatsNum) return MISSING_FLAT_REPLACE;
 		};
 		return flatNamesAdditionalIndexMap[i];
+	} else if (loadingFix == LOADING_FIX_ON) {
+		return MISSING_FLAT_REPLACE;
 	}
 	return -1;
 }
@@ -228,8 +231,8 @@ static void convertMapIdFromExMx(char *mapId, int episodeNum, int mapNum)
 static int getMapNumberString(char *lumpName)
 {
 	int i;
-	
-	if (relaxedWADloading && lumpName[0]=='E' && lumpName[2]=='M') {
+
+	if (loadingFix != LOADING_FIX_OFF && lumpName[0]=='E' && lumpName[2]=='M') {
 		const char c1 = lumpName[1];
 		const char c3 = lumpName[3];
 
@@ -649,12 +652,6 @@ void resetMapLumpData()
 
 // Fix later
 // =========
-// Investigate why the BIGDOOR2 resource is missing in DoomBuilder, also add it if so
 // Optimize more the blockmap creation with search for already existing blocklists of lines.
-
-// Also later
-// ==========
-// Will need option to enable/disable arbitrary mapping of missing things to closest existing resources (maybe enabled in modmenu)
+// Investigate why the BIGDOOR2 resource is missing in DoomBuilder, also add it if so
 // Generate texture denoting missing resources?
-// Relaxing loading options on MOD Menu: 0=totally Off, 1=unknown textures to special missing texture, 2=unknown textures to shawn (needed?), 3=map textures from Doom 1/2 PC, 4=also map things/line triggers/etc to ones working
-// 0, (1-2), (3-4) missing things could be mapped to e.g. the health potion (or a new missing thing)

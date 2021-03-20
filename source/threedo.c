@@ -567,7 +567,7 @@ static void updateMyFpsAndDebugPrint()
 		++nframe;
     }
     if (optOther->stats >= STATS_MEM) {
-		PrintNumber(0, 128, memLowHits, 0);
+		if (debugMode) PrintNumber(0, 128, memLowHits, 0);
 		PrintNumber(0, 144, GetTotalFreeMem(), 0);
     }
     if (optOther->stats >= STATS_ALL) {
@@ -721,9 +721,11 @@ void drawLoadingBar(int pos, int max, const char *text)
 	int i;
 
 	for (i=0; i<30; ++i) {
-		DrawARect(64,160, 232,208, MakeRGB15(3,7,7));
-		PrintBigFont(80, 168, (Byte*)text);
-		PrintNumber(80, 184, GetTotalFreeMem(), 0);
+		if (debugMode) {
+			DrawARect(64,160, 232,208, MakeRGB15(3,7,7));
+			PrintBigFont(80, 168, (Byte*)text);
+			PrintNumber(80, 184, GetTotalFreeMem(), 0);
+		}
 		drawLoadingBarPlaque(pos, max);
 	}
 }

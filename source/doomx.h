@@ -53,6 +53,13 @@ typedef enum {
 	SEC_SPEC_WATER = 128
 } viswallspecial_e;
 
+typedef enum {
+	LOADING_FIX_OFF,
+	LOADING_FIX_ON,
+	LOADING_FIX_RELAXED
+} loading_fix_t;
+
+
 // In phase6.c
 extern int *scaleArrayData;
 extern bool background_clear;
@@ -94,6 +101,11 @@ extern Word spriteLight;
 
 // In modmenu.c
 extern char *wadSelected;
+extern bool debugMode;
+
+
+// In wad_loader.c
+extern int loadingFix;
 
 // In rdata.c
 extern int screenScaleX;
