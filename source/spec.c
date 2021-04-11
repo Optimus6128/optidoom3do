@@ -307,8 +307,15 @@ void P_CrossSpecialLine(line_t *line,mobj_t *thing)
 		switch(line->special) {
 		default:	/* None of the above? */
 			return;	/* Exit */
+
+		case 125:	// W1 teleport (monsters only)
+			line->special = 0;
+		case 126:	// WR teleport (monsters only)
+			EV_Teleport(line,thing);
+			break;
+
 		case 39:	/* TELEPORT TRIGGER */
-		case 97:	/* TELEPORT RETRIGGER */
+	case 97:	/* TELEPORT RETRIGGER */
 		case 4:		/* RAISE DOOR */
 		case 10:	/* PLAT DOWN-WAIT-UP-STAY TRIGGER */
 		case 88:	/* PLAT DOWN-WAIT-UP-STAY RETRIGGER */
@@ -325,16 +332,22 @@ void P_CrossSpecialLine(line_t *line,mobj_t *thing)
 
 **********************************/
 
+// 99, 100, 105, 106, 107, 108 (misused for other in switch.c for skull color doors)
+// I will comment them out for now (could break regular maps)
+
 	switch (line->special) {
 	case 2:			/* Open Door */
+	case 109:
 		EV_DoDoor(line,open);
 		line->special = 0;
 		break;
 	case 3:			/* Close Door */
+	case 110:
 		EV_DoDoor(line,close);
 		line->special = 0;
 		break;
 	case 4:			/* Raise Door */
+	//case 108:
 		EV_DoDoor(line,normaldoor);
 		line->special = 0;
 		break;
@@ -347,10 +360,11 @@ void P_CrossSpecialLine(line_t *line,mobj_t *thing)
 		line->special = 0;
 		break;
 	case 8:			/* Build Stairs */
-		EV_BuildStairs(line);
+		EV_BuildStairs(line, 8, 2);
 		line->special = 0;
 		break;
 	case 10:		/* PlatDownWaitUp */
+	case 121:
 		EV_DoPlat(line,downWaitUpStay,0);
 		line->special = 0;
 		break;
@@ -375,10 +389,13 @@ void P_CrossSpecialLine(line_t *line,mobj_t *thing)
 		line->special = 0;
 		break;
 	case 22:		/* Raise floor to nearest height and change texture */
+	case 119:
+	case 130:
 		EV_DoPlat(line,raiseToNearestAndChange,0);
 		line->special = 0;
 		break;
 	case 25:		/* Ceiling Crush and Raise */
+	case 141:
 		EV_DoCeiling(line,crushAndRaise);
 		line->special = 0;
 		break;
@@ -444,8 +461,16 @@ void P_CrossSpecialLine(line_t *line,mobj_t *thing)
 		EV_DoFloor(line,raiseFloor24AndChange);
 		line->special = 0;
 		break;
+	/*case 100:	// Stairs raise by 16 (fast)
+		EV_BuildStairs(line, 16, 1);
+		line->special = 0;
+		break;*/
 	case 104:		/* Turn lights off in sector(tag) */
 		EV_TurnTagLightsOff(line);
+		line->special = 0;
+		break;
+	case 124:
+		G_SecretExitLevel();
 		line->special = 0;
 		break;
 
@@ -461,6 +486,7 @@ void P_CrossSpecialLine(line_t *line,mobj_t *thing)
 		EV_CeilingCrushStop(line);
 		break;
 	case 75:		/* Close Door */
+	//case 107:
 		EV_DoDoor(line,close);
 		break;
 	case 76:		/* Close Door 30 */
@@ -488,18 +514,21 @@ void P_CrossSpecialLine(line_t *line,mobj_t *thing)
 		EV_DoFloor(line,lowerAndChange);
 		break;
 	case 86:		/* Open Door */
+	//case 106:
 		EV_DoDoor(line,open);
 		break;
 	case 87:		/* Perpetual Platform Raise */
 		EV_DoPlat(line,perpetualRaise,0);
 		break;
 	case 88:		/* PlatDownWaitUp */
+	case 120:
 		EV_DoPlat(line,downWaitUpStay,0);
 		break;
 	case 89:		/* Platform Stop */
 		EV_StopPlat(line);
 		break;
 	case 90:		/* Raise Door */
+	//case 105:
 		EV_DoDoor(line,normaldoor);
 		break;
 	case 91:		/* Raise Floor */
@@ -515,6 +544,8 @@ void P_CrossSpecialLine(line_t *line,mobj_t *thing)
 		EV_DoFloor(line,raiseFloorCrush);
 		break;
 	case 95:		/* Raise floor to nearest height and change texture */
+	case 128:
+	case 129:
 		EV_DoPlat(line,raiseToNearestAndChange,0);
 		break;
 	case 96:		/* Raise floor to shortest texture height */
@@ -594,7 +625,8 @@ void PlayerInSpecialSector(player_t *player,sector_t *sector)
 		Damage = 5;
 		break;
 	case 16:	/* SUPER HELLSLIME DAMAGE */
-	case 4:		/* STROBE HURT */
+	case 11:	// Should end level (will implement later)
+	case 4:		/* STROBE HURT (does it work?) */
 		Damage = 20;
 		if (GetRandom(255)<5) {		/* Chance it didn't hurt */
 			Damage|=0x8000;		/* Suit didn't help! */
@@ -677,6 +709,7 @@ void SpawnSpecials(void)
 		const Word secSpecialOrig = sector->special & SEC_SPEC_ORIG_BITS;
 		switch(secSpecialOrig) {
 		case 1:		/* FLICKERING LIGHTS */
+		case 17:	// Light Flickers (randomly)
 			P_SpawnLightFlash(sector);
 			break;
 		case 2:		/* STROBE FAST */

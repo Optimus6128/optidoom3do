@@ -75,15 +75,23 @@ static Word extractColorFromSpecial(Word special)
 {
 	// FOG = 32
 	// DIST = 64
-	// WATER = 128
-	// 256 and 512 free. Two more effects or a selector for 4 effects?
+	// WARP = 128
 
 	// 2 R * 16384
 	// 2 G * 4096
 	// 2 B * 1024
 
-	//RRGGBBxx xDF11111
-	//11111100 00100000 (SEC_SPEC_RENDER_BITS = 0xFC20: bits relevant to rendering for splitting visplanes)
+	//RRGGBBSW WDF11111
+	//11111111 10100000 (SEC_SPEC_RENDER_BITS = 0xFFA0: bits relevant to rendering for splitting visplanes)
+	
+	// SWW
+	// 001	warp floor
+	// 010	warp ceiling
+	// 011	warp both
+	// 100	scroll +x
+	// 101	scroll -x
+	// 110	scroll +y
+	// 111	scroll -y
 
 	static int col[4] = {0, 85, 170, 255};
 	

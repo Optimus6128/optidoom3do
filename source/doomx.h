@@ -7,7 +7,7 @@
 
 
 #define LIGHTSCALESHIFT 3
-#define SEC_SPEC_RENDER_BITS 0xFC20
+#define SEC_SPEC_RENDER_BITS 0xFFA0
 #define SEC_SPEC_ORIG_BITS 0x1F
 
 
@@ -50,7 +50,9 @@ typedef struct {
 typedef enum {
 	SEC_SPEC_FOG = 32,
 	SEC_SPEC_DISTORT = 64,
-	SEC_SPEC_WATER = 128
+	SEC_SPEC_SCROLL = 512,
+	SEC_SPEC_DIRS = 384,
+	SEC_SPEC_SCROLL_OR_WARP = 896
 } viswallspecial_e;
 
 typedef enum {

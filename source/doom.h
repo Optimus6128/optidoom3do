@@ -314,8 +314,9 @@ typedef struct {		/* Describe a floor texture */
 	Word open[MAXSCREENWIDTH+1];	/* top<<8 | bottom */
 	Fixed height;		/* Height of the floor */
 	void **PicHandle;	/* Texture handle */
-	Word color;
-	Word special;
+	Word color;			// Store color for the RGB effect
+	Word special;		// Store special for the extra effects
+	bool isFloor;		// True? Floor. Else Ceiling.
 	Word PlaneLight;	/* Light override */
 	int minx,maxx;		/* Minimum x, max x */
 	int miny,maxy;		/* Minimum y, max y */
@@ -871,7 +872,7 @@ extern void G_RecordDemo(void);
 extern result_e T_MovePlane(sector_t *sector,Fixed speed,
 			Fixed dest,Boolean crush,Boolean Ceiling,int direction);
 extern Boolean EV_DoFloor(line_t *line,floor_e floortype);
-extern Boolean EV_BuildStairs(line_t *line);
+extern Boolean EV_BuildStairs(line_t *line, int heightFrac, int speedDiv);
 extern Boolean EV_DoDonut(line_t *line);
 
 /* In FMain.c */

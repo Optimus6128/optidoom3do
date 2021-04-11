@@ -32,6 +32,10 @@ static void *texPal;
 
 static Word *LightTablePtr = LightTable;
 
+static int visScrollX = 0;
+static int visScrollY = 0;
+static bool warpEffectOn = false;
+
 
 /***************************
 
@@ -228,6 +232,9 @@ static void MapPlane(Word y1, Word y2)
     int numCels;
     int y;
 
+	const int offsetX = visScrollX;
+	const int offsetY = visScrollY;
+
     if (y1 > y2) return;
 	numCels = y2 - y1 + 1;
 	if (CCBArrayPlaneCurrent + numCels > CCB_ARRAY_PLANE_MAX) {
@@ -242,8 +249,8 @@ static void MapPlane(Word y1, Word y2)
         const Fixed length = (distscale[x1]*distance)>>14;
         const angle_t angle = (xtoviewangle[x1]+viewangle)>>ANGLETOFINESHIFT;
 
-        const Fixed xfrac = (((finecosine[angle]>>1)*length)>>4)+viewx;
-        const Fixed yfrac = planey - (((finesine[angle]>>1)*length)>>4);
+        const Fixed xfrac = (((finecosine[angle]>>1)*length)>>4) + viewx + offsetX;
+        const Fixed yfrac = planey - (((finesine[angle]>>1)*length)>>4) + offsetY;
 
         const Fixed xstep = spandata[y].xstep;
         const Fixed ystep = spandata[y].ystep;
@@ -251,7 +258,10 @@ static void MapPlane(Word y1, Word y2)
         const int light = spandata[y].light;
         Word Count = spandata[y].x2 - x1;
 
-        spanDrawFunc(Count,xfrac,yfrac,xstep,ystep,DestPtr);
+        int warpX = 0;
+        if (warpEffectOn) warpX = finecosine[((distance << 4) + (frameTime << 3)) & 8191] << 2;
+
+        spanDrawFunc(Count,xfrac+warpX,yfrac,xstep,ystep,DestPtr);
 
         CCBPtr->ccb_PRE1 = 0x3E005000|(Count-1);		/* Second preamble */
         CCBPtr->ccb_SourcePtr = (CelData *)DestPtr;	/* Save the source ptr */
@@ -275,6 +285,9 @@ static void MapPlaneUnshaded(Word y1, Word y2)
     int numCels;
     int y, light;
 
+    const int offsetX = visScrollX;
+	const int offsetY = visScrollY;
+
     if (y1 > y2) return;
 	numCels = y2 - y1 + 1;
 	if (CCBArrayPlaneCurrent + numCels > CCB_ARRAY_PLANE_MAX) {
@@ -294,15 +307,18 @@ static void MapPlaneUnshaded(Word y1, Word y2)
         const Fixed length = (distscale[x1]*distance)>>14;
         const angle_t angle = (xtoviewangle[x1]+viewangle)>>ANGLETOFINESHIFT;
 
-        const Fixed xfrac = (((finecosine[angle]>>1)*length)>>4)+viewx;
-        const Fixed yfrac = planey - (((finesine[angle]>>1)*length)>>4);
+        const Fixed xfrac = (((finecosine[angle]>>1)*length)>>4) + viewx + offsetX;
+        const Fixed yfrac = planey - (((finesine[angle]>>1)*length)>>4) + offsetY;
 
         const Fixed xstep = spandata[y].xstep;
         const Fixed ystep = spandata[y].ystep;
 
         Word Count = spandata[y].x2 - x1;
 
-        spanDrawFunc(Count,xfrac,yfrac,xstep,ystep,DestPtr);
+        int warpX = 0;
+        if (warpEffectOn) warpX = finecosine[((distance << 4) + (frameTime << 3)) & 8191] << 2;
+
+        spanDrawFunc(Count,xfrac+warpX,yfrac,xstep,ystep,DestPtr);
 
         CCBPtr->ccb_PRE1 = 0x3E005000|(Count-1);		/* Second preamble */
         CCBPtr->ccb_SourcePtr = (CelData *)DestPtr;	/* Save the source ptr */
@@ -509,6 +525,8 @@ void DrawVisPlaneHorizontal(visplane_t *p)
 	register Word *open;
 
 	const Word *color = &p->color;
+	const Word special = p->special;
+
 	PlaneSource = (Byte *)*p->PicHandle;	/* Get the base shape index */
 
 	x = p->height;
@@ -531,10 +549,36 @@ void DrawVisPlaneHorizontal(visplane_t *p)
 		if (++currentVisplaneCount == maxVisplanes) currentVisplaneCount = 0;
 	}
 
-	if (p->special & SEC_SPEC_FOG) {
+	if (special & SEC_SPEC_FOG) {
 		LightTablePtr = LightTableFog;
 	} else {
 		LightTablePtr = LightTable;
+	}
+
+	visScrollX = 0;
+	visScrollY = 0;
+	warpEffectOn = false;
+	if (special & SEC_SPEC_SCROLL_OR_WARP) {
+		const int dirs = (special & SEC_SPEC_DIRS) >> 7;
+		if (special & SEC_SPEC_SCROLL) {
+			const int scrollVel = frameTime << 12;
+			switch(dirs) {
+				case 0:
+					visScrollX = -scrollVel;
+					break;
+				case 1:
+					visScrollX = scrollVel;
+					break;
+				case 2:
+					visScrollY = scrollVel;
+					break;
+				case 3:
+					visScrollY = -scrollVel;
+					break;
+			}
+		} else {
+			warpEffectOn = (p->isFloor && dirs==1) || (!p->isFloor && dirs==2) || (dirs == 3);
+		}
 	}
 
 	initVisplaneSpanData(p);

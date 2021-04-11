@@ -92,7 +92,7 @@ Word presets = PRESET_GFX_CUSTOM;
     Word opt_dbg8;
 #endif
 
-    static bool isMusicStopped = false;
+    static bool hasMusicStopped = false;
 
 
 // =============================
@@ -429,8 +429,11 @@ static void SetButtonsFromControltype(void)
 	PadSpeed = TablePtr[0];		// Init the joypad settings
 	PadAttack =	TablePtr[1];
 	PadUse = TablePtr[2];
+
 	SetSfxVolume(SfxVolume);		// Set the system volumes
 	SetMusicVolume(MusicVolume);	// Set the music volume
+	hasMusicStopped = (MusicVolume == 0);
+
 	InitMathTables();				// Handle the math tables
 }
 
@@ -517,16 +520,16 @@ static void handleSpecialMenuItemActions(player_t *player, Word menuItemIndex)
         {
             if (MusicVolume==0) {
                 S_StopSong();
-                isMusicStopped = true;
+                hasMusicStopped = true;
             } else {
-                if (isMusicStopped) {
+                if (hasMusicStopped) {
                     if (!player) {  // if player is null, we are in main menu before game even starts
                         S_StartSong(Song_intro, TRUE);
                     }
                     else {
                         S_StartSong(Song_e1m1-1+gamemap, TRUE);
 					}
-                    isMusicStopped = false;
+                    hasMusicStopped = false;
                 }
                 SetMusicVolume(MusicVolume);
             }

@@ -62,6 +62,7 @@ void initCCBarraySky(void)
 **********************************/
 
 int visplanesCountMax = 0;
+static bool isFloor;
 
 static visplane_t *FindPlane(visplane_t *check, viswall_t *segl, int start, Word color)
 {
@@ -102,6 +103,7 @@ static visplane_t *FindPlane(visplane_t *check, viswall_t *segl, int start, Word
 	check->PicHandle = PicHandle;
 	check->color = color;
 	check->special = special;
+	check->isFloor = isFloor;
 	check->minx = start;
 	check->maxx = stop;
 	check->PlaneLight = Light;		/* Set the light level */
@@ -157,6 +159,7 @@ static void SegLoopFloor(viswall_t *segl, Word screenCenterY)
 	}
 
 	FloorPlane = visplanes;		// Reset the visplane pointers
+	isFloor = true;
 
 	x = segl->LeftX;
 	do {
@@ -204,6 +207,7 @@ static void SegLoopCeiling(viswall_t *segl, Word screenCenterY)
 	}
 
 	CeilingPlane = visplanes;		// Reset the visplane pointers
+	isFloor = false;
 
 	// Ugly hack for the case FindPlane expects segl, but reads always floor (to not pass too many arguments as before and also not duplicate)
 	segl->floorheight = segl->ceilingheight;

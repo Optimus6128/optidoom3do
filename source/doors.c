@@ -231,6 +231,8 @@ void EV_VerticalDoor(line_t *line,mobj_t *thing)
 	switch (line->special) {
 	case 1:		/* NORMAL DOOR SOUND */
 	case 31:
+	case 117:
+	case 118:
 		S_StartSound(&sec->SoundX,sfx_doropn);
 		break;
 	default:	/* LOCKED DOOR SOUND */
@@ -252,12 +254,14 @@ void EV_VerticalDoor(line_t *line,mobj_t *thing)
 	case 26:
 	case 27:
 	case 28:
+	case 117:
 		door->type = normaldoor;		/* Normal open/close door */
 		break;
 	case 31:
 	case 32:
 	case 33:
 	case 34:
+	case 118:
 		door->type = open;		/* Open forever */
 	}
 	/* Find the top and bottom of the movement range */
@@ -306,3 +310,4 @@ void P_SpawnDoorRaiseIn5Mins(sector_t *sec)
 	door->topwait = VDOORWAIT;
 	door->topcountdown = (5*60*TICKSPERSEC);
 }
+	

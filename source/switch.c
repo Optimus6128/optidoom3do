@@ -190,22 +190,34 @@ Boolean P_UseSpecialLine(mobj_t *thing,line_t *line)
 	case 31:		// Manual door open
 	case 26:		// Blue Card Door Raise
 	case 32:		// Blue Card door open
-	case 99:		// Blue Skull Door Open
-	case 106:		// Blue Skull Door Raise
+	case 99:		// Blue Skull Door Open	(was SR Door(Blue) Open Stay (fast))
+	case 106:		// Blue Skull Door Raise (was WR Door Open Stay(fast))
 	case 27:		// Yellow Card Door Raise
 	case 34:		// Yellow Card door open
-	case 105:		// Yellow Skull Door Open
-	case 108:		// Yellow Skull Door Raise
+	case 105:		// Yellow Skull Door Open (was WR Door Open Wait Close (fast))
+	case 108:		// Yellow Skull Door Raise (was W1 Door Open Wait Close (fast))
 	case 28:		// Red Card Door Raise
 	case 33:		// Red Card door open
-	case 100:		// Red Skull Door Open
-	case 107:		// Red Skull Door Raise
+	case 100:		// Red Skull Door Open (was W1 Stairs Raise by 16 (fast))
+	case 107:		// Red Skull Door Raise (was WR Door Close Stay (fast))
+	//case 99:	// SR Blue (fast) - conflict
+	//case 133:	// S1 Blue (fast)
+	//case 134:	// SR Red (fast)
+	//case 135:	// S1 Red (fast)
+	//case 136:	// SR Yellow (fast)
+	//case 137:	// S1 Yellow (fast)
 		EV_VerticalDoor(line,thing);
 		break;
+
+	// 99, 100, 105, 106, 107, 108 (misused for other)
+	// case 138: SR Light to 255
+	// case 139: SR Light to 35
+	// case 140: S1 Floor Raise 512
 
 	/* Buttons */
 
 	case 42:		// Close Door
+	case 116:
 		if (EV_DoDoor(line,close)) {
 			P_ChangeSwitchTexture(line,TRUE);
 		}
@@ -226,16 +238,19 @@ Boolean P_UseSpecialLine(mobj_t *thing,line_t *line)
 		}
 		break;
 	case 61:		// Open Door
+	case 115:
 		if (EV_DoDoor(line,open)) {
 			P_ChangeSwitchTexture(line,TRUE);
 		}
 		break;
 	case 62:		// PlatDownWaitUpStay
+	case 123:
 		if (EV_DoPlat(line,downWaitUpStay,1)) {
 			P_ChangeSwitchTexture(line,TRUE);
 		}
 		break;
 	case 63:		// Raise Door
+	case 114:
 		if (EV_DoDoor(line,normaldoor)) {
 			P_ChangeSwitchTexture(line,TRUE);
 		}
@@ -266,6 +281,7 @@ Boolean P_UseSpecialLine(mobj_t *thing,line_t *line)
 		}
 		break;
 	case 69:		// Raise Floor to next highest floor
+	case 132:
 		if (EV_DoFloor(line, raiseFloorToNearest)) {
 			P_ChangeSwitchTexture(line,TRUE);
 		}
@@ -279,7 +295,7 @@ Boolean P_UseSpecialLine(mobj_t *thing,line_t *line)
 	/* Switches (One shot buttons) */
 
 	case 7:			// Build Stairs
-		if (EV_BuildStairs(line)) {
+		if (EV_BuildStairs(line, 8, 2)) {
 			P_ChangeSwitchTexture(line,FALSE);
 		}
 		break;
@@ -303,6 +319,7 @@ Boolean P_UseSpecialLine(mobj_t *thing,line_t *line)
 		}
 		break;
 	case 18:		// Raise Floor to next highest floor
+	case 131:
 		if (EV_DoFloor(line, raiseFloorToNearest)) {
 			P_ChangeSwitchTexture(line,FALSE);
 		}
@@ -313,6 +330,7 @@ Boolean P_UseSpecialLine(mobj_t *thing,line_t *line)
 		}
 		break;
 	case 21:		// PlatDownWaitUpStay
+	case 122:
 		if (EV_DoPlat(line,downWaitUpStay,0)) {
 			P_ChangeSwitchTexture(line,FALSE);
 		}
@@ -323,6 +341,7 @@ Boolean P_UseSpecialLine(mobj_t *thing,line_t *line)
 		}
 		break;
 	case 29:		// Raise Door
+	case 111:
 		if (EV_DoDoor(line,normaldoor)) {
 			P_ChangeSwitchTexture(line,FALSE);
 		}
@@ -343,6 +362,7 @@ Boolean P_UseSpecialLine(mobj_t *thing,line_t *line)
 		}
 		break;
 	case 50:		// Close Door
+	case 113:
 		if (EV_DoDoor(line,close)) {
 			P_ChangeSwitchTexture(line,FALSE);
 		}
@@ -366,10 +386,16 @@ Boolean P_UseSpecialLine(mobj_t *thing,line_t *line)
 		}
 		break;
 	case 103:		// Open Door
+	case 112:
 		if (EV_DoDoor(line,open)) {
+			P_ChangeSwitchTexture(line,FALSE);
+		}
+		break;
+	case 127:	// Stairs raise by 16 (fast)
+		if (EV_BuildStairs(line, 16, 1)) {
 			P_ChangeSwitchTexture(line,FALSE);
 		}
 		break;
 	}
 	return TRUE;
-}
+	}

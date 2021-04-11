@@ -268,7 +268,7 @@ Boolean EV_DoFloor(line_t *line,floor_e floortype)
 
 **********************************/
 
-Boolean EV_BuildStairs(line_t *line)
+Boolean EV_BuildStairs(line_t *line, int heightFrac, int speedDiv)
 {
 	Boolean Stay;		/* Flag to break the stair building loop */
 	Boolean rtn;	/* Return value */
@@ -293,12 +293,12 @@ Boolean EV_BuildStairs(line_t *line)
 		/* New floor thinker */
 
 		rtn = TRUE;
-		height = sec->floorheight + (8<<FRACBITS);	/* Go up 8 pixels */
+		height = sec->floorheight + (heightFrac<<FRACBITS);	/* Go up 8 pixels */
 		floor = (floormove_t *)AddThinker(T_MoveFloor,sizeof(floormove_t));
 		sec->specialdata = floor;		/* Attach the record */
 		floor->direction = 1;		/* Move up */
 		floor->sector = sec;		/* Set the proper sector */
-		floor->speed = FLOORSPEED/2;	/* Normal speed */
+		floor->speed = FLOORSPEED/speedDiv;	/* Normal speed */
 		floor->floordestheight = height;	/* Set the new height */
 		texture = sec->FloorPic;		/* Cache the texture for the stairs */
 
@@ -321,7 +321,7 @@ Boolean EV_BuildStairs(line_t *line)
 				if (tsec->FloorPic != texture) {	/* Not the same texture? */
 					continue;
 				}
-				height += (8<<FRACBITS);		/* Increase the height */
+				height += (heightFrac<<FRACBITS);		/* Increase the height */
 				if (tsec->specialdata) {		/* Busy already? */
 					continue;
 				}
@@ -330,7 +330,7 @@ Boolean EV_BuildStairs(line_t *line)
 				sec->specialdata = floor;	/* Attach this floor */
 				floor->direction = 1;	/* Go up */
 				floor->sector = sec;	/* Set the sector I will affect */
-				floor->speed = FLOORSPEED/2;	/* Slow speed */
+				floor->speed = FLOORSPEED/speedDiv;	/* Slow speed */
 				floor->floordestheight = height;
 				Stay = TRUE;			/* I linked to a sector */
 				break;			/* Restart the loop */
