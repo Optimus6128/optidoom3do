@@ -1,6 +1,8 @@
 #include "Doom.h"
 #include <IntMath.h>
 
+#include "input.h"
+
 #define MAXBOB (16<<FRACBITS)	/* 16 pixels of bobbing up and down */
 #define SLOWTURNTICS 10			/* Time before fast turning */
 
@@ -199,6 +201,7 @@ static void P_BuildMove(player_t *player)
 	buttons = JoyPadButtons;
 	oldbuttons = PrevJoyPadButtons;
 	SpeedIndex = (buttons&PadSpeed) ? 1 : 0;
+	SpeedIndex ^= optOther->alwaysRun;
 
 /* Use two stage accelerative turning on the joypad */
 
@@ -215,7 +218,7 @@ static void P_BuildMove(player_t *player)
 	player->turnheld = TurnIndex;		/* Save it */
 
 	Motion = 0;				/* Assume no side motion */
-	if (!(buttons & PadUse)) {		/* Use allows weapon change */
+	if (!(buttons & PadUse) && optOther->input == INPUT_DPAD_ONLY) {		/* Use allows weapon change */
 		if (buttons & (PadRightShift|PadLeftShift)) {	/* Side motion? */
 			Motion = sidemove[SpeedIndex]*ElapsedTime;	/* Sidestep to the right */
 			if (buttons & PadLeftShift) {
@@ -378,13 +381,28 @@ static void MoveThePlayer(player_t *player)
 
 	MObjPtr = player->mo;		/* Cache the MObj */
 	newangle = MObjPtr->angle;	/* Get the angle */
-	newangle += player->angleturn;	/* Adjust turning angle always */
+
+	if (optOther->input == INPUT_DPAD_ONLY) {
+		newangle += player->angleturn;	/* Adjust turning angle always */
+	} else {
+		const int mouseDiffX = getMousePositionDiff().x;
+		if (optOther->input == INPUT_MOUSE_ONLY) {
+			player->forwardmove = -(getMousePositionDiff().y << (8 + optOther->sensitivityY));
+			if (isMouseButtonPressed(MOUSE_BUTTON_MIDDLE)) {
+				player->sidemove = mouseDiffX << (8 + optOther->sensitivityY);	// while it's middle+mouseX, I use sensitivityY for speed to match the mouseY forward movement
+			}
+		}
+		if (!(optOther->input == INPUT_MOUSE_ONLY && isMouseButtonPressed(MOUSE_BUTTON_MIDDLE))) {
+			newangle -= (mouseDiffX << (FRACBITS + optOther->sensitivityX));
+		}
+	}
+
 	MObjPtr->angle = newangle;	/* Save it, but keep for future use */
 
 	/* Don't let the player control movement if not onground */
 
 	onground = (MObjPtr->z <= MObjPtr->floorz);	/* Save for PlayerCalcHeight */
-
+	
 	if (onground | MObjPtr->flags & MF_NOGRAVITY) {		/* Can I move? */
 		PlayerThrust(MObjPtr,newangle,player->forwardmove);
 		PlayerThrust(MObjPtr,newangle-ANG90,player->sidemove);
@@ -461,7 +479,7 @@ DownDamage:
 
 static Boolean WeaponAllowed(player_t *player)
 {
-	if (player->pendingweapon&0x8000) {		/* Handle wrap around for weapon */
+	if (player->pendingweapon&0x8080) {		/* Handle wrap around for weapon */	// negative enum happen to be 255 instead of 65535?
 		player->pendingweapon=(weapontype_t)(NUMWEAPONS-1);	/* Highest weapon allowed */
 	}
 	if (player->pendingweapon>=NUMWEAPONS) {	/* Too high? */
@@ -528,30 +546,34 @@ void P_PlayerThink(player_t *player)
 
 /* Process use actions */
 
-	if (buttons & PadUse) {
+	if ((optOther->input == INPUT_DPAD_ONLY && (buttons & PadUse)) || 
+		(optOther->input != INPUT_DPAD_ONLY && isMouseButtonPressed(MOUSE_BUTTON_RIGHT)))
+	{
+			if (!player->usedown) {		/* Was use held down? */
+				P_UseLines(player);		/* Nope, process the use button */
+				player->usedown = TRUE;	/* Wait until released */
+			}
+		} else {
+			player->usedown = FALSE;	/* Use is released */
+	}
+	if ((optOther->input == INPUT_DPAD_ONLY && (buttons & PadUse)) || (optOther->input != INPUT_DPAD_ONLY))
+	{
 		if (player->pendingweapon == wp_nochange) {
-        	i = (buttons^PrevJoyPadButtons)&buttons;	/* Get button downs */
-    	    if (i&(PadRightShift|PadLeftShift)) {	/* Pressed the shifts? */
-        		i = (PadRightShift&i) ? 1 : -1;	/* Cycle up or down? */
-	        	player->pendingweapon=player->readyweapon;	/* Init the weapon */
-		        do {
-					        /* Cycle to next weapon */
-		        	player->pendingweapon=(weapontype_t)(player->pendingweapon+i);
+			i = (buttons^PrevJoyPadButtons)&buttons;	/* Get button downs */
+			if (i&(PadRightShift|PadLeftShift)) {	/* Pressed the shifts? */
+				i = (PadRightShift&i) ? 1 : -1;	/* Cycle up or down? */
+				player->pendingweapon=player->readyweapon;	/* Init the weapon */
+				do {
+							/* Cycle to next weapon */
+					player->pendingweapon=(weapontype_t)(player->pendingweapon+i);
 				} while (!WeaponAllowed(player));	/* Ok to keep? */
 			}
 		}
-
-		if (!player->usedown) {		/* Was use held down? */
-			P_UseLines(player);		/* Nope, process the use button */
-			player->usedown = TRUE;	/* Wait until released */
-		}
-	} else {
-		player->usedown = FALSE;	/* Use is released */
 	}
 
 /* Process weapon attacks */
 
-	if (buttons & PadAttack) {			/* Am I attacking? */
+	if ((buttons & PadAttack) || isMouseButtonPressed(MOUSE_BUTTON_LEFT)) {			/* Am I attacking? */
 		player->attackdown+=ElapsedTime;		/* Add in the timer */
 		if (player->attackdown >= (TICKSPERSEC*2)) {
 			stbar.specialFace = f_mowdown;

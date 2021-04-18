@@ -30,5 +30,6 @@ bool isMouseButtonPressed(int mouseButtonId);
 bool isMouseButtonPressedOnce(int mouseButtonId);
 
 MousePosition getMousePosition(void);
+MousePosition getMousePositionDiff(void);
 
 #endif

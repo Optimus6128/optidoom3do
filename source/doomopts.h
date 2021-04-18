@@ -25,6 +25,17 @@ enum
 	STATS_OPTIONS_NUM
 };
 
+// Input options
+enum
+{
+	INPUT_DPAD_ONLY,
+	INPUT_MOUSE_ONLY,
+	INPUT_MOUSE_AND_DPAD,
+	INPUT_MOUSE_AND_DPAD_TILT,
+	INPUT_MOUSE_AND_ABC,
+	INPUT_OPTIONS_NUM
+};
+
 // Wall quality options
 enum
 {
@@ -146,6 +157,10 @@ typedef struct GraphicsOptions
 
 typedef struct OtherOptions
 {
+	Word input;
+	Word sensitivityX;
+	Word sensitivityY;
+	Word alwaysRun;
 	Word stats;
 	Word border;
 	Word thickLines;

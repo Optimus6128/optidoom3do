@@ -1,5 +1,7 @@
 #include "Doom.h"
 
+#include "input.h"
+
 #define	LOWERSPEED 18		/* Speed to lower the player's weapon */
 #define	RAISESPEED 18		/* Speed to raise the player's weapon */
 #define WEAPONBOTTOM 128	/* Bottommost Y for hiding weapon */
@@ -290,7 +292,7 @@ void A_WeaponReady(player_t *player,pspdef_t *psp)
 
 /* check for weapon fire */
 
-	if (JoyPadButtons & PadAttack) {		/* Attack? */
+	if ((JoyPadButtons & PadAttack) || isMouseButtonPressed(MOUSE_BUTTON_LEFT)) {		/* Attack? */
 		FireWeapon(player);				/* Fire the weapon... */
 		return;				/* Exit now */
 	}
@@ -315,7 +317,7 @@ void A_ReFire(player_t *player,pspdef_t *psp)
 
 /* Check for fire (if a weaponchange is pending, let it go through instead) */
 
-	if ( (JoyPadButtons & PadAttack) &&	/* Still firing? */
+	if ( ((JoyPadButtons & PadAttack) || isMouseButtonPressed(MOUSE_BUTTON_LEFT)) &&	/* Still firing? */
 		player->pendingweapon == wp_nochange && player->health) {
 		player->refire=TRUE;		/* Count for grimacing player face */
 		FireWeapon(player);	/* Shoot... */

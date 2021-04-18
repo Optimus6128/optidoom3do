@@ -14,7 +14,7 @@ static bool joyButtonPressedOnce[JOY_BUTTONS_NUM];
 static bool mouseButtonPressed[MOUSE_BUTTONS_NUM];
 static bool mouseButtonPressedOnce[MOUSE_BUTTONS_NUM];
 
-static MousePosition mousePosition;
+static MousePosition mousePosition, mousePositionDiff;
 static int mouseStatus = 0;
 static bool anyJoyButtonPressed;
 
@@ -34,6 +34,8 @@ void initInput()
 
 	mousePosition.x = 0;
 	mousePosition.y = 0;
+	mousePositionDiff.x = 0;
+	mousePositionDiff.y = 0;
 }
 
 static void updateJoypad()
@@ -68,6 +70,8 @@ static void updateMouse()
     mouseStatus = GetMouse(1,0,&mouseState);
 	if (mouseStatus < 0) return;
 
+	mousePositionDiff.x = mouseState.med_HorizPosition - mousePosition.x;
+	mousePositionDiff.y = mouseState.med_VertPosition - mousePosition.y;
 	mousePosition.x = mouseState.med_HorizPosition;
 	mousePosition.y = mouseState.med_VertPosition;
 	mousebits = mouseState.med_ButtonBits;
@@ -86,6 +90,11 @@ static void updateMouse()
 MousePosition getMousePosition()
 {
 	return mousePosition;
+}
+
+MousePosition getMousePositionDiff()
+{
+	return mousePositionDiff;
 }
 
 void updateInput()

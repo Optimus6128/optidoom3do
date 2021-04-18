@@ -24,8 +24,8 @@ GraphicsOptions *optGraphics = &options.graphics;
 OtherOptions *optOther = &options.other;
 
 
-static AllOptions optionsDefault = {{FRAME_LIMIT_1VBL, SCREENSIZE_OPTIONS_NUM - 3, WALL_QUALITY_HI, PLANE_QUALITY_HI, SCREEN_SCALE_1x1, false, DEPTH_SHADING_ON, false, RENDERER_DOOM},
-									{STATS_OFF, true, false, SKY_DEFAULT, 2, CHEATS_OFF, AUTOMAP_CHEAT_OFF, false, false, false, PLAYER_SPEED_1X, ENEMY_SPEED_1X, false, false}};
+static AllOptions optionsDefault = {{FRAME_LIMIT_1VBL, SCREENSIZE_OPTIONS_NUM - 3, WALL_QUALITY_HI, PLANE_QUALITY_HI, SCREEN_SCALE_1x1, false, DEPTH_SHADING_ON, true, RENDERER_DOOM},
+									{INPUT_DPAD_ONLY, 2, 3, false, STATS_OFF, true, false, SKY_DEFAULT, 2, CHEATS_OFF, AUTOMAP_CHEAT_OFF, false, false, false, PLAYER_SPEED_1X, ENEMY_SPEED_1X, false, false}};
 
 static GraphicsOptions graphicsPresets[PRESET_OPTIONS_NUM] = {
 	{FRAME_LIMIT_2VBL, 0, WALL_QUALITY_LO, PLANE_QUALITY_LO, SCREEN_SCALE_2x2, true, DEPTH_SHADING_BRIGHT, false, RENDERER_POLY},	// ATARI
@@ -33,7 +33,7 @@ static GraphicsOptions graphicsPresets[PRESET_OPTIONS_NUM] = {
 	{FRAME_LIMIT_2VBL, 4, WALL_QUALITY_HI, PLANE_QUALITY_LO, SCREEN_SCALE_2x1, false, DEPTH_SHADING_DITHERED, true, RENDERER_DOOM},		// SNES
 	{FRAME_LIMIT_2VBL, 3, WALL_QUALITY_HI, PLANE_QUALITY_HI, SCREEN_SCALE_2x1, true, DEPTH_SHADING_BRIGHT, false, RENDERER_DOOM},	// GBA
 	{FRAME_LIMIT_3VBL, 5, WALL_QUALITY_HI, PLANE_QUALITY_HI, SCREEN_SCALE_2x1, true, DEPTH_SHADING_ON, false, RENDERER_DOOM},	// JAGUAR
-	{FRAME_LIMIT_1VBL, 3, WALL_QUALITY_HI, PLANE_QUALITY_HI, SCREEN_SCALE_1x1, false, DEPTH_SHADING_ON, false, RENDERER_DOOM},	// DEFAULT
+	{FRAME_LIMIT_1VBL, 3, WALL_QUALITY_HI, PLANE_QUALITY_HI, SCREEN_SCALE_1x1, false, DEPTH_SHADING_ON, true, RENDERER_DOOM},	// DEFAULT
 	{FRAME_LIMIT_2VBL, 4, WALL_QUALITY_HI, PLANE_QUALITY_MED, SCREEN_SCALE_2x1, false, DEPTH_SHADING_DARK, false, RENDERER_DOOM},// FASTER
 	{FRAME_LIMIT_2VBL, 3, WALL_QUALITY_HI, PLANE_QUALITY_HI, SCREEN_SCALE_1x1, false, DEPTH_SHADING_ON, false, RENDERER_DOOM},  	// CUSTOM
 	{FRAME_LIMIT_1VBL, 5, WALL_QUALITY_HI, PLANE_QUALITY_HI, SCREEN_SCALE_1x1, true, DEPTH_SHADING_ON, true, RENDERER_DOOM},		// MAX
@@ -77,6 +77,7 @@ static void *sliderShapes;
     };
 
 
+
 // ======== Variables for all the option values ========
 
 Word presets = PRESET_GFX_CUSTOM;
@@ -102,8 +103,11 @@ Word presets = PRESET_GFX_CUSTOM;
 enum {
 	mi_soundVolume,     // Sfx Volume
 		mi_musicVolume,     // Music volume
+		mi_alwaysrun,		// Always Run
+		mi_input,			// Input selection (DPAD, Mouse, etc)
 		mi_controls,        // Control settings
-		mi_stats,           // Stats display on/off
+		mi_sensitivityX,	// Mouse Sensitivity X
+		mi_sensitivityY,	// Mouse Sensitivity Y
 
 #ifdef DEBUG_MENU_HACK
     mi_dbg1,
@@ -138,6 +142,7 @@ enum {
 	mi_enemySpeed,      // Enemy speed (0x, 1x, 2x)
 	mi_extraBlood,      // Extra blood particles
 	mi_flyMode,         // Fly mode
+	mi_stats,           // Stats display on/off
 	NUM_MENUITEMS
 };
 
@@ -149,8 +154,8 @@ enum {
     page_debug2,
 #endif
     page_performance,
-    page_rendering,
-    page_effects,
+    page_rendering1,
+    page_rendering2,
     page_cheats,
     page_extra,
     NUM_PAGES
@@ -158,6 +163,8 @@ enum {
 
 #define AUDIOSLIDERS_OPTIONS_NUM 16
 #define CONTROLS_OPTIONS_NUM 6
+#define MOUSE_SENSITIVITY_X_MAX 8
+#define MOUSE_SENSITIVITY_Y_MAX 4
 
 #define OFFON_OPTIONS_NUM 2
 #define DUMMY_IDKFA_OPTIONS_NUM 2
@@ -167,6 +174,7 @@ enum {
 static char *frameLimitOptionsStr[FRAME_LIMIT_OPTIONS_NUM] = { "UNLIMITED", "1VBL", "2VBL", "3VBL", "4VBL", "VSYNC" };
 static char *presetOptionsStr[PRESET_OPTIONS_NUM] = { "ATARI", "AMIGA", "SNES", "GBA", "JAGUAR", "DEFAULT", "FASTER", "CUSTOM", "MAX" };
 static char *offOnOptionsStr[OFFON_OPTIONS_NUM] = { "OFF", "ON" };
+static char *inputOptionsStr[INPUT_OPTIONS_NUM] = { "DPAD ONLY", "MOUSE ONLY", "MOUSE DPAD", "MOUSE DPAD Y", "MOUSE ABC" };
 static char *statsOptionsStr[STATS_OPTIONS_NUM] = { "OFF", "FPS", "MEM", "ALL" };
 static char *wallQualityOptionsStr[WALL_QUALITY_OPTIONS_NUM] = { "LO", "HI"};
 static char *planeQualityOptionsStr[PLANE_QUALITY_OPTIONS_NUM] = { "LO", "MED", "HI" };
@@ -221,7 +229,7 @@ static char *pageLabel[NUM_PAGES] = { "AUDIO", "CONTROLS",
 #ifdef DEBUG_MENU_HACK
 "DEBUG 1", "DEBUG 2",
 #endif
-"PERFORMANCE", "RENDERING", "EFFECTS", "CHEATS", "EXTRA" };
+"PERFORMANCE", "RENDERING", "RENDERING", "CHEATS", "EXTRA" };
 
 
 static void setMenuItem(Word id, int posX, int posY, char *label, bool centered, Word muiStyle, Word *optionValuePtr, Word optionsRange)
@@ -362,10 +370,15 @@ void initMenuOptions()
     setMenuItem(mi_musicVolume, 160, 100, "Music volume", true, muiStyle_slider, &MusicVolume, AUDIOSLIDERS_OPTIONS_NUM);
     setItemPageRange(mi_soundVolume, mi_musicVolume, page_audio);
 
-    setMenuItem(mi_controls, 160, 40, "Controls", true, muiStyle_special, &ControlType, CONTROLS_OPTIONS_NUM);
-    setMenuItemWithOptionNames(mi_stats, 88, 120, "Stats", false, muiStyle_text, &optOther->stats, maxStatOptions, statsOptionsStr);
+    setMenuItemWithOptionNames(mi_alwaysrun, 80, 40, "Always Run", false, muiStyle_text, &optOther->alwaysRun, OFFON_OPTIONS_NUM, offOnOptionsStr);
+    setMenuItemWithOptionNames(mi_input, 40, 60, "Input", false, muiStyle_text, &optOther->input, INPUT_OPTIONS_NUM, inputOptionsStr);
+    setMenuItem(mi_controls, 120, 80, "", true, muiStyle_special, &ControlType, CONTROLS_OPTIONS_NUM);
+    setMenuItem(mi_sensitivityX, 160, 80, "Mouse Speed X", true, muiStyle_slider, &optOther->sensitivityX, MOUSE_SENSITIVITY_X_MAX);
+    setMenuItem(mi_sensitivityY, 160, 120, "Mouse Speed Y", true, muiStyle_slider, &optOther->sensitivityY, MOUSE_SENSITIVITY_Y_MAX);
+    setMenuItemVisibility(mi_sensitivityX, false);
+    setMenuItemVisibility(mi_sensitivityY, false);
     setMenuItemLoopBehaviour(mi_controls, false);
-    setItemPageRange(mi_controls, mi_stats, page_controls);
+    setItemPageRange(mi_alwaysrun, mi_sensitivityY, page_controls);
 
 #ifdef DEBUG_MENU_HACK
     setMenuItemWithOptionNames(mi_dbg1, 160, 40, "1S", true, muiStyle_text | muiStyle_slider, &opt_dbg1, DEBUG1_OPTIONS_NUM, dbg1OptionsStr);
@@ -392,14 +405,14 @@ void initMenuOptions()
 	setMenuItemWithOptionNames(mi_shading_depth, 40, 100, "Depth shade", false, muiStyle_text, &optGraphics->depthShading, DEPTH_SHADING_OPTIONS_NUM, depthShadingOptionsStr);
     setMenuItemWithOptionNames(mi_shading_items, 36, 120, "Things shade", false, muiStyle_text, &optGraphics->thingsShading, OFFON_OPTIONS_NUM, offOnOptionsStr);
     setMenuItemWithOptionNames(mi_renderer, 48, 140, "Renderer", false, muiStyle_text, &optGraphics->renderer, RENDERER_OPTIONS_NUM, rendererOptionsStr);
-    setItemPageRange(mi_presets, mi_renderer, page_rendering);
+    setItemPageRange(mi_presets, mi_renderer, page_rendering1);
 
     setMenuItemWithOptionNames(mi_border, 40, 40, "Draw border", false, muiStyle_text, &optOther->border, OFFON_OPTIONS_NUM,offOnOptionsStr);
     setMenuItemWithOptionNames(mi_mapLines, 48, 60, "Map lines", false, muiStyle_text, &optOther->thickLines, THICK_LINES_OPTIONS_NUM, thicklinesOptionsStr);
 
     setMenuItemWithOptionNames(mi_sky, 96, 100, "Sky", false, muiStyle_text, &optOther->sky, SKY_OPTIONS_NUM, skyOptionsStr); setMenuItemVisibility(mi_sky, enableNewSkies);
     setMenuItem(mi_firesky_slider, 96, 120, 0, false, muiStyle_slider, &optOther->fireSkyHeight, SKY_HEIGHTS_OPTIONS_NUM); setMenuItemVisibility(mi_firesky_slider, false);
-    setItemPageRange(mi_border, mi_firesky_slider, page_effects);
+    setItemPageRange(mi_border, mi_firesky_slider, page_rendering2);
 
     setMenuItem(mi_enableCheats, 160, 40, "Enable cheats", true, muiStyle_slider, &optOther->cheatsRevealed, CHEATS_REVEALED_OPTIONS_NUM);
     setMenuItemWithOptionNames(mi_cheatAutomap, 96, 80, "Automap", false, muiStyle_text, &optOther->cheatAutomap, AUTOMAP_OPTIONS_NUM, automapOptionsStr);     setMenuItemVisibility(mi_cheatAutomap, false);
@@ -409,10 +422,11 @@ void initMenuOptions()
     setItemPageRange(mi_enableCheats, mi_cheatIDKFA, page_cheats);
 
     setMenuItemWithOptionNames(mi_playerSpeed, 60, 40, "Player speed", false, muiStyle_text, &optOther->playerSpeed, PLAYER_SPEED_OPTIONS_NUM, playerSpeedOptionsStr);
-    setMenuItemWithOptionNames(mi_enemySpeed, 60, 70, "Enemy speed", false, muiStyle_text, &optOther->enemySpeed, ENEMY_SPEED_OPTIONS_NUM, enemySpeedOptionsStr);
-    setMenuItemWithOptionNames(mi_extraBlood, 60, 100, "Extra blood", false, muiStyle_text, &optOther->extraBlood, OFFON_OPTIONS_NUM, offOnOptionsStr);
-    setMenuItemWithOptionNames(mi_flyMode, 60, 130, "Fly mode", false, muiStyle_text, &optOther->fly, OFFON_OPTIONS_NUM, offOnOptionsStr);
-    setItemPageRange(mi_playerSpeed, mi_flyMode, page_extra);
+    setMenuItemWithOptionNames(mi_enemySpeed, 60, 60, "Enemy speed", false, muiStyle_text, &optOther->enemySpeed, ENEMY_SPEED_OPTIONS_NUM, enemySpeedOptionsStr);
+    setMenuItemWithOptionNames(mi_extraBlood, 60, 80, "Extra blood", false, muiStyle_text, &optOther->extraBlood, OFFON_OPTIONS_NUM, offOnOptionsStr);
+    setMenuItemWithOptionNames(mi_flyMode, 60, 100, "Fly mode", false, muiStyle_text, &optOther->fly, OFFON_OPTIONS_NUM, offOnOptionsStr);
+    setMenuItemWithOptionNames(mi_stats, 88, 120, "Stats", false, muiStyle_text, &optOther->stats, maxStatOptions, statsOptionsStr);
+    setItemPageRange(mi_playerSpeed, mi_stats, page_extra);
 }
 
 /*********************************
@@ -497,14 +511,14 @@ static void handleCheatsMenuVisibility()
 static void drawMenuItemControls()
 {
     MenuItem *mi = &menuItems[mi_controls];
-    int jposX = mi->posX - 70;
+    int jposX = mi->posX - 16;
 
-    PrintBigFont(jposX+10,mi->posY+20,(Byte*)"A");
-    PrintBigFont(jposX+10,mi->posY+40,(Byte*)"B");
-    PrintBigFont(jposX+10,mi->posY+60,(Byte*)"C");
-    PrintBigFont(jposX+40,mi->posY+20,(Byte*)buttona[ControlType]);
-    PrintBigFont(jposX+40,mi->posY+40,(Byte*)buttonb[ControlType]);
-    PrintBigFont(jposX+40,mi->posY+60,(Byte*)buttonc[ControlType]);
+    PrintBigFont(jposX+10,mi->posY,(Byte*)"A");
+    PrintBigFont(jposX+10,mi->posY+20,(Byte*)"B");
+    PrintBigFont(jposX+10,mi->posY+40,(Byte*)"C");
+    PrintBigFont(jposX+40,mi->posY,(Byte*)buttona[ControlType]);
+    PrintBigFont(jposX+40,mi->posY+20,(Byte*)buttonb[ControlType]);
+    PrintBigFont(jposX+40,mi->posY+40,(Byte*)buttonc[ControlType]);
 }
 
 static void handleSpecialMenuItemActions(player_t *player, Word menuItemIndex)
@@ -561,6 +575,12 @@ static void handleSpecialMenuItemActions(player_t *player, Word menuItemIndex)
         case mi_sky:
             setMenuItemVisibility(mi_firesky_slider, (optOther->sky==SKY_PLAYSTATION));
         break;
+
+		case mi_input:
+			setMenuItemVisibility(mi_controls, optOther->input==INPUT_DPAD_ONLY);
+			setMenuItemVisibility(mi_sensitivityX, optOther->input > INPUT_DPAD_ONLY);
+			setMenuItemVisibility(mi_sensitivityY, optOther->input == INPUT_MOUSE_ONLY);
+		break;
 
         case mi_firesky_slider:
             updateFireSkyHeightPal();

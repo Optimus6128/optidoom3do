@@ -114,7 +114,7 @@ bool debugMode;
 #define NUM_OFF_ON_SELECTIONS 2
 #define NUM_LOADING_FIX 3
 #define NUM_SOUND_FX_SELECTIONS 2
-#define NUM_VISPLANE_SELECTIONS 9
+#define NUM_VISPLANE_SELECTIONS 11
 
 #define MAX_WAD_SELECTIONS 256
 
@@ -122,7 +122,7 @@ static char *wadsSelection[MAX_WAD_SELECTIONS];
 static char *loadingFixSelection[NUM_LOADING_FIX] = { "OFF", "ON", "RELAXED" };
 static char *offOnSelection[NUM_OFF_ON_SELECTIONS] = { "OFF", "ON" };
 static char *soundFxSelection[NUM_SOUND_FX_SELECTIONS] = { "ORIGINAL", "PSX" };
-static int maxVisplanesSelection[NUM_VISPLANE_SELECTIONS] = { 32, 40, 48, 56, 64, 72, 80, 88, 96 };
+static int maxVisplanesSelection[NUM_VISPLANE_SELECTIONS] = { 16, 24, 32, 40, 48, 56, 64, 72, 80, 88, 96 };
 
 static char *wadsFolder = "wads";
 static DirectoryEntry *wadsDirectoryEntry;
@@ -144,10 +144,10 @@ enum {
 
 static ModMenuItem mmItems[MMOPT_NUM+1] = {
 	{ "MODS:", wadsSelection, 1, TYPE_STRING, 0 },
-	{ "LOADING FIX:", loadingFixSelection, NUM_LOADING_FIX, TYPE_STRING, 1 },
+	{ "LOADING FIX:", loadingFixSelection, NUM_LOADING_FIX, TYPE_STRING, 2 },
 	{ "NEW SKIES:", offOnSelection, NUM_OFF_ON_SELECTIONS, TYPE_STRING, 0 },
 	{ "SOUND FX:", soundFxSelection, NUM_SOUND_FX_SELECTIONS, TYPE_STRING, 0 },
-	{ "MAX VISPLANES:", maxVisplanesSelection, NUM_VISPLANE_SELECTIONS, TYPE_INT, 0 },
+	{ "MAX VISPLANES:", maxVisplanesSelection, NUM_VISPLANE_SELECTIONS, TYPE_INT, 4 },
 	{ "SKIP LOGOS:", offOnSelection, NUM_OFF_ON_SELECTIONS, TYPE_STRING, 1 },
 	{ "DEBUG MODE:", offOnSelection, NUM_OFF_ON_SELECTIONS, TYPE_STRING, 0 },
 	NULL

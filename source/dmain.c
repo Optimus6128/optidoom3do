@@ -1,4 +1,5 @@
 #include "Doom.h"
+#include "input.h"
 
 /**********************************
 
@@ -110,6 +111,8 @@ Word MiniLoop(void(*start)(void),void(*stop)(void),
 	JoyPadButtons = PrevJoyPadButtons = NewJoyPadButtons = 0;
 
 	do {		/* Run the tic immediately */
+		updateInput();
+
 		TotalGameTicks += ElapsedTime;		/* Add to the VBL count */
 		exit = ticker();			/* Process the keypad commands */
 
