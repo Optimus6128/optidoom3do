@@ -189,6 +189,22 @@ static void P_PlayerMobjThink (mobj_t *mobj)
 
 **********************************/
 
+static Fixed tryMoveBasedOnOppositeButtons(Word buttonPlus, Word buttonMinus, bool isStrafe, Word buttons, Word SpeedIndex)
+{
+	Fixed Motion = 0;
+	if (buttons & (buttonPlus|buttonMinus)) { /* Side motion? */
+		if (isStrafe) {
+			Motion = sidemove[SpeedIndex]*ElapsedTime;	/* Sidestep to the right */
+		} else {
+			Motion = forwardmove[SpeedIndex]*ElapsedTime;
+		}
+		if (buttons & buttonMinus) {
+			Motion = -Motion;	/* Sidestep to the left */
+		}
+	}
+	return Motion;
+}
+
 static void P_BuildMove(player_t *player)
 {
 	Word buttons;		/* Current joypad */
@@ -200,68 +216,87 @@ static void P_BuildMove(player_t *player)
 
 	buttons = JoyPadButtons;
 	oldbuttons = PrevJoyPadButtons;
-	SpeedIndex = (buttons&PadSpeed) ? 1 : 0;
+	SpeedIndex = ((buttons&PadSpeed) && optOther->input == INPUT_DPAD_ONLY)  ? 1 : 0;
 	SpeedIndex ^= optOther->alwaysRun;
 
-/* Use two stage accelerative turning on the joypad */
-
-	TurnIndex = player->turnheld + ElapsedTime;
-
-	if ( !(buttons & PadLeft) || !(oldbuttons & PadLeft) ) {		/* Not held? */
-		if ( !(buttons & PadRight) || !(oldbuttons & PadRight) ) {
-			TurnIndex = 0;		/* Reset timer */
-		}
-	}
-	if (TurnIndex >= SLOWTURNTICS) {	/* Detect overflow */
-		TurnIndex = SLOWTURNTICS-1;
-	}
-	player->turnheld = TurnIndex;		/* Save it */
-
+	// Player DPAD Strafe
 	Motion = 0;				/* Assume no side motion */
-	if (!(buttons & PadUse) && optOther->input == INPUT_DPAD_ONLY) {		/* Use allows weapon change */
-		if (buttons & (PadRightShift|PadLeftShift)) {	/* Side motion? */
-			Motion = sidemove[SpeedIndex]*ElapsedTime;	/* Sidestep to the right */
-			if (buttons & PadLeftShift) {
-				Motion = -Motion;	/* Sidestep to the left */
-			}
+	if ((!(buttons & PadUse) || optOther->input != INPUT_DPAD_ONLY)) {		/* Use allows weapon change */
+
+		switch(optOther->input) {
+			case INPUT_DPAD_ONLY:
+				Motion = tryMoveBasedOnOppositeButtons(PadRightShift, PadLeftShift, true, buttons, SpeedIndex);
+			break;
+			
+			case INPUT_MOUSE_AND_DPAD:
+				Motion = tryMoveBasedOnOppositeButtons(PadRight, PadLeft, true, buttons, SpeedIndex);
+			break;
+			
+			case INPUT_MOUSE_AND_DPAD_TILT:
+				Motion = tryMoveBasedOnOppositeButtons(PadUp, PadDown, true, buttons, SpeedIndex);
+			break;
+
+			case INPUT_MOUSE_AND_ABC:
+				Motion = tryMoveBasedOnOppositeButtons(PadC, PadA, true, buttons, SpeedIndex);
+			break;
 		}
 	}
+
 	if (!(player->mo->flags & MF_NOGRAVITY)) {
         player->sidemove = Motion;		/* Save the result */
 	} else {
 	    player->mo->momz = -(Motion << 2);
 	}
 
-	Motion = 0;			/* No angle turning */
-	if (SpeedIndex && !(buttons&(PadUp|PadDown)) ) {
-		if (buttons & (PadRight|PadLeft)) {
-			Motion = fastangleturn[TurnIndex]*ElapsedTime;
-			if (buttons & PadRight) {
-				Motion = -Motion;
+
+	// Player DPAD rotation
+	/* Use two stage accelerative turning on the joypad */
+	if (optOther->input == INPUT_DPAD_ONLY) {
+		TurnIndex = player->turnheld + ElapsedTime;
+
+		if ( !(buttons & PadLeft) || !(oldbuttons & PadLeft) ) {		/* Not held? */
+			if ( !(buttons & PadRight) || !(oldbuttons & PadRight) ) {
+				TurnIndex = 0;		/* Reset timer */
 			}
 		}
-	} else {
-		if (buttons & (PadRight|PadLeft)) {
-			Motion = angleturn[TurnIndex];		/* Don't time adjust, for fine tuning */
-			if (ElapsedTime<4) {
-				Motion>>=1;
-				if (ElapsedTime<2) {
-					Motion>>=1;
+		if (TurnIndex >= SLOWTURNTICS) {	/* Detect overflow */
+			TurnIndex = SLOWTURNTICS-1;
+		}
+		player->turnheld = TurnIndex;		/* Save it */
+
+		Motion = 0;			/* No angle turning */
+		if (SpeedIndex && !(buttons&(PadUp|PadDown)) ) {
+			if (buttons & (PadRight|PadLeft)) {
+				Motion = fastangleturn[TurnIndex]*ElapsedTime;
+				if (buttons & PadRight) {
+					Motion = -Motion;
 				}
 			}
-			if (buttons & PadRight) {
-				Motion = -Motion;
+		} else {
+			if (buttons & (PadRight|PadLeft)) {
+				Motion = angleturn[TurnIndex];		/* Don't time adjust, for fine tuning */
+				if (ElapsedTime<4) {
+					Motion>>=1;
+					if (ElapsedTime<2) {
+						Motion>>=1;
+					}
+				}
+				if (buttons & PadRight) {
+					Motion = -Motion;
+				}
 			}
 		}
+		player->angleturn = Motion;		/* Save the new angle */
 	}
-	player->angleturn = Motion;		/* Save the new angle */
 
 	Motion = 0;
-	if (buttons & (PadUp|PadDown)) {
-		Motion = forwardmove[SpeedIndex]*ElapsedTime;
-		if (buttons & PadDown) {
-			Motion = -Motion;
-		}
+	if (optOther->input == INPUT_MOUSE_AND_ABC) {
+		Motion = tryMoveBasedOnOppositeButtons(PadB, 0, false, buttons, SpeedIndex);
+		if (isMouseButtonPressed(MOUSE_BUTTON_MIDDLE)) Motion = -forwardmove[SpeedIndex]*ElapsedTime;
+	} else if (optOther->input == INPUT_MOUSE_AND_DPAD_TILT) {
+		Motion = tryMoveBasedOnOppositeButtons(PadLeft, PadRight, false, buttons, SpeedIndex);
+	} else {
+		Motion = tryMoveBasedOnOppositeButtons(PadUp, PadDown, false, buttons, SpeedIndex);
 	}
 	player->forwardmove = Motion;	/* Save the motion */
 
@@ -573,7 +608,7 @@ void P_PlayerThink(player_t *player)
 
 /* Process weapon attacks */
 
-	if ((buttons & PadAttack) || isMouseButtonPressed(MOUSE_BUTTON_LEFT)) {			/* Am I attacking? */
+	if ((optOther->input != INPUT_MOUSE_AND_ABC && buttons & PadAttack) || (optOther->input != INPUT_DPAD_ONLY && isMouseButtonPressed(MOUSE_BUTTON_LEFT))) {			/* Am I attacking? */
 		player->attackdown+=ElapsedTime;		/* Add in the timer */
 		if (player->attackdown >= (TICKSPERSEC*2)) {
 			stbar.specialFace = f_mowdown;

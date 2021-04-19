@@ -291,8 +291,7 @@ void A_WeaponReady(player_t *player,pspdef_t *psp)
 	}
 
 /* check for weapon fire */
-
-	if ((JoyPadButtons & PadAttack) || isMouseButtonPressed(MOUSE_BUTTON_LEFT)) {		/* Attack? */
+	if ((optOther->input != INPUT_MOUSE_AND_ABC && JoyPadButtons & PadAttack) || (optOther->input != INPUT_DPAD_ONLY && isMouseButtonPressed(MOUSE_BUTTON_LEFT))) {			/* Attack? */
 		FireWeapon(player);				/* Fire the weapon... */
 		return;				/* Exit now */
 	}
