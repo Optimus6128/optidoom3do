@@ -147,7 +147,7 @@ static ModMenuItem mmItems[MMOPT_NUM+1] = {
 	{ "LOADING FIX:", loadingFixSelection, NUM_LOADING_FIX, TYPE_STRING, 2 },
 	{ "NEW SKIES:", offOnSelection, NUM_OFF_ON_SELECTIONS, TYPE_STRING, 0 },
 	{ "SOUND FX:", soundFxSelection, NUM_SOUND_FX_SELECTIONS, TYPE_STRING, 0 },
-	{ "MAX VISPLANES:", maxVisplanesSelection, NUM_VISPLANE_SELECTIONS, TYPE_INT, 4 },
+	{ "MAX VISPLANES:", maxVisplanesSelection, NUM_VISPLANE_SELECTIONS, TYPE_INT, 3 },
 	{ "SKIP LOGOS:", offOnSelection, NUM_OFF_ON_SELECTIONS, TYPE_STRING, 1 },
 	{ "DEBUG MODE:", offOnSelection, NUM_OFF_ON_SELECTIONS, TYPE_STRING, 0 },
 	NULL
