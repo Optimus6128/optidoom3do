@@ -11,9 +11,27 @@
 #define SEC_SPEC_ORIG_BITS 0x1F
 
 
-typedef struct MyCCB {		/* Clone of the CCB Block from the 3DO includes */
+// Minimal CCB that excludes HDDX,HDDY,CCB_Width and CCB_Height. Used for 2d scaled bitmaps and columns.
+typedef struct BitmapCCB {
 	uint32 ccb_Flags;
-	struct MyCCB *ccb_NextPtr;
+	struct BitmapCCB *ccb_NextPtr;
+	CelData    *ccb_SourcePtr;
+	void       *ccb_PLUTPtr;
+	Coord ccb_XPos;
+	Coord ccb_YPos;
+	int32  ccb_HDX;
+	int32  ccb_HDY;
+	int32  ccb_VDX;
+	int32  ccb_VDY;
+	uint32 ccb_PIXC;
+	uint32 ccb_PRE0;
+	uint32 ccb_PRE1;
+} BitmapCCB;
+
+// Minimal CCB that excludes CCB_Width and CCB_Height but still needs HDDX and HDDY. Used for polygon walls mode.
+typedef struct PolyCCB {
+	uint32 ccb_Flags;
+	struct PolyCCB *ccb_NextPtr;
 	CelData    *ccb_SourcePtr;
 	void       *ccb_PLUTPtr;
 	Coord ccb_XPos;
@@ -27,7 +45,9 @@ typedef struct MyCCB {		/* Clone of the CCB Block from the 3DO includes */
 	uint32 ccb_PIXC;
 	uint32 ccb_PRE0;
 	uint32 ccb_PRE1;
-} MyCCB;			/* I DON'T include width and height */
+} PolyCCB;
+
+typedef PolyCCB MyCCB;	// The old MyCCB still needed to refer to loaded resources, is the same as the PolyCCB
 
 typedef struct {
     Word xStart;
@@ -138,9 +158,11 @@ extern Byte *CelLine190;            // strange pointer to something having to do
 extern Word LightTable[32];
 extern Word LightTableFog[32];
 extern bool testEnableFog;
+extern CCB *dummyCCB;				// this is to reset HDDX and HDDY to zero
 
 void initAllCCBelements(void);
-void drawCCBarray(MyCCB* lastCCB, MyCCB *CCBArrayPtr);
+void initDummyCCB(void);
+void drawCCBarray(BitmapCCB *lastCCB, BitmapCCB *CCBArrayPtr);
 void FlushCCBs(void);
 void resetSpanPointer(void);
 void AddCelToCurrentCCB(CCB* cel);

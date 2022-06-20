@@ -22,7 +22,7 @@ static Word PlaneHeight;
 
 static visspan_t spandata[MAXSCREENHEIGHT];
 
-static MyCCB CCBArrayPlane[CCB_ARRAY_PLANE_MAX];
+static BitmapCCB CCBArrayPlane[CCB_ARRAY_PLANE_MAX];
 static int CCBArrayPlaneCurrent = 0;
 
 static uint16 *coloredPlanePals = NULL;
@@ -64,15 +64,15 @@ static void initSpanDrawFunc(void)
 
 static void initCCBarrayPlane(void)
 {
-	MyCCB *CCBPtr;
+	BitmapCCB *CCBPtr;
 	int i;
 
 	CCBPtr = &CCBArrayPlane[0];
 	for (i=0; i<CCB_ARRAY_PLANE_MAX; ++i) {
-        CCBPtr->ccb_NextPtr = (MyCCB *)(sizeof(MyCCB)-8);	// Create the next offset
+        CCBPtr->ccb_NextPtr = (BitmapCCB *)(sizeof(BitmapCCB)-8);	// Create the next offset
 
 		// Set all the defaults
-        CCBPtr->ccb_Flags = CCB_SPABS|CCB_LDPLUT|CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_PPABS;
+        CCBPtr->ccb_Flags = CCB_SPABS|CCB_LDPLUT|CCB_LDSIZE|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_PPABS;
 
         CCBPtr->ccb_PRE0 = 0x00000005;		// Preamble (Coded 8 bit)
         CCBPtr->ccb_HDX = 1<<20;
@@ -86,15 +86,15 @@ static void initCCBarrayPlane(void)
 
 static void initCCBarrayPlaneFlat(void)
 {
-	MyCCB *CCBPtr;
+	BitmapCCB *CCBPtr;
 	int i;
 
 	CCBPtr = &CCBArrayPlane[0];
 	for (i=0; i<CCB_ARRAY_PLANE_MAX; ++i) {
-		CCBPtr->ccb_NextPtr = (MyCCB *)(sizeof(MyCCB)-8);	// Create the next offset
+		CCBPtr->ccb_NextPtr = (BitmapCCB *)(sizeof(BitmapCCB)-8);	// Create the next offset
 
 		// Set all the defaults
-        CCBPtr->ccb_Flags = CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK;
+        CCBPtr->ccb_Flags = CCB_LDSIZE|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK;
 
         CCBPtr->ccb_PRE0 = 0x40000016;
         CCBPtr->ccb_PRE1 = 0x03FF1000;
@@ -117,7 +117,7 @@ static void fillSpanArrayWithDitheredCheckerboard()
 
 static void initCCBarrayPlaneFlatDithered()
 {
-	MyCCB *CCBPtr;
+	BitmapCCB *CCBPtr;
 	int i;
 	
 	resetSpanPointer();
@@ -125,10 +125,10 @@ static void initCCBarrayPlaneFlatDithered()
 
 	CCBPtr = &CCBArrayPlane[0];
 	for (i=0; i<CCB_ARRAY_PLANE_MAX; ++i) {
-        CCBPtr->ccb_NextPtr = (MyCCB *)(sizeof(MyCCB)-8);	// Create the next offset
+        CCBPtr->ccb_NextPtr = (BitmapCCB *)(sizeof(BitmapCCB)-8);	// Create the next offset
 
 	// Set all the defaults
-        CCBPtr->ccb_Flags = CCB_SPABS|CCB_LDPLUT|CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_PPABS;
+        CCBPtr->ccb_Flags = CCB_SPABS|CCB_LDPLUT|CCB_LDSIZE|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_PPABS;
 
         CCBPtr->ccb_HDX = 1<<20;
         CCBPtr->ccb_HDY = 0<<20;
@@ -141,15 +141,15 @@ static void initCCBarrayPlaneFlatDithered()
 
 static void initCCBarrayPlaneFlatVertical()
 {
-	MyCCB *CCBPtr;
+	BitmapCCB *CCBPtr;
 	int i;
 
 	CCBPtr = &CCBArrayPlane[0];
 	for (i=0; i<CCB_ARRAY_PLANE_MAX; ++i) {
-		CCBPtr->ccb_NextPtr = (MyCCB *)(sizeof(MyCCB)-8);	// Create the next offset
+		CCBPtr->ccb_NextPtr = (BitmapCCB *)(sizeof(BitmapCCB)-8);	// Create the next offset
 
 		// Set all the defaults
-        CCBPtr->ccb_Flags = CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK;
+        CCBPtr->ccb_Flags = CCB_LDSIZE|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK;
 
         CCBPtr->ccb_PRE0 = 0x40000016;
         CCBPtr->ccb_PRE1 = 0x03FF1000;
@@ -157,8 +157,6 @@ static void initCCBarrayPlaneFlatVertical()
         CCBPtr->ccb_HDX = 0<<20;
         CCBPtr->ccb_VDX = 1<<16;
         CCBPtr->ccb_VDY = 0<<16;
-		CCBPtr->ccb_HDDX = 0;
-		CCBPtr->ccb_HDDY = 0;
 
 		++CCBPtr;
 	}
@@ -195,26 +193,27 @@ void initPlaneCELs()
 
 void drawCCBarrayPlane(Word xEnd)
 {
-    MyCCB *spanCCBstart, *spanCCBend;
+    BitmapCCB *spanCCBstart, *spanCCBend;
 
     spanCCBstart = &CCBArrayPlane[0];           // First span CEL of the plane segment
 	spanCCBend = &CCBArrayPlane[xEnd];          // Last span CEL of the plane segment
+	dummyCCB->ccb_NextPtr = (CCB*)spanCCBstart;	// Start with dummy to reset HDDX and HDDY
 
-	spanCCBend->ccb_Flags |= CCB_LAST;          // Mark last colume CEL as the last one in the linked list
-    DrawCels(VideoItem,(CCB*)spanCCBstart);     // Draw all the cels of a single plane in one shot
-
-    spanCCBend->ccb_Flags ^= CCB_LAST;          // remember to flip off that CCB_LAST flag, since we don't reinit the flags for all spans every time
+	spanCCBend->ccb_Flags |= CCB_LAST;		// Mark last colume CEL as the last one in the linked list
+    DrawCels(VideoItem,dummyCCB);			// Draw all the cels of a single plane in one shot
+    spanCCBend->ccb_Flags ^= CCB_LAST;		// remember to flip off that CCB_LAST flag, since we don't reinit the flags for all spans every time
 }
 
-void drawCCBarrayPlaneVertical(MyCCB *columnCCBend)
+void drawCCBarrayPlaneVertical(BitmapCCB *columnCCBend)
 {
-    MyCCB *columnCCBstart;
+    BitmapCCB *columnCCBstart;
 
-	columnCCBstart = &CCBArrayPlane[0];     			// First column CEL of the plane segment
+	columnCCBstart = &CCBArrayPlane[0];     		// First column CEL of the plane segment
+	dummyCCB->ccb_NextPtr = (CCB*)columnCCBstart;	// Start with dummy to reset HDDX and HDDY
 
-	columnCCBend->ccb_Flags |= CCB_LAST;                // Mark last colume CEL as the last one in the linked list
-    DrawCels(VideoItem,(CCB*)columnCCBstart);           // Draw all the cels of a single plane in one shot
-    columnCCBend->ccb_Flags ^= CCB_LAST;                // remember to flip off that CCB_LAST flag, since we don't reinit the flags for all columns every time
+	columnCCBend->ccb_Flags |= CCB_LAST;		// Mark last colume CEL as the last one in the linked list
+    DrawCels(VideoItem, dummyCCB);           	// Draw all the cels of a single plane in one shot
+    columnCCBend->ccb_Flags ^= CCB_LAST;		// remember to flip off that CCB_LAST flag, since we don't reinit the flags for all columns every time
 }
 
 void flushCCBarrayPlane()
@@ -227,7 +226,7 @@ void flushCCBarrayPlane()
 
 static void MapPlane(Word y1, Word y2)
 {
-    MyCCB *CCBPtr;
+    BitmapCCB *CCBPtr;
     Byte *DestPtr;
     int numCels;
     int y;
@@ -280,7 +279,7 @@ static void MapPlane(Word y1, Word y2)
 
 static void MapPlaneUnshaded(Word y1, Word y2)
 {
-    MyCCB *CCBPtr;
+    BitmapCCB *CCBPtr;
     Byte *DestPtr;
     int numCels;
     int y, light;
@@ -337,7 +336,7 @@ static void MapPlaneUnshaded(Word y1, Word y2)
 
 static void MapPlaneFlat(Word y1, Word y2, Word color)
 {
-    MyCCB *CCBPtr;
+    BitmapCCB *CCBPtr;
     int numCels;
     int y;
 
@@ -365,7 +364,7 @@ static void MapPlaneFlat(Word y1, Word y2, Word color)
 
 static void MapPlaneFlatDithered(Word y1, Word y2, const Word *color)
 {
-    MyCCB *CCBPtr;
+    BitmapCCB *CCBPtr;
     int numCels;
     int y;
 
@@ -659,7 +658,7 @@ void DrawVisPlaneVertical(visplane_t *p)
 	int topY, bottomY;
 	Word *open = p->open;
 
-	MyCCB *CCBPtr;
+	BitmapCCB *CCBPtr;
 	const Word color = p->color;
 
 	Word light = p->PlaneLight;

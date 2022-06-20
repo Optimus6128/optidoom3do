@@ -25,8 +25,8 @@ static drawtex_t drawtex;
 
 static Word pixcLight;
 
-static MyCCB CCBQuadWallFlat;
-static MyCCB CCBQuadWallTextured[MAX_WALL_PARTS];
+static PolyCCB CCBQuadWallFlat;
+static PolyCCB CCBQuadWallTextured[MAX_WALL_PARTS];
 
 static const int flatTexWidth = 8;  static const int flatTexWidthShr = 3;
 static const int flatTexHeight = 1;  static const int flatTexHeightShr = 0;
@@ -63,12 +63,12 @@ void initCCBQuadWallFlat()
 
 void initCCBQuadWallTextured()
 {
-	MyCCB *CCBPtr;
+	PolyCCB *CCBPtr;
 	int i;
 
 	CCBPtr = CCBQuadWallTextured;
 	for (i=0; i<MAX_WALL_PARTS; ++i) {
-		CCBPtr->ccb_NextPtr = (MyCCB *)(sizeof(MyCCB)-8);	// Create the next offset
+		CCBPtr->ccb_NextPtr = (PolyCCB *)(sizeof(PolyCCB)-8);	// Create the next offset
 
         CCBPtr->ccb_Flags = CCB_SPABS|CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_PPABS|CCB_ACSC|CCB_ALSC;
         if (i==0) CCBPtr->ccb_Flags |= CCB_LDPLUT;  // First CEL column will set the palette and shading for the rest
@@ -137,9 +137,21 @@ static void DrawWallSegmentFlatPoly(drawtex_t *tex)
     DrawCels(VideoItem,(CCB*)&CCBQuadWallFlat);
 }
 
+void drawCCBarrayPoly(PolyCCB *lastCCB, PolyCCB *CCBArrayPtr)
+{
+    PolyCCB *polyCCBstart, *polyCCBend;
+
+	polyCCBstart = CCBArrayPtr;                // First poly CEL of the wall segment
+	polyCCBend = lastCCB;                      // Last poly CEL of the wall segment
+
+	polyCCBend->ccb_Flags |= CCB_LAST;         // Mark last colume CEL as the last one in the linked list
+    DrawCels(VideoItem,(CCB*)polyCCBstart);    // Draw all the cels of a single wall in one shot
+    polyCCBend->ccb_Flags ^= CCB_LAST;         // remember to flip off that CCB_LAST flag, since we don't reinit the flags for all polys every time
+}
+
 static void DrawWallSegmentTexturedQuadSubdivided(drawtex_t *tex, int run, Word pre0part, Word pre1part, Word frac)
 {
-    MyCCB *CCBPtr;
+    PolyCCB *CCBPtr;
 
     Byte *texBitmap = &tex->data[32];
 
@@ -218,7 +230,7 @@ static void DrawWallSegmentTexturedQuadSubdivided(drawtex_t *tex, int run, Word 
         ++CCBPtr;
     } while(--count != 0);
 
-    drawCCBarray(--CCBPtr, CCBQuadWallTextured);
+    drawCCBarrayPoly(--CCBPtr, CCBQuadWallTextured);
 }
 
 

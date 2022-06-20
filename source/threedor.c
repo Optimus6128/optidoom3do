@@ -20,14 +20,16 @@
 
 #define CCBTotal 0x100
 
-static MyCCB CCBArray[CCBTotal];		/* Array of CCB structs */
-static MyCCB *CurrentCCB = &CCBArray[0];	/* Pointer to empty CCB */
+static BitmapCCB CCBArray[CCBTotal];		/* Array of CCB structs */
+static BitmapCCB *CurrentCCB = &CCBArray[0];	/* Pointer to empty CCB */
 
 Byte *CelLine190;
 
 Byte SpanArray[MAXSCREENWIDTH*MAXSCREENHEIGHT];	/* Buffer for plane textures */
 Byte *SpanPtr = SpanArray;		/* Pointer to empty buffer */
 
+CCB *dummyCCB;	// this is to reset HDDX and HDDY to zero
+uint16 dummyCol = 0;
 
 // New n/16 dark shades LightTable that doesn't require USEAV on the CEL
 // We scrap USEAV because we can the use the 5 AV bits in the future for fog instead (shade to white)
@@ -55,14 +57,12 @@ Word LightTableFogOrig[32] = {
 
 static void initCCBarray(void)
 {
-	MyCCB *CCBPtr;
+	BitmapCCB *CCBPtr;
 	int i = CCBTotal;
 
 	CCBPtr = CCBArray;
 	do {
-		CCBPtr->ccb_NextPtr = (MyCCB *)(sizeof(MyCCB)-8);	/* Create the next offset */
-		CCBPtr->ccb_HDDX = 0;	/* Set the defaults */
-		CCBPtr->ccb_HDDY = 0;
+		CCBPtr->ccb_NextPtr = (BitmapCCB *)(sizeof(BitmapCCB)-8);	/* Create the next offset */
 		++CCBPtr;
 	} while (--i);
 }
@@ -106,6 +106,12 @@ void initColoredPals(uint16 *srcPal, uint16 *dstPal, int numCols, Word colorMul)
 	}
 }
 
+void initDummyCCB()
+{
+	dummyCCB = CreateCel(1, 1, 16, CREATECEL_UNCODED, &dummyCol);
+	dummyCCB->ccb_Flags &= ~CCB_LAST;
+}
+
 void initAllCCBelements()
 {
     initCCBarray();
@@ -120,16 +126,13 @@ void initAllCCBelements()
 	initFog();
 }
 
-void drawCCBarray(MyCCB* lastCCB, MyCCB *CCBArrayPtr)
+void drawCCBarray(BitmapCCB *lastCCB, BitmapCCB *CCBArrayPtr)
 {
-    MyCCB *columnCCBstart, *columnCCBend;
+	dummyCCB->ccb_NextPtr = (CCB*)CCBArrayPtr;	//  A dummy CCB with HDDX, HDDY reset to zero and enabled, to lead the rest where they are missing
 
-	columnCCBstart = CCBArrayPtr;                // First column CEL of the wall segment
-	columnCCBend = lastCCB;                      // Last column CEL of the wall segment
-
-	columnCCBend->ccb_Flags |= CCB_LAST;         // Mark last colume CEL as the last one in the linked list
-    DrawCels(VideoItem,(CCB*)columnCCBstart);    // Draw all the cels of a single wall in one shot
-    columnCCBend->ccb_Flags ^= CCB_LAST;         // remember to flip off that CCB_LAST flag, since we don't reinit the flags for all columns every time
+	lastCCB->ccb_Flags |= CCB_LAST;         // Mark last colume CEL as the last one in the linked list
+    DrawCels(VideoItem, dummyCCB);			// Draw all the cels of a single wall in one shot
+    lastCCB->ccb_Flags ^= CCB_LAST;         // remember to flip off that CCB_LAST flag, since we don't reinit the flags for all columns every time
 }
 
 void resetSpanPointer()
@@ -139,13 +142,14 @@ void resetSpanPointer()
 
 void FlushCCBs(void)
 {
-	MyCCB* NewCCB;
+	BitmapCCB *NewCCB;
 
 	NewCCB = CurrentCCB;
 	if (NewCCB!=&CCBArray[0]) {
 		--NewCCB;		/* Get the last used CCB */
 		NewCCB->ccb_Flags |= CCB_LAST;	/* Mark as the last one */
-		DrawCels(VideoItem,(CCB *)&CCBArray[0]);	/* Draw all the cels in one shot */
+		dummyCCB->ccb_NextPtr = (CCB*)&CCBArray[0];
+		DrawCels(VideoItem,dummyCCB);	/* Draw all the cels in one shot */
 		CurrentCCB = &CCBArray[0];		/* Reset the empty entry */
 	}
     resetSpanPointer();
@@ -153,7 +157,7 @@ void FlushCCBs(void)
 
 void AddCelToCurrentCCB(CCB* cel)
 {
-	MyCCB* DestCCB;			// Pointer to new CCB entry
+	BitmapCCB *DestCCB;			// Pointer to new CCB entry
 	LongWord TheFlags;		// CCB flags
 	LongWord ThePtr;		// Temp pointer to munge
 
@@ -162,7 +166,7 @@ void AddCelToCurrentCCB(CCB* cel)
 		FlushCCBs();
 		DestCCB = CCBArray;
 	}
-	TheFlags = cel->ccb_Flags;		// Preload the CCB flags
+	TheFlags = cel->ccb_Flags & ~CCB_LDPRS;		// Preload the CCB flags
 	DestCCB->ccb_XPos = cel->ccb_XPos;		// Set the x and y coord
 	DestCCB->ccb_YPos = cel->ccb_YPos;
 	DestCCB->ccb_HDX = cel->ccb_HDX;	// Set the data for the CCB
@@ -213,9 +217,9 @@ void setColorGradient16(int c0, int c1, int r0, int g0, int b0, int r1, int g1, 
 
 **********************************/
 
-static void AddCCB(Word x,Word y,MyCCB* NewCCB)
+static void AddCCB(Word x,Word y,MyCCB *NewCCB)
 {
-	MyCCB* DestCCB;			/* Pointer to new CCB entry */
+	BitmapCCB *DestCCB;			/* Pointer to new CCB entry */
 	LongWord TheFlags;		/* CCB flags */
 	LongWord ThePtr;		/* Temp pointer to munge */
 
@@ -224,13 +228,14 @@ static void AddCCB(Word x,Word y,MyCCB* NewCCB)
 		FlushCCBs();
 		DestCCB = CCBArray;
 	}
-	TheFlags = NewCCB->ccb_Flags;		/* Preload the CCB flags */
+	TheFlags = NewCCB->ccb_Flags & ~CCB_LDPRS;		/* Preload the CCB flags */
 	DestCCB->ccb_XPos = x<<16;		/* Set the x and y coord */
 	DestCCB->ccb_YPos = y<<16;
 	DestCCB->ccb_HDX = NewCCB->ccb_HDX;	/* Set the data for the CCB */
 	DestCCB->ccb_HDY = NewCCB->ccb_HDY;
 	DestCCB->ccb_VDX = NewCCB->ccb_VDX;
 	DestCCB->ccb_VDY = NewCCB->ccb_VDY;
+
 	DestCCB->ccb_PIXC = NewCCB->ccb_PIXC;
 	DestCCB->ccb_PRE0 = NewCCB->ccb_PRE0;
 	DestCCB->ccb_PRE1 = NewCCB->ccb_PRE1;
@@ -288,7 +293,7 @@ void DrawShape(Word x,Word y,void *ShapePtr)
 
 void DrawLine(Word x1,Word y1,Word x2,Word y2,Word color,Word thickness)
 {
-	MyCCB* DestCCB;			/* Pointer to new CCB entry */
+	BitmapCCB *DestCCB;			/* Pointer to new CCB entry */
 	int thickOffset = thickness >> 1;
 
 	DestCCB = CurrentCCB;		/* Copy pointer to local */
@@ -296,8 +301,7 @@ void DrawLine(Word x1,Word y1,Word x2,Word y2,Word color,Word thickness)
 		FlushCCBs();				/* Draw all the CCBs/Lines */
 		DestCCB=CCBArray;
 	}
-	DestCCB->ccb_Flags = CCB_LDSIZE|CCB_LDPRS|
-		CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|
+	DestCCB->ccb_Flags = CCB_LDSIZE|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|
 		CCB_ACE|CCB_BGND|CCB_NOBLK;	/* ccb_flags */
 
 	DestCCB->ccb_PIXC = 0x1F00;		/* PIXC control */
@@ -377,7 +381,7 @@ void DrawThickLine(Word x1,Word y1,Word x2,Word y2,Word color)
 
 void DrawARect(Word x1,Word y1,Word Width,Word Height,Word color)
 {
-	MyCCB* DestCCB;			/* Pointer to new CCB entry */
+	BitmapCCB *DestCCB;			/* Pointer to new CCB entry */
 
 	if (Width==0 || Height==0) return;
 
@@ -386,8 +390,7 @@ void DrawARect(Word x1,Word y1,Word Width,Word Height,Word color)
 		FlushCCBs();				/* Draw all the CCBs/Lines */
 		DestCCB=CCBArray;
 	}
-	DestCCB->ccb_Flags = CCB_LDSIZE|CCB_LDPRS|
-		CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|
+	DestCCB->ccb_Flags = CCB_LDSIZE|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|
 		CCB_ACE|CCB_BGND|CCB_NOBLK;	/* ccb_flags */
 
 	DestCCB->ccb_PIXC = 0x1F00;		/* PIXC control */
@@ -509,14 +512,14 @@ static Word SpriteWidth;
 
 static void OneSpriteLine(Word x1,Byte *SpriteLinePtr)
 {
-	MyCCB *DestCCB;
+	BitmapCCB *DestCCB;
 
 	DestCCB = CurrentCCB;		/* Copy pointer to local */
 	if (DestCCB>=&CCBArray[CCBTotal]) {		/* Am I full already? */
 		FlushCCBs();				/* Draw all the CCBs/Lines */
 		DestCCB=CCBArray;
 	}
-	DestCCB->ccb_Flags = CCB_SPABS|CCB_LDSIZE|CCB_LDPRS|CCB_PACKED|
+	DestCCB->ccb_Flags = CCB_SPABS|CCB_LDSIZE|CCB_PACKED|
 	CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|
 	CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_PPABS|CCB_LDPLUT;	/* ccb_flags */
 
@@ -537,7 +540,7 @@ static void OneSpriteLine(Word x1,Byte *SpriteLinePtr)
 
 static void OneSpriteClipLine(Word x1,Byte *SpriteLinePtr,int Clip,int Run)
 {
-	MyCCB *DestCCB;
+	BitmapCCB *DestCCB;
 
 	DrawARect(0,191,Run,1,BLACK);
 	DestCCB = CurrentCCB;		/* Copy pointer to local */
@@ -545,7 +548,7 @@ static void OneSpriteClipLine(Word x1,Byte *SpriteLinePtr,int Clip,int Run)
 		FlushCCBs();				/* Draw all the CCBs/Lines */
 		DestCCB=CCBArray;
 	}
-	DestCCB->ccb_Flags = CCB_SPABS|CCB_LDSIZE|CCB_LDPRS|CCB_PACKED|
+	DestCCB->ccb_Flags = CCB_SPABS|CCB_LDSIZE|CCB_PACKED|
 	CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|
 	CCB_ACE|CCB_BGND|CCB_PPABS|CCB_LDPLUT;	/* ccb_flags */
 
@@ -562,7 +565,7 @@ static void OneSpriteClipLine(Word x1,Byte *SpriteLinePtr,int Clip,int Run)
 	DestCCB->ccb_VDY = 1<<16;
 	++DestCCB;			/* Next CCB */
 
-	DestCCB->ccb_Flags = CCB_SPABS|CCB_LDSIZE|CCB_LDPRS|
+	DestCCB->ccb_Flags = CCB_SPABS|CCB_LDSIZE|
 	CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|
 	CCB_ACE|CCB_NOBLK|CCB_PPABS;	/* ccb_flags */
 
@@ -719,7 +722,7 @@ void DrawSpriteCenter(Word SpriteNum)
 
 void DrawColors(void)
 {
-	MyCCB* DestCCB;			/* Pointer to new CCB entry */
+	BitmapCCB *DestCCB;			/* Pointer to new CCB entry */
 	player_t *player;
 	Word ccb,color;
 	Word red,green,blue;
@@ -728,7 +731,7 @@ void DrawColors(void)
 	if (player->powers[pw_invulnerability] > 240		/* Full strength */
 		|| (player->powers[pw_invulnerability]&16) ) {	/* Flashing... */
 		color = 0x7FFF<<16;
-		ccb = CCB_LDSIZE|CCB_LDPRS|CCB_PXOR|
+		ccb = CCB_LDSIZE|CCB_PXOR|
 		CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|
 		CCB_ACE|CCB_BGND|CCB_NOBLK;
 		goto DrawIt;
@@ -767,7 +770,7 @@ void DrawColors(void)
 		return;
 	}
 	color <<=16;
-	ccb = CCB_LDSIZE|CCB_LDPRS|
+	ccb = CCB_LDSIZE|
 		CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|
 		CCB_ACE|CCB_BGND|CCB_NOBLK;
 

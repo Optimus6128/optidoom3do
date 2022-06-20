@@ -5,7 +5,7 @@
 
 #define CCB_ARRAY_WALL_MAX MAXSCREENWIDTH
 
-static MyCCB CCBArrayWall[CCB_ARRAY_WALL_MAX];		// Array of CCB structs for rendering a batch of wall columns
+static BitmapCCB CCBArrayWall[CCB_ARRAY_WALL_MAX];		// Array of CCB structs for rendering a batch of wall columns
 static int CCBArrayWallCurrent = 0;
 
 static const int flatColTexWidth = 1;   //  static const int flatColTexWidthShr = 0;
@@ -31,14 +31,14 @@ static Word *LightTablePtr = LightTable;
 
 static void initCCBarrayWall(void)
 {
-	MyCCB *CCBPtr = CCBArrayWall;
+	BitmapCCB *CCBPtr = CCBArrayWall;
 
 	int i;
 	for (i=0; i<CCB_ARRAY_WALL_MAX; ++i) {
-		CCBPtr->ccb_NextPtr = (MyCCB *)(sizeof(MyCCB)-8);	// Create the next offset
+		CCBPtr->ccb_NextPtr = (BitmapCCB *)(sizeof(BitmapCCB)-8);	// Create the next offset
 
 		// Set all the defaults
-        CCBPtr->ccb_Flags = CCB_SPABS|CCB_LDPLUT|CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|
+        CCBPtr->ccb_Flags = CCB_SPABS|CCB_LDPLUT|CCB_LDSIZE|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|
                             CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_PPABS|CCB_ACSC|CCB_ALSC;	// ccb_flags
 
         if (i==0) CCBPtr->ccb_Flags |= CCB_LDPLUT;  // First CEL column will set the palette for the rest
@@ -46,8 +46,6 @@ static void initCCBarrayWall(void)
         CCBPtr->ccb_HDX = 0<<20;
         CCBPtr->ccb_VDX = 1<<16;
         CCBPtr->ccb_VDY = 0<<16;
-		CCBPtr->ccb_HDDX = 0;
-		CCBPtr->ccb_HDDY = 0;
 
 		++CCBPtr;
 	}
@@ -55,7 +53,7 @@ static void initCCBarrayWall(void)
 
 static void initCCBarrayWallFlat(void)
 {
-	MyCCB *CCBPtr;
+	BitmapCCB *CCBPtr;
 	int i;
 	//int x,y;
 	Word pre0, pre1;
@@ -71,10 +69,10 @@ static void initCCBarrayWallFlat(void)
 
 	CCBPtr = CCBArrayWall;
 	for (i=0; i<CCB_ARRAY_WALL_MAX; ++i) {
-		CCBPtr->ccb_NextPtr = (MyCCB *)(sizeof(MyCCB)-8);	// Create the next offset
+		CCBPtr->ccb_NextPtr = (BitmapCCB *)(sizeof(BitmapCCB)-8);	// Create the next offset
 
 		// Set all the defaults
-        CCBPtr->ccb_Flags = CCB_LDSIZE|CCB_LDPLUT|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_ACSC|CCB_ALSC|CCB_SPABS|CCB_PPABS;
+        CCBPtr->ccb_Flags = CCB_LDSIZE|CCB_LDPLUT|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_ACSC|CCB_ALSC|CCB_SPABS|CCB_PPABS;
 
         if (i==0) CCBPtr->ccb_Flags |= CCB_LDPLUT;  // First CEL column will set the palette for the rest
 
@@ -84,8 +82,6 @@ static void initCCBarrayWallFlat(void)
         CCBPtr->ccb_VDX = 0<<16;
         CCBPtr->ccb_HDX = 1<<20;
         CCBPtr->ccb_HDY = 0<<20;
-		CCBPtr->ccb_HDDX = 0;
-		CCBPtr->ccb_HDDY = 0;
 
 		++CCBPtr;
 	}
@@ -106,14 +102,15 @@ void initWallCELs()
 
 void drawCCBarrayWall(Word xEnd)
 {
-    MyCCB *columnCCBstart, *columnCCBend;
+    BitmapCCB *columnCCBstart, *columnCCBend;
 
-	columnCCBstart = &CCBArrayWall[0];           // First column CEL of the wall segment
-	columnCCBend = &CCBArrayWall[xEnd];          // Last column CEL of the wall segment
+	columnCCBstart = &CCBArrayWall[0];				// First column CEL of the wall segment
+	columnCCBend = &CCBArrayWall[xEnd];				// Last column CEL of the wall segment
+	dummyCCB->ccb_NextPtr = (CCB*)columnCCBstart;	// Start with dummy to reset HDDX and HDDY
 
-	columnCCBend->ccb_Flags |= CCB_LAST;         // Mark last colume CEL as the last one in the linked list
-    DrawCels(VideoItem,(CCB*)columnCCBstart);    // Draw all the cels of a single wall in one shot
-    columnCCBend->ccb_Flags ^= CCB_LAST;         // remember to flip off that CCB_LAST flag, since we don't reinit the flags for all columns every time
+	columnCCBend->ccb_Flags |= CCB_LAST;	// Mark last colume CEL as the last one in the linked list
+    DrawCels(VideoItem,dummyCCB);			// Draw all the cels of a single wall in one shot
+    columnCCBend->ccb_Flags ^= CCB_LAST;	// remember to flip off that CCB_LAST flag, since we don't reinit the flags for all columns every time
 }
 
 void flushCCBarrayWall()
@@ -134,7 +131,7 @@ static void DrawWallSegment(drawtex_t *tex, void *texPal, Word screenCenterY)
     Word colnumOffset = 0;
 	viscol_t *vc;
 
-	MyCCB *CCBPtr;
+	BitmapCCB *CCBPtr;
 	Word colnum7;
 	int pre0, pre1;
 	int numCels;
@@ -196,7 +193,7 @@ static void DrawWallSegmentFlat(drawtex_t *tex, const void *color, Word screenCe
 	Word run;
 	viscol_t *vc;
 
-	MyCCB *CCBPtr;
+	BitmapCCB *CCBPtr;
 	int numCels;
 
 	if (xPos > tex->xEnd) return;

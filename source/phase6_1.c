@@ -3,7 +3,7 @@
 
 #define OPENMARK ((MAXSCREENHEIGHT-1)<<8)
 
-static MyCCB CCBArraySky[MAXSCREENWIDTH];       // Array of CCB struct for the sky columns
+static BitmapCCB CCBArraySky[MAXSCREENWIDTH];       // Array of CCB struct for the sky columns
 
 typedef struct {
 	int scale;
@@ -22,17 +22,17 @@ bool skyOnView = false;                         // marker to know if at one fram
 
 void initCCBarraySky(void)
 {
-	MyCCB *CCBPtr;
+	BitmapCCB *CCBPtr;
 	int i;
 
 	const int skyScale = getSkyScale();
 
 	CCBPtr = CCBArraySky;
 	for (i=0; i<MAXSCREENWIDTH; ++i) {
-		CCBPtr->ccb_NextPtr = (MyCCB *)(sizeof(MyCCB)-8);	// Create the next offset
+		CCBPtr->ccb_NextPtr = (BitmapCCB *)(sizeof(BitmapCCB)-8);	// Create the next offset
 
 		// Set all the defaults
-        CCBPtr->ccb_Flags = CCB_SPABS|CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|
+        CCBPtr->ccb_Flags = CCB_SPABS|CCB_LDSIZE|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|
                             CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_PPABS;	// ccb_flags
 
         if (i==0) CCBPtr->ccb_Flags |= CCB_LDPLUT;  // First CEL column will set the palette for the rest
@@ -44,8 +44,6 @@ void initCCBarraySky(void)
         CCBPtr->ccb_HDY = skyScale;             // Video stretch factor
         CCBPtr->ccb_VDX = 1<<16;
         CCBPtr->ccb_VDY = 0<<16;
-		CCBPtr->ccb_HDDX = 0;
-		CCBPtr->ccb_HDDY = 0;
         CCBPtr->ccb_PIXC = 0x1F00;              // PIXC control
 
 		++CCBPtr;
@@ -338,7 +336,7 @@ static void SegLoopSky(viswall_t *segl, Word screenCenterY)
 	int ceilingclipy, floorclipy;
 	int bottom;
 
-	MyCCB *CCBPtr = &CCBArraySky[0];
+	BitmapCCB *CCBPtr = &CCBArraySky[0];
     Byte *Source = (Byte *)(*SkyTexture->data);
 
 	segloop_t *segdata = segloops;

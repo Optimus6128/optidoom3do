@@ -221,7 +221,7 @@ static void initFonts()
 	fontsPal[0] = 0;
     for (i=0; i<MAX_STRING_LENGTH; ++i) {
         textCel[i] = CreateCel(FONT_WIDTH, FONT_HEIGHT, 8, CREATECEL_CODED, fontsBmp);
-        textCel[i]->ccb_PLUTPtr = (PLUTChunk*)fontsPal;
+        textCel[i]->ccb_PLUTPtr = fontsPal;
 
         textCel[i]->ccb_HDX = 1 << 20;
         textCel[i]->ccb_HDY = 0 << 20;
@@ -480,6 +480,7 @@ void startModMenu()
 {
     initInput();
     initFonts();
+	initDummyCCB();
 
     getWadsDirectory();
 
