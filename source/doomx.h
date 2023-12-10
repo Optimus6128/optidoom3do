@@ -10,6 +10,9 @@
 #define SEC_SPEC_RENDER_BITS 0xFFA0
 #define SEC_SPEC_ORIG_BITS 0x1F
 
+#define CLAMP(value,min,max) if ((value)<(min)) (value)=(min); if ((value)>(max)) (value)=(max);
+#define CLAMP_LEFT(value,min) if ((value)<(min)) (value)=(min);
+#define CLAMP_RIGHT(value,max) if ((value)>(max)) (value)=(max);
 
 // Minimal CCB that excludes HDDX,HDDY,CCB_Width and CCB_Height. Used for 2d scaled bitmaps and columns.
 typedef struct BitmapCCB {
@@ -67,6 +70,11 @@ typedef struct {
     Word light;
 } viscol_t;
 
+typedef struct {
+	int scale;
+	int light;
+} ColumnStore;
+
 typedef enum {
 	SEC_SPEC_FOG = 32,
 	SEC_SPEC_DISTORT = 64,
@@ -83,35 +91,33 @@ typedef enum {
 
 
 // In phase6.c
-extern int *scaleArrayData;
+extern ColumnStore *columnStoreArrayData;
 extern bool background_clear;
 
 
 // In phase6_1.c
+void initCCBarraySky(void);
 void SegLoop(viswall_t *segl);
 void PrepareSegLoop(void);
-void initCCBarraySky(void);
+bool isSegWallOccluded(viswall_t *segl);
 
 extern bool skyOnView;
 
 
 // In phase6_2.c
 void initWallCELs(void);
-void DrawSeg(viswall_t *segl, int *scaleData);
-void DrawSegUnshaded(viswall_t *segl, int *scaleData);
-void DrawSegFlat(viswall_t *segl, int *scaleData);
-void DrawSegFlatUnshaded(viswall_t *segl, int *scaleData);
+void DrawSeg(viswall_t *segl, ColumnStore *columnStoreData);
+void DrawSegFlat(viswall_t *segl, ColumnStore *columnStoreData);
 void flushCCBarrayWall(void);
 
+extern uint32* CCBflagsAlteredIndexPtr[MAXWALLCMDS];	// Array of pointers to CEL flags to set/remove LD_PLUT
 
 // In phase6PL.c
-extern int texLeft;
-extern int texRight;
-
-void DrawSegPoly(viswall_t *segl, int *scaleData);
-void DrawSegWireframe(viswall_t *segl, int *scaleData);
+void DrawSegPoly(viswall_t *segl, ColumnStore *columnStoreData);
+void DrawSegWireframe(viswall_t *segl, ColumnStore *columnStoreData);
 void initCCBQuadWallFlat(void);
 void initCCBQuadWallTextured(void);
+void flushCCBarrayPolyWall(void);
 
 
 // In phase7.c
@@ -120,11 +126,6 @@ void flushCCBarrayPlane(void);
 
 // In phase8.c
 extern Word spriteLight;
-
-// In modmenu.c
-extern char *wadSelected;
-extern bool debugMode;
-
 
 // In wad_loader.c
 extern int loadingFix;
@@ -149,8 +150,13 @@ LongWord getVBLtic(void);
 void drawLoadingBar(int pos, int max, const char *text);
 void drawDebugValue(int value);
 void printDbg(int value);
+void printDbgMinMax(int value);
 void updateScreenAndWait(void);
 void DisableHardwareClippingWithoutFlush(void);
+void updateGamma(int value, int max, bool shouldUpdateVDL);
+void updateVDL(bool invert);
+void colorizeVDL(int r, int g, int b);
+void copyMainScreenToRest(void);
 
 // In threedor.c
 extern Byte *SpanPtr;
@@ -174,7 +180,8 @@ void clearSpanArray(void);
 void initColoredPals(uint16 *srcPal, uint16 *dstPal, int numCols, Word colorMul);
 
 // In xskies.c
-void initNewSkies(void);
+void initFireSky(void);
+void deinitFireSky(void);
 void drawNewSky(int which);
 int getSkyScale(void);
 void updateFireSkyHeightPal(void);
@@ -202,10 +209,15 @@ void setScreenSizeSliderFromOption(void);
 
 
 // In modmenu.c
+extern char *wadSelected;
+extern bool debugMode;
 extern bool loadPsxSamples;
-extern bool enableNewSkies;
-extern bool skipLogos;
+extern bool enableFireSky;
+extern bool enableWaterFx;
+extern bool enableSectorColors;
 void startModMenu(void);
+void drawText(int xtp, int ytp, char *text);
+void drawNumber(int xtp, int ytp, int number);
 
 // In setup.c
 extern uint16 flatTextureColors[MAX_UNIQUE_TEXTURES];

@@ -106,8 +106,9 @@ static uchar *fontsMap;
 static uint16 fontsPal[2];
 
 bool loadPsxSamples;
-bool enableNewSkies;
-bool skipLogos;
+bool enableFireSky;
+bool enableWaterFx;
+bool enableSectorColors;
 bool debugMode;
 
 
@@ -134,10 +135,11 @@ char *wadSelected = NULL;
 enum {
 	MMOPT_MODS,
 	MMOPT_LOADING_TYPE,
-	MMOPT_SKIES,
-	MMOPT_SOUNDFX,
-	MMOPT_MAXVIS,
-	MMOPT_SKIPLOGOS,
+	MMOPT_FIRE_SKY,
+	MMOPT_WATER_FX,
+	MMOPT_SECTOR_COLORS,
+	MMOPT_SOUND_FX,
+	MMOPT_MAX_VIS,
 	MMOPT_DEBUG_MODE,
 	MMOPT_NUM
 };
@@ -145,10 +147,11 @@ enum {
 static ModMenuItem mmItems[MMOPT_NUM+1] = {
 	{ "MODS:", wadsSelection, 1, TYPE_STRING, 0 },
 	{ "LOADING FIX:", loadingFixSelection, NUM_LOADING_FIX, TYPE_STRING, 2 },
-	{ "NEW SKIES:", offOnSelection, NUM_OFF_ON_SELECTIONS, TYPE_STRING, 0 },
+	{ "FIRE SKY:", offOnSelection, NUM_OFF_ON_SELECTIONS, TYPE_STRING, 0 },
+	{ "WATER FX:", offOnSelection, NUM_OFF_ON_SELECTIONS, TYPE_STRING, 0 },
+	{ "SECTOR COLORS:", offOnSelection, NUM_OFF_ON_SELECTIONS, TYPE_STRING, 0 },
 	{ "SOUND FX:", soundFxSelection, NUM_SOUND_FX_SELECTIONS, TYPE_STRING, 0 },
 	{ "MAX VISPLANES:", maxVisplanesSelection, NUM_VISPLANE_SELECTIONS, TYPE_INT, 3 },
-	{ "SKIP LOGOS:", offOnSelection, NUM_OFF_ON_SELECTIONS, TYPE_STRING, 1 },
 	{ "DEBUG MODE:", offOnSelection, NUM_OFF_ON_SELECTIONS, TYPE_STRING, 0 },
 	NULL
 };
@@ -156,10 +159,11 @@ static ModMenuItem mmItems[MMOPT_NUM+1] = {
 static char *menuItemScrollText[MMOPT_NUM] = {
 	"Select and load new maps located in 'wads' folder. Doom 1 and 2 maps from PC can also be loaded (with issues) depending on the Loading Fix option\0",
 	"What actions to take if a WAD has issues.   OFF: Don't load ExMx map ids, don't replace unknown textures.   ON: Replace missing textures with one default texture, map ExMx ids to MAPxx   RELAXED: map closest Doom 1/2 texture IDs to 3DO resources\0",
-	"Enable new skies (gradients, fire sky). Disable to save in memory.\0",
-	"Chose original or PSX sound effects. PSX sound effects sound better but  will steal more memory.\0",
+	"Enable fire sky. Replace in the same maps where the PSX version showed it instead of the original.\0",
+	"Enable water fx. Extra distortion on all liquids (it will also always be on in few extra WADs if sector type is set to)\0",
+	"Enable sector colors. Extra RGB lighting PSX style in few sectors. Currently the liquid sectors will affect the nearby environment. But more to be added.\0",
+	"Choose original or PSX sound effects. PSX sound effects sound better but will steal more memory.\0",
 	"Max Visplanes. Lower is better for memory. Higher is more suitable for high detailed maps, although chosing low visplanes will only create visual artifacts in the distance if map is too complex. Most original Doom 3DO maps don't even reach 32\0",
-	"Skip those company logos that make start slower and even take some memory strangely enough\0",
 	"Debug Mode ON = additional info displayed (lump name and remaining memory) during WAD loading, additional info like visplanes num when enabling Stats (instead of just FPS/Memory)\0"
 };
 
@@ -264,12 +268,12 @@ static void drawZoomedText(int xtp, int ytp, char *text, int zoom)
 	textCel[i]->ccb_Flags ^= CCB_LAST;
 }
 
-static void drawText(int xtp, int ytp, char *text)
+void drawText(int xtp, int ytp, char *text)
 {
     drawZoomedText(xtp, ytp, text, 256);
 }
 
-static void drawNumber(int xtp, int ytp, int number)
+void drawNumber(int xtp, int ytp, int number)
 {
 	static char numStr[8];
 	sprintf(numStr, "%d\0", number);
@@ -350,8 +354,9 @@ static void controlModMenu()
 static void renderModMenu()
 {
     const int menuXstart = 72;
-    const int menuYstart = 48;
+    const int menuYstart = 44;
     const int lastOptionOffset = 8;
+	const int gapBetweenText = 14;
 
     int cursorPosX;
     int cursorPosY;
@@ -393,13 +398,13 @@ static void renderModMenu()
 			}
 			break;
 		}
-		currentMenuY+=16;
+		currentMenuY+=gapBetweenText;
 	}
 
 	setFontColor(31,15,0);
 	drawText(menuXstart + 56, currentMenuY+lastOptionOffset, "start!");
 
-	cursorPosY = menuYstart + cursorIndexY * 16;
+	cursorPosY = menuYstart + cursorIndexY * gapBetweenText;
 	if (cursorIndexY==MMOPT_NUM) {
 		cursorPosX = 112;
 		cursorPosY += lastOptionOffset;
@@ -494,10 +499,11 @@ void startModMenu()
 		renderModMenu();
     } while(!exit);
 
-    enableNewSkies = getBoolFromValue(&mmItems[MMOPT_SKIES]);
-	loadPsxSamples = getBoolFromValue(&mmItems[MMOPT_SOUNDFX]);
-	skipLogos = getBoolFromValue(&mmItems[MMOPT_SKIPLOGOS]);
-	maxVisplanes = getIntFromValue(&mmItems[MMOPT_MAXVIS]);
+    enableFireSky = getBoolFromValue(&mmItems[MMOPT_FIRE_SKY]);
+	enableWaterFx = getBoolFromValue(&mmItems[MMOPT_WATER_FX]);
+	enableSectorColors = getBoolFromValue(&mmItems[MMOPT_SECTOR_COLORS]);
+	loadPsxSamples = getBoolFromValue(&mmItems[MMOPT_SOUND_FX]);
+	maxVisplanes = getIntFromValue(&mmItems[MMOPT_MAX_VIS]);
 	loadingFix = mmItems[MMOPT_LOADING_TYPE].selection;
 	debugMode = getBoolFromValue(&mmItems[MMOPT_DEBUG_MODE]);
 	
@@ -509,8 +515,11 @@ void startModMenu()
 		loadSelectedWadLumpInfo(wadSelected);
 	}
 
+#ifndef PROFILE_ON
 	FreeMem(fontsBmp, -1);
 	FreeMem(fontsMap, -1);
+#endif
+
 	if (wadsDirectoryEntry) FreeMem(wadsDirectoryEntry, -1);
 
 	fadeOutScanlineEffect();

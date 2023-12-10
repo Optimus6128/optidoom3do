@@ -128,7 +128,7 @@ static GridMesh *initGridMesh(int gridWidth, int gridHeight)
 
 	for (i=0; i<gms->celsNum; i++)
 	{
-		gms->cel[i].ccb_Flags = CCB_NPABS | CCB_SPABS | CCB_PPABS | CCB_LDSIZE | CCB_LDPRS | CCB_LDPPMP | CCB_CCBPRE | CCB_YOXY | CCB_USEAV | CCB_NOBLK | CCB_ACE | CCB_ACW | CCB_ACCW | CCB_ACSC | CCB_ALSC | CCB_BGND;
+		gms->cel[i].ccb_Flags = CCB_NPABS | CCB_SPABS | CCB_PPABS | CCB_LDSIZE | CCB_LDPRS | CCB_LDPPMP | CCB_CCBPRE | CCB_YOXY | CCB_USEAV | /*CCB_NOBLK |*/ CCB_ACE | CCB_ACW | CCB_ACCW | CCB_ACSC | CCB_ALSC | CCB_BGND;
 		gms->cel[i].ccb_PIXC = PIXC_OPAQUE;
 
 		if (i!=0) LinkCel(&gms->cel[i-1], &gms->cel[i]);
@@ -218,8 +218,10 @@ static void prepareGridCELs()
 		quad[2].pt_X = gridVertices[indices[i+2]].x+1; quad[2].pt_Y = gridVertices[indices[i+2]].y+1;
 		quad[3].pt_X = gridVertices[indices[i+3]].x; quad[3].pt_Y = gridVertices[indices[i+3]].y+1;
 
-		if (!((quad[0].pt_X == quad[1].pt_X && quad[0].pt_Y == quad[1].pt_Y) || (quad[0].pt_X == quad[3].pt_X && quad[0].pt_Y == quad[3].pt_Y)))
+		if (!((quad[0].pt_X == quad[1].pt_X && quad[0].pt_Y == quad[1].pt_Y) || (quad[0].pt_X == quad[3].pt_X && quad[0].pt_Y == quad[3].pt_Y))) {
 			MapCel(&gridMesh->cel[j], quad);
+			gridMesh->cel[j].ccb_YPos &= ~0x8000;	// would disable the VDL if that bit was on (presumably enabled by MapCel for some reason or by accident?)
+		}
 		++j;
 	}
 }

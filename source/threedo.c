@@ -8,7 +8,9 @@
 #include <BlockFile.h>
 #include <Time.h>
 #include <audio.h>
+#include <math.h>
 
+#include "limits.h"
 #include "bench.h"
 
 #include "engine_main.h"
@@ -20,10 +22,13 @@ static void WipeDoom(LongWord *OldScreen,LongWord *NewScreen);
 LongWord LastTics;				/* Time elapsed since last page flip */
 Word WorkPage;					/* Which frame is not being displayed */
 
+#define VDL_PAGE_FLIPS 3
+
 uint32 MainTask;					/* My own task item */
 static ulong ScreenPageCount;		/* Number of screens */
 static Item ScreenItems[SCREENS];	/* Referances to the game screens */
 static Item VideoItems[SCREENS];
+static Item VDLItems[VDL_PAGE_FLIPS * SCREENS];
 static long ScreenByteCount;		/* How many bytes for each screen */
 static Item ScreenGroupItem = 0;	/* Main screen referance */
 static Byte *ScreenMaps[SCREENS];	/* Pointer to the bitmap screens */
@@ -33,11 +38,15 @@ Item AllSamples[NUMSFX];			/* Items to sound samples */
 Word AllRates[NUMSFX];
 
 static int maxFlipScreens = SCREENS;
+static int vdlPage = 0;
 
 int frameTime;
 int displayFreq;
 
 int memLowHits = 0;
+
+static unsigned char cGamma[32];
+static bool needsVDLcolorsUpdate = false;
 
 //#define DEBUG_OPT_HACK
 
@@ -51,21 +60,88 @@ static void optHack()
     #endif
 }
 
+/*******************
+
+  Stupid debugging
+
+*******************/
+
+#ifdef DEBUG_OPT_HACK
+	#define DBG_NUM_MAX 10
+	static int dbgNum[DBG_NUM_MAX];
+	static int dbgIndex = 0;
+	static int dbgMin;
+	static int dbgMax;
+	static int dbgMinMaxOn = false;
+
+	void printDbg(int value)
+	{
+		if (dbgIndex==DBG_NUM_MAX) return;
+
+		dbgNum[dbgIndex] = value;
+		++dbgIndex;
+	}
+
+	void printDbgMinMax(int value)
+	{
+		if (!dbgMinMaxOn) {
+			dbgMin = INT_MAX;
+			dbgMax = INT_MIN;
+			dbgMinMaxOn = true;
+		}
+
+		if (value < dbgMin) dbgMin = value;
+		if (value > dbgMax) dbgMax = value;
+	}
+
+	static void printSignedNum(int x, int y, int num)
+	{
+		int xp = x;
+		if (num < 0) {
+			num = -num;
+			PrintBigFont(xp, y, (Byte*)"-");
+			xp+=8;
+		}
+		PrintNumber(xp, y, num, 0);
+	}
+
+	static void renderDbg()
+	{
+		int i;
+		int iy = 2 * 16;
+
+		if (dbgMinMaxOn) {
+			printSignedNum(8,iy,dbgMin);
+			printSignedNum(216,iy,dbgMax);
+			iy+=16;
+		}
+
+		for (i=0; i<dbgIndex; ++i) {
+			printSignedNum(8,iy,dbgNum[i]);
+			iy+=16;
+		}
+
+		FlushCCBs();
+
+		dbgIndex = 0;
+	}
+#endif
+
 /**********************************
 
 	Run an external program and wait for compleation
 
 **********************************/
 
-static void RunAProgram(char *ProgramName)
+/*static void RunAProgram(char *ProgramName)
 {
 	Item LogoItem;
-	LogoItem=LoadProgram(ProgramName);		/* Load and begin execution */
+	LogoItem=LoadProgram(ProgramName);		// Load and begin execution
 	do {
-		Yield();						/* Yield all CPU time to the other program */
-	} while (LookupItem(LogoItem));		/* Wait until the program quits */
-	DeleteItem(LogoItem);				/* Dispose of the 3DO logo code */
-}
+		Yield();						// Yield all CPU time to the other program
+	} while (LookupItem(LogoItem));		// Wait until the program quits
+	DeleteItem(LogoItem);				// Dispose of the 3DO logo code
+}*/
 
 /**********************************
 
@@ -190,9 +266,10 @@ static TagArg SoundRateArgs[] = {
 };
 static char FileName[32];
 
+static uint32 *vdlColors = (uint32*)&MyCustomVDL[13];
 
 
-static void showLogos()
+/*static void showLogos()
 {
     Show3DOLogo();				// Show the 3DO Logo
     RunAProgram("IdLogo IDLogo.cel");
@@ -204,7 +281,7 @@ static void showLogos()
         RunAProgram("PlayMovie Logic.cine");
         RunAProgram("PlayMovie AdiLogo.cine");
     #endif
-}
+}*/
 
 static void loadSoundFx()
 {
@@ -227,45 +304,18 @@ static void loadSoundFx()
 	} while (++i<(NUMSFX-1));
 }
 
-static void initSystem()
+static void initScreenVDL()
 {
 	Word i;		/* Temp */
 	long width, height;	/* Screen width & height */
 	Screen *screen;	/* Pointer to screen info */
 	ItemNode *Node;
-	Item MyVDLItem;
-		/* Read page PRF-85 for info */
 
-
- 	if (OpenGraphicsFolio() ||	/* Start up the graphics system */
-		(OpenAudioFolio()<0) ||		/* Start up the audio system */
-		(OpenMathFolio()<0) ) {
-    FooBar:
-		exit(10);
-	}
-
-    #if 0	/* Set to 1 for the PAL version, 0 for the NTSC version */
-        QueryGraphics(QUERYGRAF_TAG_DEFAULTDISPLAYTYPE,&width);
-        if (width==DI_TYPE_NTSC) {
-            goto FooBar();
-        }
-    #endif
-
-    #if 0	/* Remove for final build! */
-        ChangeDirectory("/CD-ROM");
-    #endif
-
-	ScreenTags[0].ta_Arg = (void *)GETBANKBITS(GrafBase->gf_ZeroPage);
-	ScreenGroupItem = CreateScreenGroup(ScreenItems,ScreenTags);
-
-	if (ScreenGroupItem<0) {		/* Error creating screens? */
-		goto FooBar;
-	}
-	AddScreenGroup(ScreenGroupItem,NULL);		/* Add my screens to the system */
+	/* Read page PRF-85 for info */
 
 	screen = (Screen *)LookupItem(ScreenItems[0]);
 	if (!screen) {
-		goto FooBar;
+		exit(10);
 	}
 
 	width = screen->scr_TempBitmap->bm_Width;		/* How big is the screen? */
@@ -283,13 +333,117 @@ static void initSystem()
 		VideoItems[i] = (Item)Node->n_Item;			/* Get the bitmap item # */
         SetCEControl(VideoItems[i], 0xffffffff, ASCALL); // To enable Super Clipping
 		MyCustomVDL[9]=MyCustomVDL[10] = (Word)ScreenMaps[i];
-		MyVDLItem = SubmitVDL((VDLEntry *)&MyCustomVDL[0],sizeof(MyCustomVDL)/4,VDLTYPE_FULL);
-		SetVDL(ScreenItems[i],MyVDLItem);
+		VDLItems[i] = SubmitVDL((VDLEntry *)&MyCustomVDL[0],sizeof(MyCustomVDL)/4,VDLTYPE_FULL);
+		SetVDL(ScreenItems[i],VDLItems[i]);
 
 		SetClipWidth(VideoItems[i],320);
 		SetClipHeight(VideoItems[i],200);		/* I only want 200 lines */
 		SetClipOrigin(VideoItems[i],0,0);		/* Set the clip top for the screen */
 	} while (++i<SCREENS);
+}
+
+static void setVDLcolors()
+{
+	int i;
+	Item *currVDLitem, *prevVDLitem;
+	
+	int prevVDLpage = vdlPage - 1;
+	if (prevVDLpage < 0) prevVDLpage = VDL_PAGE_FLIPS - 1;
+	prevVDLitem = (Item*)&VDLItems[SCREENS * prevVDLpage];
+	if (++vdlPage==VDL_PAGE_FLIPS) vdlPage = 0;
+	currVDLitem = (Item*)&VDLItems[SCREENS*vdlPage];
+
+	for (i=0; i<SCREENS; ++i) {
+		Screen *screen = (Screen*)LookupItem(ScreenItems[i]);
+		ScreenMaps[i] = (Byte*)screen->scr_TempBitmap->bm_Buffer;
+		MyCustomVDL[9] = MyCustomVDL[10] = (Word)ScreenMaps[i];
+
+		currVDLitem[i] = SubmitVDL((VDLEntry *)&MyCustomVDL[0], sizeof(MyCustomVDL)/4, VDLTYPE_FULL);
+		SetVDL(ScreenItems[i], currVDLitem[i]);
+		DeleteVDL(prevVDLitem[i]);
+	}
+}
+
+void colorizeVDL(int r, int g, int b)
+{
+	int i;
+
+	const int r0 = 255 - (r >> 1);
+	const int g0 = 255 - (g >> 1);
+	const int b0 = 255 - (b >> 1);
+
+	const int r1 = r * 127;
+	const int g1 = g * 127;
+	const int b1 = b * 127;
+
+	for (i=0; i<32; ++i) {
+		const int c = cGamma[i];
+		const int rf = (c * r0 + r1) >> 8;
+		const int gf = (c * g0 + g1) >> 8;
+		const int bf = (c * b0 + b1) >> 8;
+		vdlColors[i] = (i << 24) | (rf << 16) | (gf << 8) | bf;
+	}
+
+	needsVDLcolorsUpdate = true;
+}
+
+void updateVDL(bool invert)
+{
+	int i;
+	
+	for (i=0; i<32; ++i) {
+		int c = cGamma[i];
+		if (invert) c = 255 - c;
+		vdlColors[i] = (i << 24) | (c << 16) | (c << 8) | c;
+	}
+
+	needsVDLcolorsUpdate = true;
+}
+
+void updateGamma(int value, int max, bool shouldUpdateVDL)
+{
+	int i;
+	const float v = 1.0f / (1.0f + ((float)value / (float)(max-1)));
+	for (i=0; i<32; ++i) {
+		cGamma[i] = (unsigned char)(255 * pow(((float)i / 31), v));
+	}
+
+	if (shouldUpdateVDL) {
+		updateVDL(false);
+	}
+}
+
+static void initSystem()
+{
+ 	if (OpenGraphicsFolio() ||	/* Start up the graphics system */
+		(OpenAudioFolio()<0) ||		/* Start up the audio system */
+		(OpenMathFolio()<0) ) {
+		exit(10);
+	}
+
+    #if 0	/* Set to 1 for the PAL version, 0 for the NTSC version */
+	{
+		int width;
+        QueryGraphics(QUERYGRAF_TAG_DEFAULTDISPLAYTYPE,&width);
+        if (width==DI_TYPE_NTSC) {
+            exit(10);
+        }
+	}
+    #endif
+
+    #if 0	/* Remove for final build! */
+        ChangeDirectory("/CD-ROM");
+    #endif
+
+	ScreenTags[0].ta_Arg = (void *)GETBANKBITS(GrafBase->gf_ZeroPage);
+	ScreenGroupItem = CreateScreenGroup(ScreenItems,ScreenTags);
+
+	if (ScreenGroupItem<0) {		/* Error creating screens? */
+		exit(10);
+	}
+	AddScreenGroup(ScreenGroupItem,NULL);		/* Add my screens to the system */
+
+	initScreenVDL();
 
 	InitEventUtility(1,1,FALSE);	/* I want 1 joypad, 1 mouse, and passive listening */
 
@@ -312,7 +466,8 @@ void Init()
 
     startModMenu();
 
-	if (!skipLogos) showLogos();
+	// Have removed the logos at all since the version 0.3
+	//if (!skipLogos) showLogos();
 
 
     loadSoundFx();  // For some reason, this cannot be loaded later or sound effects will be missing (issues with memory allocation?)
@@ -488,43 +643,6 @@ void ReadPrefsFile(void)
 	}
 }
 
-/*******************
-
-  Stupid debugging
-
-*******************/
-
-#ifdef DEBUG_OPT_HACK
-	#define DBG_NUM_MAX 10
-	static int dbgNum[DBG_NUM_MAX];
-	static int dbgIndex = 0;
-
-	void printDbg(int value)
-	{
-		if (dbgIndex==DBG_NUM_MAX) return;
-
-		dbgNum[dbgIndex] = value;
-		++dbgIndex;
-	}
-
-	static void renderDbg()
-	{
-		int i, num, posY;
-		for (i=0; i<dbgIndex; ++i) {
-			posY = (i+2) << 4;
-			num = dbgNum[i];
-			if (num < 0) {
-				num = -num;
-				PrintBigFont(8, posY, (Byte*)"-");
-			}
-			PrintNumber(16, posY, num, 0);
-		}
-		FlushCCBs();
-
-		dbgIndex = 0;
-	}
-#endif
-
 /**********************************
 
 	Display the current framebuffer
@@ -574,6 +692,7 @@ static void updateMyFpsAndDebugPrint()
 		PrintNumber(0, 96, visplanesCount-1, 0);
 		PrintNumber(0, 112, visplanesCountMax-1, 0);
     }
+
 	FlushCCBs();
 
 #ifdef DEBUG_OPT_HACK
@@ -625,6 +744,18 @@ static void frameWait()
 	LastTicCount = NewTick;
 }
 
+void copyMainScreenToRest()
+{
+	int i;
+	Byte *mainScreen = ScreenMaps[WorkPage];
+
+	for (i=0; i<VDL_PAGE_FLIPS; ++i) {
+		if (i!=WorkPage) {
+			memcpy(ScreenMaps[i], mainScreen, 320*198*2);
+		}
+	}
+}
+
 void updateScreenAndWait()
 {
 	DisplayScreen(ScreenItems[WorkPage],0);		// Display the hidden page
@@ -649,9 +780,17 @@ void UpdateAndPageFlip(void)
 
 	updateWipeScreen();
 
+#ifdef PROFILE_ON
+	updateBench();
+#endif
 	updateMyFpsAndDebugPrint();
 
     updateScreenAndWait();
+
+	if (needsVDLcolorsUpdate) {
+		setVDLcolors();
+		needsVDLcolorsUpdate = false;
+	}
 }
 
 

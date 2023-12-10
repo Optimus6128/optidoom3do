@@ -2,7 +2,7 @@
 #include "wad_loader.h"
 #include <IntMath.h>
 #include <String.h>
-
+//#include <math.h>
 
 
 static bool loadPWad = false;	// true if resource loading is going to be overriden by PWAD
@@ -143,6 +143,21 @@ static void KillALump(Word lumpStart, Word lumpId)
 	}
 }
 
+enum {
+	NO_LIQUID,
+	ACID_LIQUID,
+	WATER_LIQUID,
+	LAVA_LIQUID
+};
+
+static int getLiquidSectorType(int index)
+{
+	if (index>=4 && index <= 6) return ACID_LIQUID;
+	if (index>=33 && index <= 36) return WATER_LIQUID;
+	if (index>=37 && index <= 40) return LAVA_LIQUID;
+	return NO_LIQUID;
+}
+
 static void LoadSectors(Word lumpStart, Word lumpId)
 {
 	Word i;
@@ -165,7 +180,34 @@ static void LoadSectors(Word lumpStart, Word lumpId)
 		ss->lightlevel = Map->lightlevel;		/* Copy the ambient light */
 		ss->special = Map->special;				/* Copy the event number type */
 		ss->tag = Map->tag;						/* Copy the event tag ID */
-		ss->color = extractColorFromSpecial(ss->special);
+
+		{
+			const int floorLiquidType = getLiquidSectorType(ss->FloorPic);
+			const int ceilingLiquidType = getLiquidSectorType(ss->CeilingPic);
+
+			if (enableWaterFx) {
+				if (floorLiquidType!=NO_LIQUID) {
+					ss->special |= 0x080;	// warp floor
+				}
+				if (ceilingLiquidType!=NO_LIQUID) {
+					ss->special |= 0x100;	// warp ceiling
+				}
+			}
+
+			if (enableSectorColors) {
+				if (floorLiquidType==ACID_LIQUID || ceilingLiquidType==ACID_LIQUID) {
+					ss->special |= 0xB800;
+				}
+				if (floorLiquidType==WATER_LIQUID || ceilingLiquidType==WATER_LIQUID) {
+					ss->special |= 0xAC00;
+				}
+				if (floorLiquidType==LAVA_LIQUID || ceilingLiquidType==LAVA_LIQUID) {
+					ss->special |= 0xE800;
+				}
+			}
+
+			ss->color = extractColorFromSpecial(ss->special);
+		}
 
 		++ss;			/* Next indexs */
 		++Map;
@@ -295,6 +337,7 @@ static void LoadLineDefs(Word lumpStart, Word lumpId)
 			ld->SidePtr[1] = &sides[mld->sidenum[1]];
 			ld->backsector = ld->SidePtr[1]->sector;	/* Get the sector pointed to */
 		}
+
 		++ld;			/* Next indexes */
 		++mld;
 	} while (--i);
@@ -403,7 +446,8 @@ static void LoadSegs(Word lumpStart, Word lumpId)
 	do {
 		line_t *ldef;
 		Word side;
-		
+		//Fixed dx,dy;
+
 		li->v1 = vertexes[ml->v1];	/* Get the line points */
 		li->v2 = vertexes[ml->v2];
 		li->angle = ml->angle;		/* Set the angle of the line */
@@ -419,6 +463,11 @@ static void LoadSegs(Word lumpStart, Word lumpId)
 		if (ldef->v1.x == li->v1.x && ldef->v1.y == li->v1.y) {	/* Init the fineangle */
 			ldef->fineangle = li->angle>>ANGLETOFINESHIFT;	/* This is a point only */
 		}
+
+		/*dx = (li->v2.x - li->v1.x) >> 16;
+		dy = (li->v2.y - li->v1.y) >> 16;
+		li->length = (int)sqrt(dx*dx + dy*dy);*/
+
 		++li;		/* Next entry */
 		++ml;		/* Next resource entry */
 	} while (++i<numsegs);

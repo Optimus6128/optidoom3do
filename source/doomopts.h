@@ -154,6 +154,7 @@ typedef struct GraphicsOptions
 	Word depthShading;
 	Word thingsShading;
 	Word renderer;
+	Word gamma;
 }GraphicsOptions;
 
 typedef struct OtherOptions

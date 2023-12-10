@@ -655,7 +655,7 @@ void P_UpdateSpecials(void)
 
 	/* Animate flats and textures globaly */
 
-	if (Tick4) {		/* Time yet? */
+	if (Tick4 && !enableWaterFx) {		/* Time yet? */
 		anim_t *AnimPtr;
 		i = 0;
 		AnimPtr = FlatAnims;	/* Index to the flat anims */

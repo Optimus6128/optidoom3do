@@ -7,9 +7,12 @@
 
 static BitmapCCB CCBArrayWall[CCB_ARRAY_WALL_MAX];		// Array of CCB structs for rendering a batch of wall columns
 static int CCBArrayWallCurrent = 0;
+static int CCBflagsCurrentAlteredIndex = 0;
+
+uint32* CCBflagsAlteredIndexPtr[MAXWALLCMDS];	// Array of pointers to CEL flags to set/remove LD_PLUT
 
 static const int flatColTexWidth = 1;   //  static const int flatColTexWidthShr = 0;
-static const int flatColTexHeight = 8;  static const int flatColTexHeightShr = 3;
+static const int flatColTexHeight = 4;  static const int flatColTexHeightShr = 2;
 static const int flatColTexStride = 8;
 static unsigned char *texColBufferFlat = NULL;
 
@@ -38,10 +41,8 @@ static void initCCBarrayWall(void)
 		CCBPtr->ccb_NextPtr = (BitmapCCB *)(sizeof(BitmapCCB)-8);	// Create the next offset
 
 		// Set all the defaults
-        CCBPtr->ccb_Flags = CCB_SPABS|CCB_LDPLUT|CCB_LDSIZE|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|
-                            CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_PPABS|CCB_ACSC|CCB_ALSC;	// ccb_flags
-
-        if (i==0) CCBPtr->ccb_Flags |= CCB_LDPLUT;  // First CEL column will set the palette for the rest
+        CCBPtr->ccb_Flags = CCB_SPABS|CCB_LDSIZE|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|
+                            CCB_ACE|CCB_BGND|/*CCB_NOBLK|*/CCB_PPABS|CCB_ACSC|CCB_ALSC|CCB_PLUTPOS;	// ccb_flags
 
         CCBPtr->ccb_HDX = 0<<20;
         CCBPtr->ccb_VDX = 1<<16;
@@ -64,17 +65,15 @@ static void initCCBarrayWallFlat(void)
 		memset(texColBufferFlat, 0, flatColTextSize);
 	}
 
-    pre0 = 0x00000005 | ((flatColTexHeight - 1) << 6);
-    pre1 = (((flatColTexStride >> 2) - 2) << 16) | (flatColTexWidth - 1);
+    pre0 = 0x00000001 | ((flatColTexHeight - 1) << 6);
+    pre1 = (((flatColTexStride >> 2) - 2) << 24) | (flatColTexWidth - 1);
 
 	CCBPtr = CCBArrayWall;
 	for (i=0; i<CCB_ARRAY_WALL_MAX; ++i) {
 		CCBPtr->ccb_NextPtr = (BitmapCCB *)(sizeof(BitmapCCB)-8);	// Create the next offset
 
 		// Set all the defaults
-        CCBPtr->ccb_Flags = CCB_LDSIZE|CCB_LDPLUT|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_ACSC|CCB_ALSC|CCB_SPABS|CCB_PPABS;
-
-        if (i==0) CCBPtr->ccb_Flags |= CCB_LDPLUT;  // First CEL column will set the palette for the rest
+        CCBPtr->ccb_Flags = CCB_LDSIZE|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|/*CCB_NOBLK|*/CCB_ACSC|CCB_ALSC|CCB_SPABS|CCB_PPABS|CCB_PLUTPOS;
 
         CCBPtr->ccb_PRE0 = pre0;
         CCBPtr->ccb_PRE1 = pre1;
@@ -116,15 +115,24 @@ void drawCCBarrayWall(Word xEnd)
 void flushCCBarrayWall()
 {
 	if (CCBArrayWallCurrent != 0) {
+		int i;
 		drawCCBarrayWall(CCBArrayWallCurrent - 1);
 		CCBArrayWallCurrent = 0;
+
+		for (i=0; i<CCBflagsCurrentAlteredIndex; ++i) {
+			*CCBflagsAlteredIndexPtr[i] &= ~CCB_LDPLUT;
+		}
+		CCBflagsCurrentAlteredIndex = 0;
 	}
 }
 
-static void DrawWallSegment(drawtex_t *tex, void *texPal, Word screenCenterY)
+static void PrepWallSegmentTexCol(drawtex_t *tex)
 {
     int xPos = tex->xStart;
-	int top;
+	const int xEnd = tex->xEnd;
+	const Word texWidth = tex->width - 1;
+	const Word texHeight = tex->height;
+
 	Word run;
 	Word colnum;	// Column in the texture
 	LongWord frac;
@@ -134,15 +142,8 @@ static void DrawWallSegment(drawtex_t *tex, void *texPal, Word screenCenterY)
 	BitmapCCB *CCBPtr;
 	Word colnum7;
 	int pre0, pre1;
-	int numCels;
 
 	const Byte *texBitmap = &tex->data[32];
-
-	if (xPos > tex->xEnd) return;
-    numCels = tex->xEnd - xPos + 1;
-	if (CCBArrayWallCurrent + numCels > CCB_ARRAY_WALL_MAX) {
-		flushCCBarrayWall();
-	}
 
 	run = (tex->topheight-tex->bottomheight)>>HEIGHTBITS;	// Source image height
 	if ((int)run<=0) {		// Invalid?
@@ -153,7 +154,7 @@ static void DrawWallSegment(drawtex_t *tex, void *texPal, Word screenCenterY)
 	frac >>= FRACBITS;
 	while (frac&0x8000) {
 		--colnumOffset;
-		frac += tex->height;		// Make sure it's on the shape
+		frac += texHeight;		// Make sure it's on the shape
 	}
 	frac&=0x7f;		// Zap unneeded bits
 	colnum7 = frac & 7;	// Get the pixel skip
@@ -164,63 +165,99 @@ static void DrawWallSegment(drawtex_t *tex, void *texPal, Word screenCenterY)
     CCBPtr = &CCBArrayWall[CCBArrayWallCurrent];
     vc = viscols;
     do {
-        top = screenCenterY - ((vc->scale*tex->topheight) >> (HEIGHTBITS+SCALEBITS));	// Screen Y
         colnum = vc->column + colnumOffset;	// Get the starting column offset
-        colnum &= (tex->width-1);		// Wrap around the texture
-        colnum = (colnum*tex->height)+frac;	// Index to the shape
+        colnum &= texWidth;		// Wrap around the texture
+        colnum = (colnum*texHeight)+frac;	// Index to the shape
         colnum >>= 1;           // Pixel to byte offset
         colnum &= ~3;			// Long word align the source
 
         CCBPtr->ccb_PRE0 = pre0;
         CCBPtr->ccb_PRE1 = pre1;
         CCBPtr->ccb_SourcePtr = (CelData*)&texBitmap[colnum];	// Get the source ptr
-        CCBPtr->ccb_PLUTPtr = texPal;
-        CCBPtr->ccb_XPos = xPos << 16;
-        CCBPtr->ccb_YPos = (top<<16) + 0xFF00;
-        CCBPtr->ccb_HDY = vc->scale<<(20-SCALEBITS);
-        CCBPtr->ccb_PIXC = LightTablePtr[vc->light>>LIGHTSCALESHIFT];		// PIXC control
 
         CCBPtr++;
         vc++;
-    }while (++xPos <= tex->xEnd);
+    }while (++xPos <= xEnd);
+}
+
+static void DrawWallSegment(drawtex_t *tex, void *texPal, Word screenCenterY)
+{
+    int xPos = tex->xStart;
+	const int xEnd = tex->xEnd;
+	const int texTopHeight = tex->topheight;
+	int top;
+	viscol_t *vc;
+
+	BitmapCCB *CCBPtr;
+	int numCels;
+
+	if (xPos > xEnd) return;
+    numCels = xEnd - xPos + 1;
+	if (CCBArrayWallCurrent + numCels > CCB_ARRAY_WALL_MAX) {
+		flushCCBarrayWall();
+	}
+
+    CCBPtr = &CCBArrayWall[CCBArrayWallCurrent];
+	CCBPtr->ccb_Flags |= CCB_LDPLUT;
+	CCBPtr->ccb_PLUTPtr = texPal;
+	CCBflagsAlteredIndexPtr[CCBflagsCurrentAlteredIndex++] = &CCBPtr->ccb_Flags;
+    vc = viscols;
+    do {
+        top = screenCenterY - ((vc->scale*texTopHeight) >> (HEIGHTBITS+SCALEBITS));	// Screen Y
+
+        CCBPtr->ccb_XPos = xPos << 16;
+        CCBPtr->ccb_YPos = (top << 16) | 0xFF00;	// This obviously does positioning and by removing the 0xFF00 subpixel part there were little gaps with dirty pixels between floors 
+													// Initially it would also bypass the custom CLUT for some reason and use the fixed (now avoided by setting CCB_PLUTPOS on the flags instead)
+        CCBPtr->ccb_HDY = vc->scale<<(20-SCALEBITS);
+        CCBPtr->ccb_PIXC = vc->light;// | 0x0080; // alpha test for overdrawing		// PIXC control
+
+        CCBPtr++;
+        vc++;
+    }while (++xPos <= xEnd);
+
+	PrepWallSegmentTexCol(tex);
+
     CCBArrayWallCurrent += numCels;
 }
 
 static void DrawWallSegmentFlat(drawtex_t *tex, const void *color, Word screenCenterY)
 {
     int xPos = tex->xStart;
-	int top;
+	const int xEnd = tex->xEnd;
+	const int texTopHeight = tex->topheight;
 	Word run;
 	viscol_t *vc;
 
 	BitmapCCB *CCBPtr;
 	int numCels;
 
-	if (xPos > tex->xEnd) return;
-	numCels = tex->xEnd - xPos + 1;
+	if (xPos > xEnd) return;
+	numCels = xEnd - xPos + 1;
 	if (CCBArrayWallCurrent + numCels > CCB_ARRAY_WALL_MAX) {
 		flushCCBarrayWall();
 	}
 
-	run = (tex->topheight-tex->bottomheight) >> HEIGHTBITS;	// Source image height
+	run = (texTopHeight-tex->bottomheight) >> HEIGHTBITS;	// Source image height
 	if ((int)run<=0) {		// Invalid?
 		return;
 	}
 
     CCBPtr = &CCBArrayWall[CCBArrayWallCurrent];
+	CCBPtr->ccb_Flags |= CCB_LDPLUT;
+	CCBPtr->ccb_PLUTPtr = (void*)color;
+	CCBflagsAlteredIndexPtr[CCBflagsCurrentAlteredIndex++] = &CCBPtr->ccb_Flags;
     vc = viscols;
     do {
-        top = screenCenterY - ((vc->scale*tex->topheight) >> (HEIGHTBITS+SCALEBITS));	// Screen Y
+        const int top = screenCenterY - ((vc->scale*texTopHeight) >> (HEIGHTBITS+SCALEBITS));	// Screen Y
 
         CCBPtr->ccb_XPos = xPos << 16;
-        CCBPtr->ccb_YPos = (top<<16) + 0xFF00;
+        CCBPtr->ccb_YPos = (top << 16) | 0xFF00;
         CCBPtr->ccb_VDY = (run * vc->scale) << (16-flatColTexHeightShr-SCALEBITS);
-        CCBPtr->ccb_PIXC = LightTablePtr[vc->light>>LIGHTSCALESHIFT];		// PIXC control
-        CCBPtr->ccb_PLUTPtr = (void*)color;
+        CCBPtr->ccb_PIXC = vc->light;		// PIXC control
 
         CCBPtr++;
         vc++;
-    }while (++xPos <= tex->xEnd);
+    }while (++xPos <= xEnd);
     CCBArrayWallCurrent += numCels;
 }
 
@@ -235,6 +272,7 @@ static void DrawWallSegmentFlat(drawtex_t *tex, const void *color, Word screenCe
 static void DrawSegAny(viswall_t *segl, bool isTop, bool isFlat)
 {
     texture_t *tex;
+	void *texPal = NULL;
 
     if (isTop) {
         tex = segl->t_texture;
@@ -256,11 +294,19 @@ static void DrawSegAny(viswall_t *segl, bool isTop, bool isFlat)
 		LightTablePtr = LightTable;
 	}
 
-    if (isFlat) {
-        DrawWallSegmentFlat(&drawtex, &tex->color, CenterY);
-    } else {
-		void *texPal;
+	if (segl->color!=0) {
+		texPal = &coloredWallPals[currentWallCount << 4];
+		if (++currentWallCount == MAXWALLCMDS) currentWallCount = 0;
+	}
 
+    if (isFlat) {
+		if (segl->color==0) {
+			texPal = (void*)&tex->color;
+		} else {
+			initColoredPals((uint16*)&tex->color, texPal, 1, segl->color);
+		}
+		DrawWallSegmentFlat(&drawtex, texPal, CenterY);
+    } else {
 		drawtex.width = tex->width;
 		drawtex.height = tex->height;
 		drawtex.data = (Byte *)*tex->data;
@@ -268,205 +314,68 @@ static void DrawSegAny(viswall_t *segl, bool isTop, bool isFlat)
 		if (segl->color==0) {
 			texPal = drawtex.data;
 		} else {
-			texPal = &coloredWallPals[currentWallCount << 4];
 			initColoredPals((uint16*)drawtex.data, texPal, 16, segl->color);
-		    if (++currentWallCount == MAXWALLCMDS) currentWallCount = 0;
 		}
 
 		DrawWallSegment(&drawtex, texPal, CenterY);
     }
 }
 
-void DrawSeg(viswall_t *segl, int *scaleData)
+void DrawSeg(viswall_t *segl, ColumnStore *columnStoreData)
 {
-    Word i;
-
-	int scale;
-
-	int textureColumn;
-	int textureLight;
-
 	viscol_t *viscol;
 
 	Word xPos = segl->LeftX;
+	const Word rightX = segl->RightX;
 
-    Word ActionBits = segl->WallActions;
-	if (!(ActionBits & (AC_TOPTEXTURE|AC_BOTTOMTEXTURE))) return;
+	const Fixed offset = segl->offset;
+	const angle_t centerAngle = segl->CenterAngle;
+	const Word distance = segl->distance >> VISWALL_DISTANCE_PRESHIFT;
 
+	if (!(segl->WallActions & (AC_TOPTEXTURE|AC_BOTTOMTEXTURE))) return;
 
-    i = segl->seglightlevel;
-    lightmin = lightmins[i];
-    lightmax = i;
-    lightsub = lightsubs[i];
-    lightcoef = lightcoefs[i];
+    drawtex.xStart = xPos;
+    drawtex.xEnd = rightX;
 
     viscol = viscols;
     do {
-        scale = *scaleData++;
-
-        /*textureColumn = (segl->offset-IMFixMul(
-            finetangent[(segl->CenterAngle+xtoviewangle[xPos])>>ANGLETOFINESHIFT],
-            segl->distance))>>FRACBITS;*/
-
-		// I'll keep the above commented for now as I need to test that this replacement of IMFixMul with regular mul doesn't overflow in any level.
-        textureColumn = (segl->offset-((finetangent[(segl->CenterAngle+xtoviewangle[xPos])>>ANGLETOFINESHIFT] * segl->distance)>>(FRACBITS-VISWALL_DISTANCE_PRESHIFT)))>>FRACBITS;
-
-        textureLight = ((scale*lightcoef)>>16) - lightsub;
-        if (textureLight < lightmin) {
-            textureLight = lightmin;
-        }
-        if (textureLight > lightmax) {
-            textureLight = lightmax;
-        }
-
-        viscol->column = textureColumn;
-        viscol->light = textureLight;
-        viscol->scale = scale;
+        viscol->column = (offset-((finetangent[(centerAngle+xtoviewangle[xPos])>>ANGLETOFINESHIFT] * distance)>>(FRACBITS-VISWALL_DISTANCE_PRESHIFT)))>>FRACBITS;
+        viscol->light = LightTablePtr[columnStoreData->light>>LIGHTSCALESHIFT];
+        viscol->scale = columnStoreData->scale;
         viscol++;
+		columnStoreData++;
+    } while (++xPos <= rightX);
 
-        ++xPos;
-    } while (xPos <= segl->RightX);
-
-
-    drawtex.xStart = segl->LeftX;
-    drawtex.xEnd = segl->RightX;
-
-    if (ActionBits&AC_TOPTEXTURE)
+    if (segl->WallActions & AC_TOPTEXTURE)
         DrawSegAny(segl, true, false);
 
-    if (ActionBits&AC_BOTTOMTEXTURE)
+    if (segl->WallActions & AC_BOTTOMTEXTURE)
         DrawSegAny(segl, false, false);
 }
 
-void DrawSegUnshaded(viswall_t *segl, int *scaleData)
+void DrawSegFlat(viswall_t *segl, ColumnStore *columnStoreData)
 {
-	int scale;
-
-	int textureColumn;
-	int textureLight;
-
 	viscol_t *viscol;
 
 	Word xPos = segl->LeftX;
+	const Word rightX = segl->RightX;
 
-    Word ActionBits = segl->WallActions;
-	if (!(ActionBits & (AC_TOPTEXTURE|AC_BOTTOMTEXTURE))) return;
+	if (!(segl->WallActions & (AC_TOPTEXTURE|AC_BOTTOMTEXTURE))) return;
 
-    textureLight = segl->seglightlevel;
-    if (optGraphics->depthShading == DEPTH_SHADING_DARK) textureLight = lightmins[textureLight];
+    drawtex.xStart = segl->LeftX;
+    drawtex.xEnd = rightX;
 
     viscol = viscols;
     do {
-        scale = *scaleData++;
-
-        /*textureColumn = (segl->offset-IMFixMul(
-            finetangent[(segl->CenterAngle+xtoviewangle[xPos])>>ANGLETOFINESHIFT],
-            segl->distance))>>FRACBITS;*/
-
-		// I'll keep the above commented for now as I need to test that this replacement of IMFixMul with regular mul doesn't overflow in any level.
-		textureColumn = (segl->offset-((finetangent[(segl->CenterAngle+xtoviewangle[xPos])>>ANGLETOFINESHIFT] * segl->distance)>>(FRACBITS-VISWALL_DISTANCE_PRESHIFT)))>>FRACBITS;
-
-        viscol->column = textureColumn;
-        viscol->light = textureLight;
-        viscol->scale = scale;
+        viscol->light = LightTablePtr[columnStoreData->light>>LIGHTSCALESHIFT];
+        viscol->scale = columnStoreData->scale;
         viscol++;
+		columnStoreData++;
+    } while (++xPos <= rightX);
 
-        ++xPos;
-    } while (xPos <= segl->RightX);
-
-
-    drawtex.xStart = segl->LeftX;
-    drawtex.xEnd = segl->RightX;
-
-    if (ActionBits&AC_TOPTEXTURE)
-        DrawSegAny(segl, true, false);
-
-    if (ActionBits&AC_BOTTOMTEXTURE)
-        DrawSegAny(segl, false, false);
-}
-
-void DrawSegFlat(viswall_t *segl, int *scaleData)
-{
-    Word i;
-
-	int scale;
-
-	int textureLight;
-
-	viscol_t *viscol;
-
-	Word xPos = segl->LeftX;
-
-    Word ActionBits = segl->WallActions;
-	if (!(ActionBits & (AC_TOPTEXTURE|AC_BOTTOMTEXTURE))) return;
-
-
-    i = segl->seglightlevel;
-    lightmin = lightmins[i];
-    lightmax = i;
-    lightsub = lightsubs[i];
-    lightcoef = lightcoefs[i];
-
-    viscol = viscols;
-    do {
-        scale = *scaleData++;
-
-        textureLight = ((scale*lightcoef)>>16) - lightsub;
-        if (textureLight < lightmin) {
-            textureLight = lightmin;
-        }
-        if (textureLight > lightmax) {
-            textureLight = lightmax;
-        }
-
-        viscol->light = textureLight;
-        viscol->scale = scale;
-        viscol++;
-
-        ++xPos;
-    } while (xPos <= segl->RightX);
-
-
-    drawtex.xStart = segl->LeftX;
-    drawtex.xEnd = segl->RightX;
-
-    if (ActionBits&AC_TOPTEXTURE)
+    if (segl->WallActions & AC_TOPTEXTURE)
         DrawSegAny(segl, true, true);
 
-    if (ActionBits&AC_BOTTOMTEXTURE)
-        DrawSegAny(segl, false, true);
-}
-
-void DrawSegFlatUnshaded(viswall_t *segl, int *scaleData)
-{
-	int textureLight;
-
-	viscol_t *viscol;
-
-	Word xPos = segl->LeftX;
-
-    Word ActionBits = segl->WallActions;
-	if (!(ActionBits & (AC_TOPTEXTURE|AC_BOTTOMTEXTURE))) return;
-
-    textureLight = segl->seglightlevel;
-    if (optGraphics->depthShading == DEPTH_SHADING_DARK) textureLight = lightmins[textureLight];
-
-    viscol = viscols;
-    do {
-        viscol->light = textureLight;
-        viscol->scale = *scaleData++;
-        viscol++;
-
-        ++xPos;
-    } while (xPos <= segl->RightX);
-
-
-    drawtex.xStart = segl->LeftX;
-    drawtex.xEnd = segl->RightX;
-
-    if (ActionBits&AC_TOPTEXTURE)
-        DrawSegAny(segl, true, true);
-
-    if (ActionBits&AC_BOTTOMTEXTURE)
+    if (segl->WallActions & AC_BOTTOMTEXTURE)
         DrawSegAny(segl, false, true);
 }

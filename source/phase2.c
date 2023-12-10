@@ -299,15 +299,32 @@ void WallPrep(Word LeftX,Word RightX,seg_t *LineSeg,angle_t LeftAngle)
 
 	CurWallPtr->color = FrontSecPtr->color;
 	CurWallPtr->special = frontSecSpecial;
-
 	CurWallPtr->WallActions = actionbits;		/* Save the action bits */
+
+
 	if (f_lightlevel < 240) {		/* Get the light level */
 		f_lightlevel += extralight;	/* Add the light factor */
 		if (f_lightlevel > 240) {
 			f_lightlevel = 240;
 		}
 	}
+
 	CurWallPtr->seglightlevel = f_lightlevel;	/* Save the light level */
+
+	// Fake contrast
+    if (LineSeg->v1.y == LineSeg->v2.y) {
+		if (f_lightlevel > 16) {
+			f_lightlevel -= 16;
+		}
+	} else if (LineSeg->v1.x == LineSeg->v2.x) {
+		if (f_lightlevel < 240) {
+			f_lightlevel += 16;
+		}
+	}
+
+	CurWallPtr->seglightlevelContrast = f_lightlevel;	// Save extra light level for fake contrast (stored in separate to not affect visplanes)
+
+
 	CurWallPtr->offset = SidePtr->textureoffset+LineSeg->offset;	/* Texture anchor X */
 	LatePrep(CurWallPtr,LineSeg,LeftAngle);
 

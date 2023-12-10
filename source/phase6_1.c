@@ -12,12 +12,12 @@ typedef struct {
 } segloop_t;
 
 
-static Word clipboundtop[MAXSCREENWIDTH];		// Bounds top y for vertical clipping
-static Word clipboundbottom[MAXSCREENWIDTH];	// Bounds bottom y for vertical clipping
+static int clipboundtop[MAXSCREENWIDTH];		// Bounds top y for vertical clipping
+static int clipboundbottom[MAXSCREENWIDTH];	// Bounds bottom y for vertical clipping
 
 segloop_t segloops[MAXSCREENWIDTH];
 
-bool skyOnView = false;                         // marker to know if at one frame sky was visible or not
+bool skyOnView;                         // marker to know if at one frame sky was visible or not
 
 
 void initCCBarraySky(void)
@@ -33,7 +33,7 @@ void initCCBarraySky(void)
 
 		// Set all the defaults
         CCBPtr->ccb_Flags = CCB_SPABS|CCB_LDSIZE|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|
-                            CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_PPABS;	// ccb_flags
+                            CCB_ACE|CCB_BGND|/*CCB_NOBLK|*/CCB_PPABS;	// ccb_flags
 
         if (i==0) CCBPtr->ccb_Flags |= CCB_LDPLUT;  // First CEL column will set the palette for the rest
 
@@ -141,13 +141,13 @@ static visplane_t *FindPlane(visplane_t *check, viswall_t *segl, int start, Word
 static void SegLoopFloor(viswall_t *segl, Word screenCenterY)
 {
 	Word x;
-	int scale;
 
 	visplane_t *FloorPlane;
-	int top, bottom;
-	int ceilingclipy, floorclipy;
 	Word color;
 	segloop_t *segdata = segloops;
+	
+	const Word rightX = segl->RightX;
+	const int floorHeight = segl->floorheight;
 
 	if (optGraphics->planeQuality == PLANE_QUALITY_LO) {
 		const Word floorColor = segl->floorAndCeilingColor >> 16;
@@ -161,11 +161,12 @@ static void SegLoopFloor(viswall_t *segl, Word screenCenterY)
 
 	x = segl->LeftX;
 	do {
-		scale = segdata->scale;
-		ceilingclipy = segdata->ceilingclipy;
-		floorclipy = segdata->floorclipy;
+		int top, bottom;
+		const int scale = segdata->scale;
+		const int ceilingclipy = segdata->ceilingclipy;
+		const int floorclipy = segdata->floorclipy;
 
-        top = screenCenterY - ((scale * segl->floorheight)>>(HEIGHTBITS+SCALEBITS));	// Y coord of top of floor
+        top = screenCenterY - ((scale * floorHeight)>>(HEIGHTBITS+SCALEBITS));	// Y coord of top of floor
         if (top <= ceilingclipy) {
             top = ceilingclipy+1;		// Clip the top of floor to the bottom of the visible area
         }
@@ -183,19 +184,19 @@ static void SegLoopFloor(viswall_t *segl, Word screenCenterY)
             if (FloorPlane->maxy < bottom) FloorPlane->maxy = bottom;
         }
         segdata++;
-	} while (++x<=segl->RightX);
+	} while (++x<=rightX);
 }
 
 static void SegLoopCeiling(viswall_t *segl, Word screenCenterY)
 {
 	Word x;
-	int scale;
 
 	visplane_t *CeilingPlane;
-	int top, bottom;
-	int ceilingclipy, floorclipy;
 	Word color;
 	segloop_t *segdata = segloops;
+	
+	const Word rightX = segl->RightX;
+	const int ceilingHeight = segl->ceilingheight;
 
 	if (optGraphics->planeQuality == PLANE_QUALITY_LO) {
 		const Word ceilingColor = segl->floorAndCeilingColor & 0x0000FFFF;
@@ -208,17 +209,18 @@ static void SegLoopCeiling(viswall_t *segl, Word screenCenterY)
 	isFloor = false;
 
 	// Ugly hack for the case FindPlane expects segl, but reads always floor (to not pass too many arguments as before and also not duplicate)
-	segl->floorheight = segl->ceilingheight;
+	segl->floorheight = ceilingHeight;
 	segl->FloorPic = segl->CeilingPic;
 
 	x = segl->LeftX;
 	do {
-		scale = segdata->scale;
-		ceilingclipy = segdata->ceilingclipy;
-		floorclipy = segdata->floorclipy;
+		int top, bottom;
+		const int scale = segdata->scale;
+		const int ceilingclipy = segdata->ceilingclipy;
+		const int floorclipy = segdata->floorclipy;
 
         top = ceilingclipy+1;		// Start from the ceiling
-        bottom = (screenCenterY-1) - ((scale * segl->ceilingheight)>>(HEIGHTBITS+SCALEBITS));	// Bottom of the height
+        bottom = (screenCenterY-1) - ((scale * ceilingHeight)>>(HEIGHTBITS+SCALEBITS));	// Bottom of the height
         if (bottom >= floorclipy) {		// Clip the bottom?
             bottom = floorclipy-1;
         }
@@ -235,7 +237,7 @@ static void SegLoopCeiling(viswall_t *segl, Word screenCenterY)
             if (CeilingPlane->maxy < bottom) CeilingPlane->maxy = bottom;
         }
         segdata++;
-	} while (++x<=segl->RightX);
+	} while (++x<=rightX);
 }
 
 static void SegLoopSpriteClipsBottom(viswall_t *segl, Word screenCenterY)
@@ -243,9 +245,14 @@ static void SegLoopSpriteClipsBottom(viswall_t *segl, Word screenCenterY)
     Word ActionBits = segl->WallActions;
 	segloop_t *segdata = segloops;
 
+	const int floorNewHeight = segl->floornewheight;
+
 	Word x = segl->LeftX;
+	Byte *bottomSil = &segl->BottomSil[x];
+
+	const Word rightX = segl->RightX;
 	do {
-        int low = screenCenterY - ((segdata->scale * segl->floornewheight)>>(HEIGHTBITS+SCALEBITS));
+        int low = screenCenterY - ((segdata->scale * floorNewHeight)>>(HEIGHTBITS+SCALEBITS));
         const int floorclipy = segdata->floorclipy;
 
         if (low > floorclipy) {
@@ -254,13 +261,13 @@ static void SegLoopSpriteClipsBottom(viswall_t *segl, Word screenCenterY)
             low = 0;
         }
         if (ActionBits & AC_BOTTOMSIL) {
-            segl->BottomSil[x] = low;
+            *bottomSil++ = low;
         }
         if (ActionBits & AC_NEWFLOOR) {
             clipboundbottom[x] = low;
         }
 		segdata++;
-	} while (++x<=segl->RightX);
+	} while (++x<=rightX);
 }
 
 static void SegLoopSpriteClipsTop(viswall_t *segl, Word screenCenterY)
@@ -268,9 +275,14 @@ static void SegLoopSpriteClipsTop(viswall_t *segl, Word screenCenterY)
     Word ActionBits = segl->WallActions;
 	segloop_t *segdata = segloops;
 
+	const int ceilingNewHeight = segl->ceilingnewheight;
+
 	Word x = segl->LeftX;
+	Byte *topSil = &segl->TopSil[x];
+
+	const Word rightX = segl->RightX;
 	do {
-        int high = (screenCenterY-1) - ((segdata->scale * segl->ceilingnewheight)>>(HEIGHTBITS+SCALEBITS));
+        int high = (screenCenterY-1) - ((segdata->scale * ceilingNewHeight)>>(HEIGHTBITS+SCALEBITS));
         const int ceilingclipy = segdata->ceilingclipy;
 
         if (high < ceilingclipy) {
@@ -279,55 +291,13 @@ static void SegLoopSpriteClipsTop(viswall_t *segl, Word screenCenterY)
             high = ScreenHeight-1;
         }
         if (ActionBits & AC_TOPSIL) {
-            segl->TopSil[x] = high+1;
+            *topSil++ = high+1;
         }
         if (ActionBits & AC_NEWCEILING) {
             clipboundtop[x] = high;
         }
 		segdata++;
-	} while (++x<=segl->RightX);
-}
-
-static void SegLoopSpriteClipsBoth(viswall_t *segl, Word screenCenterY)
-{
-    Word ActionBits = segl->WallActions;
-	segloop_t *segdata = segloops;
-
-	Word x = segl->LeftX;
-	do {
-        const int floorclipy = segdata->floorclipy;
-        const int ceilingclipy = segdata->ceilingclipy;
-        int low = screenCenterY - ((segdata->scale * segl->floornewheight)>>(HEIGHTBITS+SCALEBITS));
-        int high = (screenCenterY-1) - ((segdata->scale * segl->ceilingnewheight)>>(HEIGHTBITS+SCALEBITS));
-
-		if (low > floorclipy) {
-            low = floorclipy;
-        }
-        else if (low < 0) {
-            low = 0;
-        }
-        if (high < ceilingclipy) {
-            high = ceilingclipy;
-        }
-        else if (high > (int)ScreenHeight-1) {
-            high = ScreenHeight-1;
-        }
-
-        if (ActionBits & AC_BOTTOMSIL) {
-            segl->BottomSil[x] = low;
-        }
-        if (ActionBits & AC_NEWFLOOR) {
-            clipboundbottom[x] = low;
-        }
-        if (ActionBits & AC_TOPSIL) {
-            segl->TopSil[x] = high+1;
-        }
-        if (ActionBits & AC_NEWCEILING) {
-            clipboundtop[x] = high;
-        }
-
-		segdata++;
-	} while (++x<=segl->RightX);
+	} while (++x<=rightX);
 }
 
 static void SegLoopSky(viswall_t *segl, Word screenCenterY)
@@ -341,13 +311,16 @@ static void SegLoopSky(viswall_t *segl, Word screenCenterY)
 
 	segloop_t *segdata = segloops;
 
+	const int ceilingHeight = segl->ceilingheight;
+
     Word x = segl->LeftX;
+	const Word rightX = segl->RightX;
     do {
 		scale = segdata->scale;
 		ceilingclipy = segdata->ceilingclipy;
 		floorclipy = segdata->floorclipy;
 
-        bottom = screenCenterY - ((scale * segl->ceilingheight)>>(HEIGHTBITS+SCALEBITS));
+        bottom = screenCenterY - ((scale * ceilingHeight)>>(HEIGHTBITS+SCALEBITS));
         if (bottom > floorclipy) {
             bottom = floorclipy;
         }
@@ -357,7 +330,7 @@ static void SegLoopSky(viswall_t *segl, Word screenCenterY)
             ++CCBPtr;
         }
         segdata++;
-	} while (++x<=segl->RightX);
+	} while (++x<=rightX);
 
 
 	if (CCBPtr != &CCBArraySky[0]) {
@@ -366,52 +339,228 @@ static void SegLoopSky(viswall_t *segl, Word screenCenterY)
 	}
 }
 
-void SegLoop(viswall_t *segl)
+static void prepColumnStoreDataPoly(viswall_t *segl)
 {
-	Word x;
+	Word x = segl->LeftX;
+	const Word rightX = segl->RightX;
 
 	int _scalefrac = segl->LeftScale;		// Init the scale fraction
 	const int _scalestep = segl->ScaleStep;
 
-	Word ActionBits = segl->WallActions;
-
     segloop_t *segdata = segloops;
+    ColumnStore *columnStoreData = columnStoreArrayData;
 
-    int *scaleData = scaleArrayData;
-
-	x = segl->LeftX;
 	do {
         int scale = _scalefrac>>FIXEDTOSCALE;	// Current scaling factor
 		if (scale >= 0x2000) {		// Too large?
 			scale = 0x1fff;			// Fix the scale to maximum
 		}
-		*scaleData++ = scale;
+
+		columnStoreData->scale = scale;
+		columnStoreData++;
 		segdata->scale = scale;
 		segdata->ceilingclipy = clipboundtop[x];	// Get the top y clip
 		segdata->floorclipy = clipboundbottom[x];	// Get the bottom y clip
         segdata++;
 
         _scalefrac += _scalestep;		// Step to the next scale
-	} while (++x<=segl->RightX);
-	scaleArrayData = scaleData;
+	} while (++x<=rightX);
+
+	columnStoreArrayData = columnStoreData;
+}
+
+static void prepColumnStoreDataUnlit(viswall_t *segl, bool forceDark)
+{
+	Word x = segl->LeftX;
+	const Word rightX = segl->RightX;
+
+	int _scalefrac = segl->LeftScale;		// Init the scale fraction
+	const int _scalestep = segl->ScaleStep;
+
+    segloop_t *segdata = segloops;
+    ColumnStore *columnStoreData = columnStoreArrayData;
+
+	int wallColumnLight = segl->seglightlevelContrast;
+	if (forceDark || optGraphics->depthShading == DEPTH_SHADING_DARK) wallColumnLight = lightmins[wallColumnLight];
+
+	do {
+        int scale = _scalefrac>>FIXEDTOSCALE;	// Current scaling factor
+		if (scale >= 0x2000) {		// Too large?
+			scale = 0x1fff;			// Fix the scale to maximum
+		}
+
+		columnStoreData->scale = scale;
+		columnStoreData->light = wallColumnLight;
+		columnStoreData++;
+		segdata->scale = scale;
+		segdata->ceilingclipy = clipboundtop[x];	// Get the top y clip
+		segdata->floorclipy = clipboundbottom[x];	// Get the bottom y clip
+        segdata++;
+
+        _scalefrac += _scalestep;		// Step to the next scale
+	} while (++x<=rightX);
+	columnStoreArrayData = columnStoreData;
+}
+
+static void prepColumnStoreDataLight(viswall_t *segl)
+{
+	Word x;
+	const Word leftX = segl->LeftX + 4;
+	const Word rightX = segl->RightX;
+
+    ColumnStore *columnStoreData = columnStoreArrayData;
+
+	const Word lightIndex = segl->seglightlevelContrast;
+    const Fixed lightminF = lightmins[lightIndex];
+    const Fixed lightmaxF = lightIndex;
+	const Fixed lightsub = lightsubs[lightIndex];
+	Fixed lightcoefF = ((segl->LeftScale >> 4) * (lightcoefs[lightIndex] >> 4)) >> (2 * FIXEDTOSCALE - 8);
+	Fixed lightcoefFstep = 4 * (((segl->ScaleStep >> 4) * (lightcoefs[lightIndex] >> 4)) >> (2 * FIXEDTOSCALE - 8));
+
+	int prevWallColumnLight = (lightcoefF >> (16 - FIXEDTOSCALE)) - lightsub;
+	if (prevWallColumnLight < lightminF) prevWallColumnLight = lightminF;
+	if (prevWallColumnLight > lightmaxF) prevWallColumnLight = lightmaxF;
+	lightcoefF += lightcoefFstep;
+	columnStoreData->light = prevWallColumnLight;
+	columnStoreData++;
+
+	for (x=leftX; x<=rightX; x+=4) {
+		int wallColumnLightHalf;
+		int wallColumnLight = (lightcoefF >> (16 - FIXEDTOSCALE)) - lightsub;
+        if (wallColumnLight < lightminF) wallColumnLight = lightminF;
+        if (wallColumnLight > lightmaxF) wallColumnLight = lightmaxF;
+		lightcoefF += lightcoefFstep;
+		
+		wallColumnLightHalf = (prevWallColumnLight + wallColumnLight) >> 1;
+
+		columnStoreData[0].light = (prevWallColumnLight + wallColumnLightHalf) >> 1;
+		columnStoreData[1].light = wallColumnLightHalf;
+		columnStoreData[2].light = (wallColumnLightHalf + wallColumnLight) >> 1;
+		columnStoreData[3].light = wallColumnLight;
+		columnStoreData+=4;
+
+		prevWallColumnLight = wallColumnLight;
+	}
+	lightcoefFstep >>= 2;
+	for (x-=3; x<=rightX; ++x) {
+		prevWallColumnLight = (lightcoefF >> (16 - FIXEDTOSCALE)) - lightsub;
+		if (prevWallColumnLight < lightminF) prevWallColumnLight = lightminF;
+		if (prevWallColumnLight > lightmaxF) prevWallColumnLight = lightmaxF;
+		lightcoefF += lightcoefFstep;
+		columnStoreData->light = prevWallColumnLight;
+		columnStoreData++;
+	}
+}
+
+static void prepColumnStoreData(viswall_t *segl)
+{
+	Word x = segl->LeftX;
+	const Word rightX = segl->RightX;
+
+	int _scalefrac = segl->LeftScale;		// Init the scale fraction
+	const int _scalestep = segl->ScaleStep;
+
+    segloop_t *segdata = segloops;
+    ColumnStore *columnStoreData = columnStoreArrayData;
+
+	do {
+        int scale = _scalefrac>>FIXEDTOSCALE;	// Current scaling factor
+		if (scale >= 0x2000) {		// Too large?
+			scale = 0x1fff;			// Fix the scale to maximum
+		}
+
+		columnStoreData->scale = scale;
+		columnStoreData++;
+		segdata->scale = scale;
+		segdata->ceilingclipy = clipboundtop[x];	// Get the top y clip
+		segdata->floorclipy = clipboundbottom[x];	// Get the bottom y clip
+        segdata++;
+
+        _scalefrac += _scalestep;		// Step to the next scale
+	} while (++x<=rightX);
+
+	prepColumnStoreDataLight(segl);
+
+	columnStoreArrayData = columnStoreData;
+}
+
+/*
+Culling idea that didn't work well so far (bugs, walls dissapear, not actually doing the clipping even)
+Commenting out and will revisit in the future.
+I am checking wall segment top bottom but those should be different depending if it's a mid wall or upper/lower walls separately.
+Will even need to do this check at other places separately but mark for the renderer what to and not to render.
+It's pretty hard to pull without destroying the visuals and actually not even gaining speed in most cases.
+
+bool isSegWallOccluded(viswall_t *segl)
+{
+
+	const bool silsTop = segl->WallActions & (AC_TOPSIL|AC_NEWCEILING);
+	const bool silsBottom = segl->WallActions & (AC_BOTTOMSIL|AC_NEWFLOOR);
+
+	if (!silsTop && silsBottom) {
+		const int xl = segl->LeftX;
+		const int xr = segl->RightX;
+
+		const int scaleLeft = (int)(segl->LeftScale >> FIXEDTOSCALE);
+		const int scaleRight = (int)(segl->RightScale >> FIXEDTOSCALE);
+		const int floorNewHeight = segl->floornewheight;
+		const int ceilingNewHeight = segl->ceilingnewheight;
+
+		const int bottomLeft = CenterY - ((scaleLeft * floorNewHeight)>>(HEIGHTBITS+SCALEBITS));
+		const int bottomRight = CenterY - ((scaleRight * floorNewHeight)>>(HEIGHTBITS+SCALEBITS));
+
+		if (bottomLeft < clipboundtop[xl] && bottomRight < clipboundtop[xr]) {
+			const int topLeft = (CenterY-1) - ((scaleLeft * ceilingNewHeight)>>(HEIGHTBITS+SCALEBITS));
+			const int topRight = (CenterY-1) - ((scaleRight * ceilingNewHeight)>>(HEIGHTBITS+SCALEBITS));
+
+			if (segl->WallActions & AC_ADDSKY) {
+				skyOnView = true;
+			}
+
+			if (topLeft > clipboundbottom[xl] && topRight > clipboundbottom[xr]) return true;
+		}
+	}
+	return false;
+}*/
+
+void SegLoop(viswall_t *segl)
+{
+	if (optGraphics->renderer == RENDERER_DOOM) {
+		if (optGraphics->depthShading >= DEPTH_SHADING_DITHERED) {
+			if (segl->renderKind >= VW_MID) {
+				prepColumnStoreDataUnlit(segl, true);
+			} else {
+				prepColumnStoreData(segl);
+			}
+		} else {
+			prepColumnStoreDataUnlit(segl, false);
+		}
+	} else {
+		if (segl->renderKind >= VW_FAR) {
+			prepColumnStoreDataUnlit(segl, optGraphics->depthShading >= DEPTH_SHADING_DITHERED);
+		} else {
+			prepColumnStoreDataPoly(segl);
+		}
+	}
 
 // Shall I add the floor?
-    if (ActionBits & AC_ADDFLOOR) {
+    if (segl->WallActions & AC_ADDFLOOR) {
         SegLoopFloor(segl, CenterY);
     }
 
 // Handle ceilings
-    if (ActionBits & AC_ADDCEILING) {
+    if (segl->WallActions & AC_ADDCEILING) {
         SegLoopCeiling(segl, CenterY);
     }
 
 // Sprite clip sils
 	{
-		const bool silsTop = ActionBits & (AC_TOPSIL|AC_NEWCEILING);
-		const bool silsBottom = ActionBits & (AC_BOTTOMSIL|AC_NEWFLOOR);
+		const bool silsTop = segl->WallActions & (AC_TOPSIL|AC_NEWCEILING);
+		const bool silsBottom = segl->WallActions & (AC_BOTTOMSIL|AC_NEWFLOOR);
 
 		if (silsTop && silsBottom) {
-			SegLoopSpriteClipsBoth(segl, CenterY);
+			SegLoopSpriteClipsTop(segl, CenterY);
+			SegLoopSpriteClipsBottom(segl, CenterY);
 		} else if (silsBottom) {
 			SegLoopSpriteClipsBottom(segl, CenterY);
 		} else if (silsTop) {
@@ -421,7 +570,7 @@ void SegLoop(viswall_t *segl)
 
 // I can draw the sky right now!!
     if (!enableWireframeMode) {
-        if (ActionBits & AC_ADDSKY) {
+        if (segl->WallActions & AC_ADDSKY) {
             skyOnView = true;
             if (optOther->sky==SKY_DEFAULT) {
                 SegLoopSky(segl, CenterY);

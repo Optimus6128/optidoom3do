@@ -14,6 +14,11 @@ typedef struct {
     Fixed ystep;
 } visspan_t;
 
+typedef struct {
+    int start;
+	int step;
+} LightStepVars;
+
 Byte *PlaneSource;			/* Pointer to image of plane texture */
 Fixed planey;		/* latched viewx / viewy for plane drawing */
 Fixed basexscale,baseyscale;
@@ -24,6 +29,7 @@ static visspan_t spandata[MAXSCREENHEIGHT];
 
 static BitmapCCB CCBArrayPlane[CCB_ARRAY_PLANE_MAX];
 static int CCBArrayPlaneCurrent = 0;
+static int CCBflagsCurrentAlteredIndex = 0;
 
 static uint16 *coloredPlanePals = NULL;
 static int currentVisplaneCount = 0;
@@ -72,7 +78,7 @@ static void initCCBarrayPlane(void)
         CCBPtr->ccb_NextPtr = (BitmapCCB *)(sizeof(BitmapCCB)-8);	// Create the next offset
 
 		// Set all the defaults
-        CCBPtr->ccb_Flags = CCB_SPABS|CCB_LDPLUT|CCB_LDSIZE|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_PPABS;
+        CCBPtr->ccb_Flags = CCB_SPABS|CCB_LDSIZE|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|/*CCB_NOBLK|*/CCB_PPABS;
 
         CCBPtr->ccb_PRE0 = 0x00000005;		// Preamble (Coded 8 bit)
         CCBPtr->ccb_HDX = 1<<20;
@@ -94,7 +100,7 @@ static void initCCBarrayPlaneFlat(void)
 		CCBPtr->ccb_NextPtr = (BitmapCCB *)(sizeof(BitmapCCB)-8);	// Create the next offset
 
 		// Set all the defaults
-        CCBPtr->ccb_Flags = CCB_LDSIZE|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK;
+        CCBPtr->ccb_Flags = CCB_LDSIZE|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND/*|CCB_NOBLK*/;
 
         CCBPtr->ccb_PRE0 = 0x40000016;
         CCBPtr->ccb_PRE1 = 0x03FF1000;
@@ -128,7 +134,7 @@ static void initCCBarrayPlaneFlatDithered()
         CCBPtr->ccb_NextPtr = (BitmapCCB *)(sizeof(BitmapCCB)-8);	// Create the next offset
 
 	// Set all the defaults
-        CCBPtr->ccb_Flags = CCB_SPABS|CCB_LDPLUT|CCB_LDSIZE|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_PPABS;
+        CCBPtr->ccb_Flags = CCB_SPABS|CCB_LDSIZE|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|/*CCB_NOBLK|*/CCB_PPABS;
 
         CCBPtr->ccb_HDX = 1<<20;
         CCBPtr->ccb_HDY = 0<<20;
@@ -149,7 +155,7 @@ static void initCCBarrayPlaneFlatVertical()
 		CCBPtr->ccb_NextPtr = (BitmapCCB *)(sizeof(BitmapCCB)-8);	// Create the next offset
 
 		// Set all the defaults
-        CCBPtr->ccb_Flags = CCB_LDSIZE|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK;
+        CCBPtr->ccb_Flags = CCB_LDSIZE|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND/*|CCB_NOBLK*/;
 
         CCBPtr->ccb_PRE0 = 0x40000016;
         CCBPtr->ccb_PRE1 = 0x03FF1000;
@@ -219,119 +225,135 @@ void drawCCBarrayPlaneVertical(BitmapCCB *columnCCBend)
 void flushCCBarrayPlane()
 {
 	if (CCBArrayPlaneCurrent != 0) {
+		int i;
 		drawCCBarrayPlane(CCBArrayPlaneCurrent - 1);
 		CCBArrayPlaneCurrent = 0;
+
+		for (i=0; i<CCBflagsCurrentAlteredIndex; ++i) {
+			*CCBflagsAlteredIndexPtr[i] &= ~CCB_LDPLUT;
+		}
+		CCBflagsCurrentAlteredIndex = 0;
 	}
 }
 
 static void MapPlane(Word y1, Word y2)
 {
     BitmapCCB *CCBPtr;
-    Byte *DestPtr;
-    int numCels;
+	Byte *DestPtr;
     int y;
-
-	const int offsetX = visScrollX;
-	const int offsetY = visScrollY;
+	Word numSpans;
+	visspan_t *span;
 
     if (y1 > y2) return;
-	numCels = y2 - y1 + 1;
-	if (CCBArrayPlaneCurrent + numCels > CCB_ARRAY_PLANE_MAX) {
+
+	numSpans = y2 - y1 + 1;
+
+	if (CCBArrayPlaneCurrent + numSpans > CCB_ARRAY_PLANE_MAX) {
 		flushCCBarrayPlane();
 	}
 
-    DestPtr = SpanPtr;
+	DestPtr = SpanPtr;
     CCBPtr = &CCBArrayPlane[CCBArrayPlaneCurrent];
-    for (y=y1; y<=y2; ++y) {
-        const Word x1 = spandata[y].x1;
-        const Word distance = spandata[y].distance;
-        const Fixed length = (distscale[x1]*distance)>>14;
+	CCBPtr->ccb_Flags |= CCB_LDPLUT;
+	CCBPtr->ccb_PLUTPtr = texPal;
+	CCBflagsAlteredIndexPtr[CCBflagsCurrentAlteredIndex++] = &CCBPtr->ccb_Flags;
+    CCBArrayPlaneCurrent += numSpans;
+
+	span = &spandata[y1];
+	y = y1 << 16;
+	do {
+        const Word x1 = span->x1;
+        const Fixed length = (distscale[x1]*span->distance)>>14;
         const angle_t angle = (xtoviewangle[x1]+viewangle)>>ANGLETOFINESHIFT;
 
-        const Fixed xfrac = (((finecosine[angle]>>1)*length)>>4) + viewx + offsetX;
-        const Fixed yfrac = planey - (((finesine[angle]>>1)*length)>>4) + offsetY;
+        const Fixed xfrac = (((finecosine[angle]>>1)*length)>>4) + viewx + visScrollX;
+        const Fixed yfrac = planey - (((finesine[angle]>>1)*length)>>4) + visScrollY;
 
-        const Fixed xstep = spandata[y].xstep;
-        const Fixed ystep = spandata[y].ystep;
+        Word Count = span->x2 - x1;
 
-        const int light = spandata[y].light;
-        Word Count = spandata[y].x2 - x1;
-
-        int warpX = 0;
-        if (warpEffectOn) warpX = finecosine[((distance << 4) + (frameTime << 3)) & 8191] << 2;
-
-        spanDrawFunc(Count,xfrac+warpX,yfrac,xstep,ystep,DestPtr);
+		if (warpEffectOn) {
+			const int warpX = finecosine[((span->distance << 4) + (frameTime << 3)) & 8191] << 2;
+			spanDrawFunc(Count,xfrac+warpX,yfrac, span->xstep, span->ystep, DestPtr);
+		} else {
+			spanDrawFunc(Count,xfrac,yfrac, span->xstep, span->ystep, DestPtr);
+		}
 
         CCBPtr->ccb_PRE1 = 0x3E005000|(Count-1);		/* Second preamble */
         CCBPtr->ccb_SourcePtr = (CelData *)DestPtr;	/* Save the source ptr */
-        CCBPtr->ccb_PLUTPtr = texPal;
         CCBPtr->ccb_XPos = x1<<16;		/* Set the x and y coord for start */
-        CCBPtr->ccb_YPos = y<<16;
-        CCBPtr->ccb_PIXC = light;			/* PIXC control */
+        CCBPtr->ccb_YPos = y;
+        CCBPtr->ccb_PIXC = span->light;			/* PIXC control */
         CCBPtr++;
+
+		y+=1<<16;
+		++span;
 
         Count = (Count+3)&(~3);		/* Round to nearest longword */
         DestPtr += Count;
         SpanPtr = DestPtr;
-    }
-    CCBArrayPlaneCurrent += numCels;
+    } while(--numSpans != 0);
 }
 
 static void MapPlaneUnshaded(Word y1, Word y2)
 {
     BitmapCCB *CCBPtr;
     Byte *DestPtr;
-    int numCels;
     int y, light;
-
-    const int offsetX = visScrollX;
-	const int offsetY = visScrollY;
+	Word numSpans;
+	visspan_t *span;
 
     if (y1 > y2) return;
-	numCels = y2 - y1 + 1;
-	if (CCBArrayPlaneCurrent + numCels > CCB_ARRAY_PLANE_MAX) {
+
+	numSpans = y2 - y1 + 1;
+
+	if (CCBArrayPlaneCurrent + numSpans > CCB_ARRAY_PLANE_MAX) {
 		flushCCBarrayPlane();
 	}
 
-    if (!optGraphics->depthShading) light = lightmin;
-        else light = lightmax;
-
-    light = LightTablePtr[light>>LIGHTSCALESHIFT];
-
     DestPtr = SpanPtr;
     CCBPtr = &CCBArrayPlane[CCBArrayPlaneCurrent];
-    for (y=y1; y<=y2; ++y) {
-        const Word x1 = spandata[y].x1;
-        const Word distance = spandata[y].distance;
-        const Fixed length = (distscale[x1]*distance)>>14;
+	CCBPtr->ccb_Flags |= CCB_LDPLUT;
+	CCBPtr->ccb_PLUTPtr = texPal;
+	CCBflagsAlteredIndexPtr[CCBflagsCurrentAlteredIndex++] = &CCBPtr->ccb_Flags;
+	CCBArrayPlaneCurrent += numSpans;
+
+    if (!optGraphics->depthShading) light = lightmin;
+        else light = lightmax;
+    light = LightTablePtr[light>>LIGHTSCALESHIFT];
+
+	span = &spandata[y1];
+	y = y1 << 16;
+    do {
+        const Word x1 = span->x1;
+        const Fixed length = (distscale[x1]*span->distance)>>14;
         const angle_t angle = (xtoviewangle[x1]+viewangle)>>ANGLETOFINESHIFT;
 
-        const Fixed xfrac = (((finecosine[angle]>>1)*length)>>4) + viewx + offsetX;
-        const Fixed yfrac = planey - (((finesine[angle]>>1)*length)>>4) + offsetY;
+        const Fixed xfrac = (((finecosine[angle]>>1)*length)>>4) + viewx + visScrollX;
+        const Fixed yfrac = planey - (((finesine[angle]>>1)*length)>>4) + visScrollY;
 
-        const Fixed xstep = spandata[y].xstep;
-        const Fixed ystep = spandata[y].ystep;
+        Word Count = span->x2 - x1;
 
-        Word Count = spandata[y].x2 - x1;
-
-        int warpX = 0;
-        if (warpEffectOn) warpX = finecosine[((distance << 4) + (frameTime << 3)) & 8191] << 2;
-
-        spanDrawFunc(Count,xfrac+warpX,yfrac,xstep,ystep,DestPtr);
+		if (warpEffectOn) {
+			const int warpX = finecosine[((span->distance << 4) + (frameTime << 3)) & 8191] << 2;
+			spanDrawFunc(Count,xfrac+warpX,yfrac, span->xstep, span->ystep, DestPtr);
+		} else {
+			spanDrawFunc(Count,xfrac,yfrac, span->xstep, span->ystep, DestPtr);
+		}
 
         CCBPtr->ccb_PRE1 = 0x3E005000|(Count-1);		/* Second preamble */
         CCBPtr->ccb_SourcePtr = (CelData *)DestPtr;	/* Save the source ptr */
-        CCBPtr->ccb_PLUTPtr = texPal;
         CCBPtr->ccb_XPos = x1<<16;		/* Set the x and y coord for start */
-        CCBPtr->ccb_YPos = y<<16;
+        CCBPtr->ccb_YPos = y;
         CCBPtr->ccb_PIXC = light;
         CCBPtr++;
+
+		y+=1<<16;
+		++span;
 
         Count = (Count+3)&(~3);		/* Round to nearest longword */
         DestPtr += Count;
         SpanPtr = DestPtr;
-    }
-    CCBArrayPlaneCurrent += numCels;
+    } while(--numSpans != 0);
 }
 
 static void MapPlaneFlat(Word y1, Word y2, Word color)
@@ -375,6 +397,9 @@ static void MapPlaneFlatDithered(Word y1, Word y2, const Word *color)
 	}
 
     CCBPtr = &CCBArrayPlane[CCBArrayPlaneCurrent];
+	CCBPtr->ccb_Flags |= CCB_LDPLUT;
+	CCBPtr->ccb_PLUTPtr = (void*)color;
+	CCBflagsAlteredIndexPtr[CCBflagsCurrentAlteredIndex++] = &CCBPtr->ccb_Flags;
     for (y=y1; y<=y2; ++y) {
 		const Word x1 = spandata[y].x1;
 		const Word distance = spandata[y].distance;
@@ -388,7 +413,6 @@ static void MapPlaneFlatDithered(Word y1, Word y2, const Word *color)
         CCBPtr->ccb_SourcePtr = (CelData *)SpanPtr;	/* Save the source ptr */
         CCBPtr->ccb_XPos = x1<<16;		/* Set the x and y coord for start */
         CCBPtr->ccb_YPos = y<<16;
-		CCBPtr->ccb_PLUTPtr = (void*)color;
 
         if ((distance & 65535) > 32767) {	// that kinda works, not sure of the full range yet
         	CCBPtr->ccb_PIXC = (pixc1 << 16) | pixc1;
@@ -420,31 +444,57 @@ static void MapPlaneAny(Word y1, Word y2, const Word *color)
     }
 }
 
+static LightStepVars* getLightInterpolationVars(int y1, int y2)
+{
+	static LightStepVars lsv;
+
+	const Word distance1 = (yslope[y1]*PlaneHeight)>>12;
+	const Word distance2 = (yslope[y2]*PlaneHeight)>>12;
+
+	const int light1 = lightcoef / (Fixed)distance1 - lightsub;
+	const int light2 = lightcoef / (Fixed)distance2 - lightsub;
+
+	const int steps = y2 - y1 + 1;
+
+	lsv.start = light1 << 16;
+	lsv.step = ((light2 - light1) << 16) / steps;
+
+	return &lsv;
+}
 
 static void initVisplaneSpanDataTextured(visplane_t *p)
 {
-	int y;
-	for (y=p->miny; y<=p->maxy; ++y) {
-		const Word distance = (yslope[y]*PlaneHeight)>>12;
+	int y = p->miny;
+	const int yMax = p->maxy;
 
-        int light = lightcoef / (Fixed)distance - lightsub;
+	LightStepVars *lsv = getLightInterpolationVars(y, yMax);
+	int lightPos = lsv->start;
+	const int lightStep = lsv->step;
+
+	for (; y<=yMax; ++y) {
+		const Word distance = (yslope[y]*PlaneHeight)>>12;
+		int light = lightPos >> 16;
+
         if (light < lightmin) {
             light = lightmin;
         } else if (light > lightmax) {
             light = lightmax;
         }
-        spandata[y].light = LightTablePtr[light>>LIGHTSCALESHIFT];
 
+        spandata[y].light = LightTablePtr[light>>LIGHTSCALESHIFT];
 		spandata[y].distance = distance;
 		spandata[y].xstep = ((Fixed)distance*basexscale)>>4;
 		spandata[y].ystep = ((Fixed)distance*baseyscale)>>4;
+		
+		lightPos += lightStep;
 	}
 }
 
 static void initVisplaneSpanDataTexturedUnshaded(visplane_t *p)
 {
 	int y;
-	for (y=p->miny; y<=p->maxy; ++y) {
+	const int yMax = p->maxy;
+	for (y=p->miny; y<=yMax; ++y) {
 		const Word distance = (yslope[y]*PlaneHeight)>>12;
 
 		spandata[y].distance = distance;
@@ -455,34 +505,51 @@ static void initVisplaneSpanDataTexturedUnshaded(visplane_t *p)
 
 static void initVisplaneSpanDataFlat(visplane_t *p)
 {
-	int y;
-	for (y=p->miny; y<=p->maxy; ++y) {
-		const Word distance = (yslope[y]*PlaneHeight)>>12;
+	int y = p->miny;
+	const int yMax = p->maxy;
 
-        int  light = lightcoef / (Fixed)distance - lightsub;
+	LightStepVars *lsv = getLightInterpolationVars(y, yMax);
+	int lightPos = lsv->start;
+	const int lightStep = lsv->step;
+
+	for (; y<=yMax; ++y) {
+		int light = lightPos >> 16;
+
         if (light < lightmin) {
             light = lightmin;
         } else if (light > lightmax) {
             light = lightmax;
         }
+
         spandata[y].light = LightTablePtr[light>>LIGHTSCALESHIFT];
+
+		lightPos += lightStep;
 	}
 }
 
 static void initVisplaneSpanDataFlatDithered(visplane_t *p)
 {
-	int y;
-	for (y=p->miny; y<=p->maxy; ++y) {
-		const Word distance = (yslope[y]*PlaneHeight)>>12;
+	int y = p->miny;
+	const int yMax = p->maxy;
 
-        int light = lightcoef / (Fixed)distance - lightsub;
+	LightStepVars *lsv = getLightInterpolationVars(y, yMax);
+	int lightPos = lsv->start;
+	const int lightStep = lsv->step;
+
+	for (; y<=yMax; ++y) {
+		const Word distance = (yslope[y]*PlaneHeight)>>12;
+		int light = lightPos >> 16;
+
         if (light < lightmin) {
             light = lightmin;
         } else if (light > lightmax) {
             light = lightmax;
         }
+
         spandata[y].light = light>>LIGHTSCALESHIFT;
-        spandata[y].distance = distance;
+		spandata[y].distance = distance;
+
+		lightPos += lightStep;
 	}
 }
 
@@ -655,7 +722,6 @@ void DrawVisPlaneHorizontal(visplane_t *p)
 void DrawVisPlaneVertical(visplane_t *p)
 {
 	int x, xEnd;
-	int topY, bottomY;
 	Word *open = p->open;
 
 	BitmapCCB *CCBPtr;
@@ -676,8 +742,8 @@ void DrawVisPlaneVertical(visplane_t *p)
 	do {
 		const Word op = open[x];
 		int length;
-		topY = op >> 8;
-		bottomY = op & 0xFF;
+		const int topY = op >> 8;
+		const int bottomY = op & 0xFF;
 
 		length = bottomY - topY + 1;
 		if (length < 1) continue;

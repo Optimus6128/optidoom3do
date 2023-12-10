@@ -8,13 +8,17 @@
 
 **********************************/
 
+#define MID_DIST 384
+#define FAR_DIST 768
+
+
 static viswall_t *WallSegPtr;		// Pointer to the current wall
 static viswall_t *LastSegPtr;      // Pointer to last wall
 
-static int scaleArray[MAXSCREENWIDTH * 16];     // MAXSCREENWIDTH * 16 should be more than enough
-static int *scaleArrayPtr[MAXWALLCMDS];         // start pointers in scaleArray for each individual line segment
-static int scaleArrayIndex;                     // index for new line segment
-int *scaleArrayData;                            // pointer to pass scale wall column data to phase6_1
+static ColumnStore columnStoreArray[MAXSCREENWIDTH * 16];	// MAXSCREENWIDTH * 16 should be more than enough
+static ColumnStore *columnStoreArrayPtr[MAXWALLCMDS];		// start pointers in columnStoreArray for each individual line segment
+static int columnStoreArrayIndex;							// index for new line segment
+ColumnStore *columnStoreArrayData;							// pointer to pass scale and light wall column data to phase6_1
 
 
 bool background_clear = false;
@@ -49,7 +53,31 @@ static void DrawBackground()
         drawNewSky(optOther->sky);
         FlushCCBs(); // Flush early to render the sky early before everything, as we hacked the wall renderer to draw earlier than the final flush.
     }
+
     skyOnView = false;
+}
+
+static void prepHeuristicSegInfo()
+{
+	const Fixed playerX = players.mo->x;
+	const Fixed playerY = players.mo->y;
+	viswall_t *viswall = WallSegPtr;
+    do {
+		seg_t *seg = viswall->SegPtr;
+		vertex_t *v1 = &seg->v1;
+		vertex_t *v2 = &seg->v2;
+		const int wallCenterX = (v1->x + v2->x) >> 1;
+		const int wallCenterY = (v1->y + v2->y) >> 1;
+		const int wallDist = GetApproxDistance(wallCenterX - playerX, wallCenterY - playerY) >> 16;
+
+		if (wallDist > FAR_DIST) {
+			viswall->renderKind = VW_FAR;
+		} else if (wallDist > MID_DIST) {
+			viswall->renderKind = VW_MID;
+		} else {
+			viswall->renderKind = VW_CLOSE;
+		}
+    } while (++viswall!=LastSegPtr);
 }
 
 static void StartSegLoop()
@@ -57,86 +85,71 @@ static void StartSegLoop()
     // Process all the wall segments
     PrepareSegLoop();
 
-    scaleArrayData = scaleArray;
-    scaleArrayIndex = 0;
+	prepHeuristicSegInfo();
+
+    columnStoreArrayData = columnStoreArray;
+    columnStoreArrayIndex = 0;
     do {
-        scaleArrayPtr[scaleArrayIndex++] = scaleArrayData;
-        SegLoop(WallSegPtr);
-    } while (++WallSegPtr<LastSegPtr);	// Next wall in chain
+		// Commenting also out the idea that didn't work, but could work in the future
+		//if (!isSegWallOccluded(WallSegPtr)) {
+			columnStoreArrayPtr[columnStoreArrayIndex++] = columnStoreArrayData;
+			SegLoop(WallSegPtr);
+		/*} else {
+			columnStoreArrayPtr[columnStoreArrayIndex++] = NULL;
+		}*/
+    } while (++WallSegPtr!=LastSegPtr);	// Next wall in chain
 }
 
 static void DrawWalls()
 {
     // Now I actually draw the walls back to front to allow for clipping because of slop
 
-    const bool lightShadingOn = (optGraphics->depthShading >= DEPTH_SHADING_DITHERED);
-    bool tooTightForPoly = false;
-
     LastSegPtr = viswalls;		// Stop at the first one
     if (optGraphics->renderer == RENDERER_DOOM) {
         do {
             --WallSegPtr;			// Last go backwards!!
-            scaleArrayData = scaleArrayPtr[--scaleArrayIndex];
-
-            WallSegPtr->distance >>= VISWALL_DISTANCE_PRESHIFT;
-            if (optGraphics->wallQuality == WALL_QUALITY_HI) {
-                if (lightShadingOn) {
-                    DrawSeg(WallSegPtr, scaleArrayData);
-                } else {
-                    DrawSegUnshaded(WallSegPtr, scaleArrayData);
-                }
-            } else {
-                if (lightShadingOn) {
-                    DrawSegFlat(WallSegPtr, scaleArrayData);
-                } else {
-                    DrawSegFlatUnshaded(WallSegPtr, scaleArrayData);
-                }
-            }
+			columnStoreArrayData = columnStoreArrayPtr[--columnStoreArrayIndex];
+			if (columnStoreArrayData) {
+				if (optGraphics->wallQuality == WALL_QUALITY_HI) {
+					DrawSeg(WallSegPtr, columnStoreArrayData);
+				} else {
+					DrawSegFlat(WallSegPtr, columnStoreArrayData);
+				}
+			}
         } while (WallSegPtr!=LastSegPtr);
     } else {
-    	bool previousWallsTooTight = false;
+		bool renderSwitchColumns = false;
+		bool prevRenderSwitchColumns = false;
         do {
             --WallSegPtr;			// Last go backwards!!
-            scaleArrayData = scaleArrayPtr[--scaleArrayIndex];
-
-            if (optGraphics->wallQuality ==  WALL_QUALITY_LO) {  // flat
-                DrawSegPoly(WallSegPtr, scaleArrayData); // so, always poly
-            } else {
-                const int pixLength = WallSegPtr->RightX - WallSegPtr->LeftX + 1;
-                const int threshold = 8;
-
-                if (pixLength < threshold) {
-                    tooTightForPoly = true;
-                } else {
-                	const int texWidth = WallSegPtr->t_texture->width;  // using top texture (center and top) for now
-                	int texLength;
-
-					texLeft = (WallSegPtr->offset - IMFixMul( finetangent[(WallSegPtr->CenterAngle+xtoviewangle[WallSegPtr->LeftX])>>ANGLETOFINESHIFT], WallSegPtr->distance)) >> FRACBITS;
-					texRight = (WallSegPtr->offset - IMFixMul( finetangent[(WallSegPtr->CenterAngle+xtoviewangle[WallSegPtr->RightX])>>ANGLETOFINESHIFT], WallSegPtr->distance)) >> FRACBITS;
-                	texLength = texRight - texLeft;
-
-                    if (texLength < 1) texLength = 1;
-                    tooTightForPoly = ((pixLength * texWidth) / texLength) < threshold;
-                }
-
-                WallSegPtr->distance >>= VISWALL_DISTANCE_PRESHIFT;
-                if (tooTightForPoly) {
-					if (lightShadingOn) {
-						DrawSeg(WallSegPtr, scaleArrayData);
+			columnStoreArrayData = columnStoreArrayPtr[--columnStoreArrayIndex];
+			if (columnStoreArrayData) {
+				if (optGraphics->wallQuality ==  WALL_QUALITY_LO) {  // flat
+					DrawSegPoly(WallSegPtr, columnStoreArrayData); // so, always poly
+				} else {
+					if (WallSegPtr->renderKind >= VW_FAR) {
+						renderSwitchColumns = true;
 					} else {
-						DrawSegUnshaded(WallSegPtr, scaleArrayData);
+						renderSwitchColumns = false;
 					}
-					previousWallsTooTight = true;
-                } else {
-                	if (previousWallsTooTight) {
-						flushCCBarrayWall();
-						previousWallsTooTight = false;
-                	}
-                    DrawSegPoly(WallSegPtr, scaleArrayData);  // go poly anyway
-                }
-            }
 
+					if (renderSwitchColumns) {
+						if (renderSwitchColumns != prevRenderSwitchColumns) {
+							flushCCBarrayPolyWall();
+						}
+						DrawSeg(WallSegPtr, columnStoreArrayData);
+					} else {
+						if (renderSwitchColumns != prevRenderSwitchColumns) {
+							flushCCBarrayWall();
+						}
+						DrawSegPoly(WallSegPtr, columnStoreArrayData);  // go poly anyway
+					}
+					prevRenderSwitchColumns = renderSwitchColumns;
+				}
+			}
         } while (WallSegPtr!=LastSegPtr);
+
+		flushCCBarrayPolyWall();
     }
 	flushCCBarrayWall();
 }
@@ -148,8 +161,11 @@ void DrawWallsWireframe()
     DisableHardwareClippingWithoutFlush();
 
     do {
-        scaleArrayData = scaleArrayPtr[--scaleArrayIndex];
-        DrawSegWireframe(--WallSegPtr, scaleArrayData);
+		--WallSegPtr;
+        columnStoreArrayData = columnStoreArrayPtr[--columnStoreArrayIndex];
+		if (columnStoreArrayData) {
+			DrawSegWireframe(WallSegPtr, columnStoreArrayData);
+		}
     } while (WallSegPtr!=LastSegPtr);
 
     FlushCCBs();
@@ -200,7 +216,9 @@ void SegCommandsSprites()
 {
 	DisableHardwareClipping();		// Sprites require full screen management
 
-	DrawSprites();		// Draw all the sprites (ZSorted and clipped)
+	//startBenchPeriod(3, "DrawSprites");
+		DrawSprites();		// Draw all the sprites (ZSorted and clipped)
+	//endBenchPeriod(3);
 }
 
 void SegCommands()
@@ -211,12 +229,20 @@ void SegCommands()
 
         DrawBackground();
 
+//startBenchPeriod(0, "StartSegLoop");
         StartSegLoop();
+//endBenchPeriod(0);
 
         if (enableWireframeMode) {
             DrawWallsWireframe();
         } else {
+
+//startBenchPeriod(1, "DrawWalls");
             DrawWalls();
+//endBenchPeriod(1);
+
+//startBenchPeriod(2, "DrawPlanes");
             DrawPlanes();
+//endBenchPeriod(2);
         }
 }

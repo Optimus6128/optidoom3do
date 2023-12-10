@@ -17,15 +17,28 @@ void G_DoLoadLevel(void)
 
 /* Set the sky map for the episode */
 
-	if (gamemap < 9 || gamemap==24) {			/* First 9 levels? */
-		Sky = rSKY1;
-	} else if (gamemap < 18) {
-		Sky = rSKY2;
+
+	if (enableFireSky && (gamemap==13 || (gamemap >= 16 && gamemap <= 22))) {
+		initFireSky();
+		optOther->sky = SKY_PLAYSTATION;
 	} else {
-		Sky = rSKY3;
+		deinitFireSky();
+		optOther->sky = SKY_DEFAULT;
+
+		if (gamemap < 9 || gamemap==24) {			/* First 9 levels? */
+			Sky = rSKY1;
+		} else if (gamemap < 18) {
+			Sky = rSKY2;
+		} else {
+			Sky = rSKY3;
+		}
+		
+		SkyTexture = &TextureInfo[Sky-FirstTexture];	/* Set pointer to sky texture record */
+		SkyTexture->data = LoadAResourceHandle(Sky);		/* Preload the sky texture */
 	}
- 	SkyTexture = &TextureInfo[Sky-FirstTexture];	/* Set pointer to sky texture record */
-	SkyTexture->data = LoadAResourceHandle(Sky);		/* Preload the sky texture */
+
+	copyMainScreenToRest();
+
 	SetupLevel(gamemap);	/* Load the level into memory */
 	gameaction = ga_nothing;		/* Game in progress */
 

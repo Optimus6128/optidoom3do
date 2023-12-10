@@ -1,7 +1,9 @@
 #include "Doom.h"
 #include "string.h"
+#include "bench.h"
 
 //#define DEBUG_MENU_HACK
+//#define SKY_MENU_TEST
 
 #define DEBUG1_OPTIONS_NUM 2
 #define DEBUG2_OPTIONS_NUM 4
@@ -12,6 +14,7 @@
 #define DEBUG7_OPTIONS_NUM 2
 #define DEBUG8_OPTIONS_NUM 2
 
+#define PROFSECS_OPTIONS_NUM 5
 
 #define OPTION_OFFSET_X     16      // Horizontal pixel offset of option name from end of label
 #define SLIDER_POSX         106     // X coord for slider bars
@@ -24,7 +27,7 @@ GraphicsOptions *optGraphics = &options.graphics;
 OtherOptions *optOther = &options.other;
 
 
-static AllOptions optionsDefault = {{FRAME_LIMIT_1VBL, SCREENSIZE_OPTIONS_NUM - 3, WALL_QUALITY_HI, PLANE_QUALITY_HI, SCREEN_SCALE_1x1, false, DEPTH_SHADING_ON, true, RENDERER_DOOM},
+static AllOptions optionsDefault = {{FRAME_LIMIT_1VBL, SCREENSIZE_OPTIONS_NUM - 3, WALL_QUALITY_HI, PLANE_QUALITY_HI, SCREEN_SCALE_1x1, false, DEPTH_SHADING_ON, true, RENDERER_DOOM, 0},
 									{INPUT_DPAD_ONLY, 3, 2, false, STATS_OFF, true, false, SKY_DEFAULT, 2, CHEATS_OFF, AUTOMAP_CHEAT_OFF, false, false, false, PLAYER_SPEED_1X, ENEMY_SPEED_1X, false, false}};
 
 static GraphicsOptions graphicsPresets[PRESET_OPTIONS_NUM] = {
@@ -44,7 +47,7 @@ static Word cursorFrame;		// Skull animation frame
 static Word cursorCount;		// Time mark to animate the skull
 static Word cursorPos;			// Y position of the skull
 static Word moveCount;			// Time mark to move the skull
-static Word toggleIDKFAcount;   // A count to turn IDKFA exclamation mark off after triggered (because it doesn't have two option states)
+static Word toggleCount;   // A count to turn IDKFA exclamation mark off after triggered (because it doesn't have two option states)
 bool useOffscreenBuffer = false;// Use only when screen scale is not 1x1
 
 
@@ -120,6 +123,12 @@ enum {
     mi_dbg7,
     mi_dbg8,
 #endif
+
+#ifdef PROFILE_ON
+	mi_profiler,
+	mi_profSecs,
+#endif
+
 	mi_frameLimit,		// Frame limit options
 	mi_screenSize,      // Screen size settings
 	mi_wallQuality,     // Wall quality (textured, flat)
@@ -130,10 +139,13 @@ enum {
 	mi_shading_depth,   // Depth shading option (on, dithered, off (dark/bright))
 	mi_shading_items,   // Shading enable option for items (weapons, enemies, things, etc)
 	mi_renderer,        // Selection of the new renderers (polygons instead of columns, etc)
+	mi_gamma,			// Gamma correction
 	mi_border,			// Draw background border (on/off)
 	mi_mapLines,        // Map thick lines on/off
+#ifdef SKY_MENU_TEST
 	mi_sky,             // New skies
 	mi_firesky_slider,  // Slider to change firesky height
+#endif
 	mi_enableCheats,    // Switch to enable cheats
 	mi_cheatAutomap,    // Automap enable cheat
 	mi_cheatNoclip,     // Clip through walls cheat
@@ -154,6 +166,9 @@ enum {
     page_debug1,
     page_debug2,
 #endif
+#ifdef PROFILE_ON
+	page_bench,
+#endif
     page_performance,
     page_rendering1,
     page_rendering2,
@@ -168,9 +183,10 @@ enum {
 #define MOUSE_SENSITIVITY_Y_MAX 4
 
 #define OFFON_OPTIONS_NUM 2
-#define DUMMY_IDKFA_OPTIONS_NUM 2
+#define DUMMY_TOGGLE_OPTIONS_NUM 2
 #define THICK_LINES_OPTIONS_NUM 2
 #define SKY_HEIGHTS_OPTIONS_NUM 4
+#define GAMMA_OPTIONS_NUM 8
 
 static char *frameLimitOptionsStr[FRAME_LIMIT_OPTIONS_NUM] = { "UNLIMITED", "1VBL", "2VBL", "3VBL", "4VBL", "VSYNC" };
 static char *presetOptionsStr[PRESET_OPTIONS_NUM] = { "ATARI", "AMIGA", "SNES", "GBA", "32X", "JAGUAR", "DEFAULT", "FASTER", "CUSTOM", "MAX" };
@@ -183,9 +199,13 @@ static char *screenScaleOptionsStr[SCREEN_SCALE_OPTIONS_NUM] = { "1x1", "2x1", "
 static char *depthShadingOptionsStr[DEPTH_SHADING_OPTIONS_NUM] = { "DARK", "BRIGHT", "DITHER", "ON" };
 static char *rendererOptionsStr[RENDERER_OPTIONS_NUM] = { "DOOM", "POLY" };
 static char *automapOptionsStr[AUTOMAP_OPTIONS_NUM] = { "OFF", "THINGS", "LINES", "ALL" };
-static char *dummyIDKFAoptionsStr[DUMMY_IDKFA_OPTIONS_NUM] = { " ", "!" };
+static char *dummyToggleOptionsStr[DUMMY_TOGGLE_OPTIONS_NUM] = { " ", "!" };
 static char *thicklinesOptionsStr[THICK_LINES_OPTIONS_NUM] = { "NORMAL", "THICK" };
-static char *skyOptionsStr[SKY_OPTIONS_NUM] = { "DEFAULT", "DAY", "NIGHT", "DUSK", "DAWN", "PSX" };
+
+#ifdef SKY_MENU_TEST
+	static char *skyOptionsStr[SKY_OPTIONS_NUM] = { "DEFAULT", "DAY", "NIGHT", "DUSK", "DAWN", "PSX" };
+#endif
+
 static char *playerSpeedOptionsStr[PLAYER_SPEED_OPTIONS_NUM] = { "1X", "1.5X", "2X" };
 static char *enemySpeedOptionsStr[ENEMY_SPEED_OPTIONS_NUM] = { "0X", "0.5X", "1X", "2X" };
 
@@ -229,6 +249,9 @@ static Word itemPage[NUM_MENUITEMS];
 static char *pageLabel[NUM_PAGES] = { "AUDIO", "CONTROLS",
 #ifdef DEBUG_MENU_HACK
 "DEBUG 1", "DEBUG 2",
+#endif
+#ifdef PROFILE_ON
+"BENCH",
 #endif
 "PERFORMANCE", "RENDERING", "RENDERING", "CHEATS", "EXTRA" };
 
@@ -322,6 +345,12 @@ static void initDefaultDebugOptions()
 }
 #endif
 
+#ifdef PROFILE_ON
+	Word opt_profiler;
+	Word opt_profSecs;
+#endif
+
+
 static void copyGraphicsOptions(GraphicsOptions *optDst, GraphicsOptions *optSrc)
 {
 	memcpy(optDst, optSrc, sizeof(GraphicsOptions));
@@ -349,6 +378,8 @@ static void initScreenChangeVariables(bool shouldInitMathTables)
 	}
 	setupOffscreenCel();
 	initCCBarraySky();
+
+	updateGamma(optGraphics->gamma, GAMMA_OPTIONS_NUM, false);
 }
 
 void setPrimaryMenuOptions() // Set menu options only once at start up
@@ -359,6 +390,11 @@ void setPrimaryMenuOptions() // Set menu options only once at start up
 #ifdef DEBUG_MENU_HACK
 	initDefaultDebugOptions();
 	opt_dbg8 = 0;
+#endif
+
+#ifdef PROFILE_ON
+	opt_profiler = 0;
+	opt_profSecs = PROFSECS_OPTIONS_NUM-1;
 #endif
 }
 
@@ -394,6 +430,12 @@ void initMenuOptions()
     setItemPageRange(mi_dbg5, mi_dbg8, page_debug2);
 #endif
 
+#ifdef PROFILE_ON
+	setMenuItemWithOptionNames(mi_profiler, 64, 64, "Profile", false, muiStyle_text, &opt_profiler, OFFON_OPTIONS_NUM, offOnOptionsStr);
+	setMenuItem(mi_profSecs, 160, 128, "Seconds", true, muiStyle_slider, &opt_profSecs, PROFSECS_OPTIONS_NUM);
+	setItemPageRange(mi_profiler, mi_profSecs, page_bench);
+#endif
+
     setMenuItemWithOptionNames(mi_frameLimit, 32, 36, "Frame max", false, muiStyle_text, &optGraphics->frameLimit, FRAME_LIMIT_OPTIONS_NUM, frameLimitOptionsStr);
     setMenuItem(mi_screenSize, 160, 58, "Screen size", true, muiStyle_slider, &optGraphics->screenSizeIndex, SCREENSIZE_OPTIONS_NUM);
     setMenuItemWithOptionNames(mi_wallQuality, 112, 94, "Wall", false, muiStyle_text | muiStyle_slider, &optGraphics->wallQuality, WALL_QUALITY_OPTIONS_NUM, wallQualityOptionsStr);
@@ -408,18 +450,25 @@ void initMenuOptions()
     setMenuItemWithOptionNames(mi_renderer, 48, 140, "Renderer", false, muiStyle_text, &optGraphics->renderer, RENDERER_OPTIONS_NUM, rendererOptionsStr);
     setItemPageRange(mi_presets, mi_renderer, page_rendering1);
 
-    setMenuItemWithOptionNames(mi_border, 40, 40, "Draw border", false, muiStyle_text, &optOther->border, OFFON_OPTIONS_NUM,offOnOptionsStr);
-    setMenuItemWithOptionNames(mi_mapLines, 48, 60, "Map lines", false, muiStyle_text, &optOther->thickLines, THICK_LINES_OPTIONS_NUM, thicklinesOptionsStr);
 
-    setMenuItemWithOptionNames(mi_sky, 96, 100, "Sky", false, muiStyle_text, &optOther->sky, SKY_OPTIONS_NUM, skyOptionsStr); setMenuItemVisibility(mi_sky, enableNewSkies);
-    setMenuItem(mi_firesky_slider, 96, 120, 0, false, muiStyle_slider, &optOther->fireSkyHeight, SKY_HEIGHTS_OPTIONS_NUM); setMenuItemVisibility(mi_firesky_slider, false);
-    setItemPageRange(mi_border, mi_firesky_slider, page_rendering2);
+	setMenuItem(mi_gamma, 160, 40, "Gamma", true, muiStyle_slider, &optGraphics->gamma, GAMMA_OPTIONS_NUM);
+
+    setMenuItemWithOptionNames(mi_border, 40, 80, "Draw border", false, muiStyle_text, &optOther->border, OFFON_OPTIONS_NUM,offOnOptionsStr);
+    setMenuItemWithOptionNames(mi_mapLines, 48, 100, "Map lines", false, muiStyle_text, &optOther->thickLines, THICK_LINES_OPTIONS_NUM, thicklinesOptionsStr);
+
+	#ifdef SKY_MENU_TEST
+		setMenuItemWithOptionNames(mi_sky, 96, 120, "Sky", false, muiStyle_text, &optOther->sky, SKY_OPTIONS_NUM, skyOptionsStr); setMenuItemVisibility(mi_sky, enableFireSky);
+		setMenuItem(mi_firesky_slider, 96, 120, 0, false, muiStyle_slider, &optOther->fireSkyHeight, SKY_HEIGHTS_OPTIONS_NUM); setMenuItemVisibility(mi_firesky_slider, false);
+		setItemPageRange(mi_gamma, mi_firesky_slider, page_rendering2);
+	#else
+		setItemPageRange(mi_gamma, mi_mapLines, page_rendering2);
+	#endif
 
     setMenuItem(mi_enableCheats, 160, 40, "Enable cheats", true, muiStyle_slider, &optOther->cheatsRevealed, CHEATS_REVEALED_OPTIONS_NUM);
     setMenuItemWithOptionNames(mi_cheatAutomap, 96, 80, "Automap", false, muiStyle_text, &optOther->cheatAutomap, AUTOMAP_OPTIONS_NUM, automapOptionsStr);     setMenuItemVisibility(mi_cheatAutomap, false);
     setMenuItemWithOptionNames(mi_cheatNoclip, 96, 100, "Noclip", false, muiStyle_text, &optOther->cheatNoclip, OFFON_OPTIONS_NUM, offOnOptionsStr);      setMenuItemVisibility(mi_cheatNoclip, false);
     setMenuItemWithOptionNames(mi_cheatIDDQD, 96, 122, "IDDQD", false, muiStyle_text, &optOther->cheatIDDQD, OFFON_OPTIONS_NUM, offOnOptionsStr);        setMenuItemVisibility(mi_cheatIDDQD, false);
-    setMenuItemWithOptionNames(mi_cheatIDKFA, 96, 144, "IDKFA", false, muiStyle_text, &optOther->cheatIDKFAdummy, DUMMY_IDKFA_OPTIONS_NUM, dummyIDKFAoptionsStr);        setMenuItemVisibility(mi_cheatIDKFA, false);
+    setMenuItemWithOptionNames(mi_cheatIDKFA, 96, 144, "IDKFA", false, muiStyle_text, &optOther->cheatIDKFAdummy, DUMMY_TOGGLE_OPTIONS_NUM, dummyToggleOptionsStr);        setMenuItemVisibility(mi_cheatIDKFA, false);
     setItemPageRange(mi_enableCheats, mi_cheatIDKFA, page_cheats);
 
     setMenuItemWithOptionNames(mi_playerSpeed, 60, 40, "Player speed", false, muiStyle_text, &optOther->playerSpeed, PLAYER_SPEED_OPTIONS_NUM, playerSpeedOptionsStr);
@@ -483,7 +532,7 @@ void O_Init(void)
 	cursorCount = 0;		// Init skull cursor state
 	cursorFrame = 0;
 	cursorPos = 0;
-	toggleIDKFAcount = 0;
+	toggleCount = 0;
 
     initMenuOptions();
 }
@@ -573,19 +622,25 @@ static void handleSpecialMenuItemActions(player_t *player, Word menuItemIndex)
             initPlaneCELs();
         break;
 
-        case mi_sky:
-            setMenuItemVisibility(mi_firesky_slider, (optOther->sky==SKY_PLAYSTATION));
-        break;
-
 		case mi_input:
 			setMenuItemVisibility(mi_controls, optOther->input==INPUT_DPAD_ONLY);
 			setMenuItemVisibility(mi_sensitivityX, optOther->input > INPUT_DPAD_ONLY);
 			setMenuItemVisibility(mi_sensitivityY, optOther->input == INPUT_MOUSE_ONLY);
 		break;
 
+#ifdef SKY_MENU_TEST
+        case mi_sky:
+            setMenuItemVisibility(mi_firesky_slider, (optOther->sky==SKY_PLAYSTATION));
+        break;
+
         case mi_firesky_slider:
             updateFireSkyHeightPal();
         break;
+#endif
+
+		case mi_gamma:
+			updateGamma(optGraphics->gamma, GAMMA_OPTIONS_NUM, true);
+		break;
 
         case mi_enableCheats:
             handleCheatsMenuVisibility();
@@ -611,6 +666,18 @@ static void handleSpecialMenuItemActions(player_t *player, Word menuItemIndex)
             applyIDKFA(player);
             S_StartSound(0,sfx_rxplod);
         break;
+
+#ifdef PROFILE_ON
+        case mi_profiler:
+		case mi_profSecs:
+			if (opt_profiler==0) {
+				stopProfiling();
+			} else {
+				startProfiling(opt_profSecs+1);
+			}
+		break;
+
+#endif
 
         case mi_flyMode:
             toggleFlyMode(player);
@@ -849,9 +916,9 @@ static void handleSpecialMenuItemDrawingUpdates(Word id)
 
         case mi_cheatIDKFA:
             if (*menuItems[id].optionValuePtr == 1) {
-                toggleIDKFAcount += ElapsedTime;
-                if (toggleIDKFAcount >= (TICKSPERSEC/2)) {
-                    toggleIDKFAcount = 0;
+                toggleCount += ElapsedTime;
+                if (toggleCount >= (TICKSPERSEC/2)) {
+                    toggleCount = 0;
                     *menuItems[id].optionValuePtr = 0;
                 }
             }

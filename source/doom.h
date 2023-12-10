@@ -3,6 +3,8 @@
 #include "Sounds.h"
 #include "DoomRez.h"
 
+#include "bench.h"
+
 /****************************
 
 	Global defines
@@ -19,7 +21,7 @@
 #define	FINEMASK (FINEANGLES-1)	/* Rounding mask for table */
 #define	ANGLETOFINESHIFT 19		/* Convert angle_t to fineangle table */
 #define	ANGLETOSKYSHIFT	22		/* sky map is 256*128*4 maps */
-#define VISWALL_DISTANCE_PRESHIFT 8		// Early preshift of the stored viswall distance, to allow me to replace IMFixMul with regular mul in the rendering critical parts
+#define VISWALL_DISTANCE_PRESHIFT 12			// Early preshift of the stored viswall distance, to allow me to replace IMFixMul with regular mul in the rendering critical parts
 #define	MINZ (FRACUNIT*4)		/* Closest z allowed */
 #define FIELDOFVIEW 2048		/* 90 degrees of view */
 #define BFGCELLS 40				/* Number of energy units per blast */
@@ -503,6 +505,7 @@ typedef struct seg_s {		/* Structure for a line segment */
 	vertex_t v1,v2;			/* Source and dest points */
 	angle_t angle;			/* Angle of the vector */
 	Fixed offset;			/* Extra shape offset */
+	//Word length;			// Length of segments
 	side_t *sidedef;		/* Pointer to the connected side */
 	line_t *linedef;		/* Pointer to the connected line */
 	sector_t *frontsector;	/* Sector on the front side */
@@ -545,6 +548,8 @@ typedef struct {		/* Describe all wall textures */
 #define AC_BOTTOMSIL 256
 #define AC_SOLIDSIL 512
 
+enum { VW_CLOSE, VW_MID, VW_FAR, VW_DISCARD };
+
 typedef struct {		/* Describe a wall segment to be drawn */
 	Word LeftX;			/* Leftmost x screen coord */
 	Word RightX; 		/* Rightmost inclusive x coordinates */
@@ -569,8 +574,9 @@ typedef struct {		/* Describe a wall segment to be drawn */
 	int	ceilingheight;
 	int	ceilingnewheight;
 	
-	Word color;
-	Word special;
+	Word color;			// Possibly the prestored color for flat rendering
+	Word special;		// Used to mark for special effects like fog, warp, color, etc..
+	Word renderKind;	// To mark based on distance, which renderer to switch to (polygon, column, unlit column, maybe discard)
 
 	Fixed LeftScale;	/* LeftX Scale */
 	Fixed RightScale;	/* RightX scale */
@@ -582,6 +588,7 @@ typedef struct {		/* Describe a wall segment to be drawn */
 	angle_t CenterAngle;	/* Center angle */
 	Fixed offset;			/* Offset to the texture */
 	Word distance;
+	Word seglightlevelContrast;	// Added for fake contrast, previously I did it early and affected the visplanes
 	Word seglightlevel;
 	seg_t *SegPtr;			/* Pointer to line segment for clipping */
 } viswall_t;

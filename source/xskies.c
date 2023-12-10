@@ -7,10 +7,12 @@
 #include <Init3do.h>
 #include <celutils.h>
 
+/*
 #define GRADIENT_SKY_HEIGHT 128
 #define GRADIENT_SKIES_NUM 4
 CCB *gradientSkyCel[GRADIENT_SKIES_NUM];
 uint16 *gradientSkyBmp;
+*/
 
 #define FIRESKY_PIECES 4
 #define FIRESKY_WIDTH 32
@@ -26,13 +28,14 @@ uint16 *fireSkyPal;
 #define RANDTAB_SIZE (FIRESKY_WIDTH * FIRESKY_HEIGHT + RANDTAB_OFFSET)
 static uint8 *randTab;
 
+static bool fireSkyIsInit = false;
 
 int getSkyScale()
 {
     return (Fixed)(1048576.0*((float)ScreenHeight/160.0));
 }
 
-void setSkyColors(int r0,int g0,int b0, int r1,int g1,int b1, int r2,int g2,int b2, int r3,int g3,int b3, int r4,int g4,int b4, uint16 *bmp)
+/*void setSkyColors(int r0,int g0,int b0, int r1,int g1,int b1, int r2,int g2,int b2, int r3,int g3,int b3, int r4,int g4,int b4, uint16 *bmp)
 {
     const int qHeight = GRADIENT_SKY_HEIGHT/4;
     setColorGradient16(0,qHeight, r0,g0,b0, r1,g1,b1, bmp);
@@ -41,15 +44,9 @@ void setSkyColors(int r0,int g0,int b0, int r1,int g1,int b1, int r2,int g2,int 
     setColorGradient16(3*qHeight,(4*qHeight)-1, r3,g3,b3, r4,g4,b4, bmp);
 }
 
-void initNewSkies()
+static void initGradientSkies()
 {
-    int i;
-    const int lowSkyCol = 8;
-
     gradientSkyBmp = (uint16*)AllocAPointer(2 * GRADIENT_SKIES_NUM * GRADIENT_SKY_HEIGHT);
-    fireSkyBmp = (uint8*)AllocAPointer(FIRESKY_WIDTH * FIRESKY_HEIGHT);
-    fireSkyPal = (uint16*)AllocAPointer(2 * SKY_HEIGHT_PALS * SKY_COLORS_NUM);
-    randTab = (uint8*)AllocAPointer(RANDTAB_SIZE);
 
     for (i=0; i<GRADIENT_SKIES_NUM; ++i) {
         gradientSkyCel[i] = CreateCel(GRADIENT_SKY_HEIGHT, 1, 16, CREATECEL_UNCODED, &gradientSkyBmp[GRADIENT_SKY_HEIGHT * i]);
@@ -86,31 +83,57 @@ void initNewSkies()
             break;
         }
     }
+}*/
 
-    fireSkyCel = CreateCel(FIRESKY_WIDTH, FIRESKY_HEIGHT, 8, CREATECEL_CODED, fireSkyBmp);
-    fireSkyCel->ccb_YPos = 0;
-    fireSkyCel->ccb_HDY = 0;
-    fireSkyCel->ccb_VDX = 0;
+void initFireSky()
+{
+	skyOnView = true;	// force to true so that in first frame during doom wipe, will clear the garbage before manually set to true if sky is visible during game logic.
 
-    for (i=0; i<SKY_HEIGHT_PALS; ++i) {
-        int skyI = (SKY_HEIGHT_PALS - i - 1) * lowSkyCol;
-        uint16 *currentPal = &fireSkyPal[SKY_COLORS_NUM * i];
-        int colStep = (SKY_COLORS_NUM - skyI) / SKY_HEIGHT_PALS;
-        setColorGradient16(0, skyI-1, 8,8,8, 8,8,8, currentPal);
-        setColorGradient16(skyI, skyI+colStep, 8,8,8, 144,40,8, currentPal); skyI += colStep;
-        setColorGradient16(skyI, skyI+colStep, 144,40,8, 216,136,8, currentPal); skyI += colStep;
-        setColorGradient16(skyI, skyI+colStep, 216,136,8, 200,152,32, currentPal); skyI += colStep;
-        setColorGradient16(skyI, 31, 200,152,32, 255,255,255, currentPal);
-    }
+	if (!fireSkyIsInit) {
+		int i;
+		const int lowSkyCol = 8;
 
-    updateFireSkyHeightPal();
+		fireSkyBmp = (uint8*)AllocAPointer(FIRESKY_WIDTH * FIRESKY_HEIGHT);
+		fireSkyPal = (uint16*)AllocAPointer(2 * SKY_HEIGHT_PALS * SKY_COLORS_NUM);
+		randTab = (uint8*)AllocAPointer(RANDTAB_SIZE);
 
-    // Clean up fire sky buffer and fill fire base with max
-    memset(fireSkyBmp, 0, (FIRESKY_HEIGHT-1) * FIRESKY_WIDTH);
-    memset(&fireSkyBmp[(FIRESKY_HEIGHT-1) * FIRESKY_WIDTH], 31, FIRESKY_WIDTH);
+		fireSkyCel = CreateCel(FIRESKY_WIDTH, FIRESKY_HEIGHT, 8, CREATECEL_CODED, fireSkyBmp);
+		fireSkyCel->ccb_YPos = 0;
+		fireSkyCel->ccb_HDY = 0;
+		fireSkyCel->ccb_VDX = 0;
 
-	for (i = 0; i < RANDTAB_SIZE; ++i) {
-		randTab[i] = (uint8)(rand() % 3);
+		for (i=0; i<SKY_HEIGHT_PALS; ++i) {
+			int skyI = (SKY_HEIGHT_PALS - i - 1) * lowSkyCol;
+			uint16 *currentPal = &fireSkyPal[SKY_COLORS_NUM * i];
+			int colStep = (SKY_COLORS_NUM - skyI) / SKY_HEIGHT_PALS;
+			setColorGradient16(0, skyI-1, 8,8,8, 8,8,8, currentPal);
+			setColorGradient16(skyI, skyI+colStep, 8,8,8, 144,40,8, currentPal); skyI += colStep;
+			setColorGradient16(skyI, skyI+colStep, 144,40,8, 216,136,8, currentPal); skyI += colStep;
+			setColorGradient16(skyI, skyI+colStep, 216,136,8, 200,152,32, currentPal); skyI += colStep;
+			setColorGradient16(skyI, 31, 200,152,32, 255,255,255, currentPal);
+		}
+
+		updateFireSkyHeightPal();
+
+		// Clean up fire sky buffer and fill fire base with max
+		memset(fireSkyBmp, 0, (FIRESKY_HEIGHT-1) * FIRESKY_WIDTH);
+		memset(&fireSkyBmp[(FIRESKY_HEIGHT-1) * FIRESKY_WIDTH], 31, FIRESKY_WIDTH);
+
+		for (i = 0; i < RANDTAB_SIZE; ++i) {
+			randTab[i] = (uint8)(rand() % 3);
+		}
+
+		fireSkyIsInit = true;
+	}
+}
+
+void deinitFireSky()
+{
+	if (fireSkyIsInit) {
+		DeallocAPointer(fireSkyBmp);
+		DeallocAPointer(fireSkyPal);
+		DeallocAPointer(randTab);
+		fireSkyIsInit = false;
 	}
 }
 
@@ -170,7 +193,7 @@ void updateFireSkyHeightPal()
 void drawNewSky(int which)
 {
     switch(which) {
-        case SKY_GRADIENT_DAY:
+        /*case SKY_GRADIENT_DAY:
         case SKY_GRADIENT_DAWN:
         case SKY_GRADIENT_NIGHT:
         case SKY_GRADIENT_DUSK:
@@ -182,7 +205,7 @@ void drawNewSky(int which)
 
             AddCelToCurrentCCB(skyCel);
         }
-        break;
+        break;*/
 
         case SKY_PLAYSTATION:
             drawFireSky();

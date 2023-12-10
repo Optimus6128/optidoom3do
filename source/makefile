@@ -11,7 +11,7 @@ AS 		= $(ARMDEV)bin/armasm
 LD		= $(ARMDEV)bin/armlink
 RM		= $(3DODEV)bin/rm
 MODBIN	= $(3DODEV)bin/modbin
-CCFLAGS = -O2 -Otime -bi -zps1 -za1 -wn -ff -fa -d DEBUG=0 -cpu ARM6 
+CCFLAGS = -O2 -Otime -bi -zps1 -za1 -wn -ff -fa -d DEBUG=0 -cpu ARM6
 ASFLAGS = -BI
 INCPATH	= -I$(3DODEV)includes -I$(INTERNAL_LIBS)burger -I$(INTERNAL_LIBS)intmath
 LDFLAGS = -aif -r -b 0x00 -sym $(NAME).sym 

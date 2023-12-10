@@ -121,8 +121,6 @@ void initAllCCBelements()
     initCCBQuadWallFlat();
     initCCBQuadWallTextured();
 
-	if (enableNewSkies) initNewSkies();
-
 	initFog();
 }
 
@@ -720,21 +718,68 @@ void DrawSpriteCenter(Word SpriteNum)
 
 **********************************/
 
+/*static void drawOverlayCCB(Word ccbFlags, Word color)
+{
+	BitmapCCB *DestCCB = CurrentCCB;		// Copy pointer to local
+
+	if (DestCCB>=&CCBArray[CCBTotal]) {		// Am I full already?
+		FlushCCBs();				// Draw all the CCBs/Lines
+		DestCCB=CCBArray;
+	}
+
+	DestCCB->ccb_Flags =ccbFlags;	// ccb_flags
+	DestCCB->ccb_PIXC = 0x1F80;		// PIXC control
+	DestCCB->ccb_PRE0 = 0x40000016;		// Preamble
+	DestCCB->ccb_PRE1 = 0x03FF1000;		// Second preamble
+	DestCCB->ccb_SourcePtr = (CelData *)0;	// Save the source ptr
+	DestCCB->ccb_PLUTPtr = (void *)color;		// Set the color pixel
+	DestCCB->ccb_XPos = ScreenXOffset<<16;		// Set the x and y coord for start
+	DestCCB->ccb_YPos = ScreenYOffset<<16;
+	DestCCB->ccb_HDX = ScreenWidth<<20;		// OK
+	DestCCB->ccb_HDY = 0<<20;
+	DestCCB->ccb_VDX = 0<<16;
+	DestCCB->ccb_VDY = ScreenHeight<<16;
+	++DestCCB;			// Next CCB
+	CurrentCCB = DestCCB;	// Save the CCB pointer
+}
+
+static void drawOverlay(Word red, Word green, Word blue, bool invulerability)
+{
+	Word ccbFlags, color;
+
+	if (invulerability) {
+		color = 0x7FFF<<16;
+		ccbFlags = CCB_LDSIZE|CCB_PXOR|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK;
+		drawOverlayCCB(ccbFlags, color);
+	} else {
+		color = (red<<10)|(green<<5)|blue;
+		if (color==0) return;
+
+		color <<=16;
+		ccbFlags = CCB_LDSIZE|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK;
+		drawOverlayCCB(ccbFlags, color);
+	}
+}*/
+
 void DrawColors(void)
 {
-	BitmapCCB *DestCCB;			/* Pointer to new CCB entry */
 	player_t *player;
-	Word ccb,color;
+	Word shade;
 	Word red,green,blue;
 
+	static bool wasColorized = false;
+	static bool wasInvul = false;
+
 	player = &players;
-	if (player->powers[pw_invulnerability] > 240		/* Full strength */
-		|| (player->powers[pw_invulnerability]&16) ) {	/* Flashing... */
-		color = 0x7FFF<<16;
-		ccb = CCB_LDSIZE|CCB_PXOR|
-		CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|
-		CCB_ACE|CCB_BGND|CCB_NOBLK;
-		goto DrawIt;
+	if (player->powers[pw_invulnerability] > 0) {
+		if (player->powers[pw_invulnerability] > 240		/* Full strength */
+			|| (player->powers[pw_invulnerability]&16) ) {	/* Flashing... */
+				wasInvul = true;
+				updateVDL(true);
+		} else if (wasInvul) {
+			updateVDL(false);
+			wasInvul = false;
+		}
 	}
 
 	red = player->damagecount;		/* Get damage inflicted */
@@ -749,9 +794,9 @@ void DrawColors(void)
 
 	if (player->powers[pw_strength]			/* Berserker pack? */
 		&& (player->powers[pw_strength]< 255) ) {
-		color = 255-player->powers[pw_strength];
-		color >>= 4;
-		red+=color;		/* Feeling good! */
+		shade = 255-player->powers[pw_strength];
+		shade >>= 4;
+		red+=shade;		/* Feeling good! */
 	}
 
 	if (red>=32) {
@@ -764,35 +809,16 @@ void DrawColors(void)
 		blue = 31;
 	}
 
-	color = (red<<10)|(green<<5)|blue;
-
-	if (!color) {
-		return;
+	if (red!=0 || green!=0 || blue!=0) {
+		colorizeVDL(red << 3, green << 3, blue << 3);
+		wasColorized = true;
+	} else if (wasColorized) {
+		updateVDL(false);
+		wasColorized = false;
 	}
-	color <<=16;
-	ccb = CCB_LDSIZE|
-		CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|
-		CCB_ACE|CCB_BGND|CCB_NOBLK;
+	//drawOverlay(red, green, blue, false);
 
-DrawIt:
-	DestCCB = CurrentCCB;		/* Copy pointer to local */
-	if (DestCCB>=&CCBArray[CCBTotal]) {		/* Am I full already? */
-		FlushCCBs();				/* Draw all the CCBs/Lines */
-		DestCCB=CCBArray;
-	}
-
-	DestCCB->ccb_Flags =ccb;	/* ccb_flags */
-	DestCCB->ccb_PIXC = 0x1F80;		/* PIXC control */
-	DestCCB->ccb_PRE0 = 0x40000016;		/* Preamble */
-	DestCCB->ccb_PRE1 = 0x03FF1000;		/* Second preamble */
-	DestCCB->ccb_SourcePtr = (CelData *)0;	/* Save the source ptr */
-	DestCCB->ccb_PLUTPtr = (void *)color;		/* Set the color pixel */
-	DestCCB->ccb_XPos = ScreenXOffset<<16;		/* Set the x and y coord for start */
-	DestCCB->ccb_YPos = ScreenYOffset<<16;
-	DestCCB->ccb_HDX = ScreenWidth<<20;		/* OK */
-	DestCCB->ccb_HDY = 0<<20;
-	DestCCB->ccb_VDX = 0<<16;
-	DestCCB->ccb_VDY = ScreenHeight<<16;
-	++DestCCB;			/* Next CCB */
-	CurrentCCB = DestCCB;	/* Save the CCB pointer */
+	//drawOverlay(0,0,0, true);
+	//drawOverlay(3,7,15, false);
+	//colorizeVDL(255, 127, 63);
 }
